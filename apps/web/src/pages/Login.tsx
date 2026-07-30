@@ -1,5 +1,4 @@
-import { Container, Button, Input, Card } from "@gadget-wallet/ui";
-import { motion } from "framer-motion";
+import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
@@ -15,35 +14,40 @@ export default function Login() {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch {
       setError("Invalid email or password");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
+    <section>
       <Container>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto">
-          <Card className="p-8">
-            <h1 className="text-2xl font-display font-bold mb-2 text-center">Welcome Back</h1>
-            <p className="text-gw-text-secondary text-center mb-8">Sign in to your Gadget Wallet account</p>
-            {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-[24px] border border-gw-border p-8">
+            <h1 className="text-2xl font-bold text-gw-black mb-2 text-center">Welcome Back</h1>
+            <p className="text-gw-gray-500 text-center mb-8">Sign in to your Gadget Wallet account</p>
+            {error && <p className="text-gw-red text-sm mb-4 text-center">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input label="Email" type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Input label="Password" type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               <div className="text-right">
-                <Link to="/forgot-password" className="text-sm text-gw-accent hover:underline">Forgot password?</Link>
+                <Link to="/forgot-password" className="text-sm text-gw-red hover:text-gw-red-hover">Forgot password?</Link>
               </div>
-              <Button type="submit" variant="primary" className="w-full">Sign In</Button>
+              <Button type="submit" variant="primary" className="w-full h-12">Sign In</Button>
             </form>
-            <p className="text-center text-sm text-gw-text-secondary mt-6">
+            <p className="text-center text-sm text-gw-gray-500 mt-6">
               Don't have an account?{" "}
-              <Link to="/register" className="text-gw-accent hover:underline">Create one</Link>
+              <Link to="/register" className="text-gw-red hover:text-gw-red-hover font-medium">Create one</Link>
             </p>
-          </Card>
-        </motion.div>
+          </div>
+        </div>
       </Container>
-    </div>
+    </section>
   );
 }

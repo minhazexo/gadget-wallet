@@ -1,25 +1,22 @@
 import { Container, Button } from "@gadget-wallet/ui";
-import { motion } from "framer-motion";
 import { Home } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
+    <section className="min-h-[70vh] flex items-center">
       <Container>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <h1 className="text-8xl font-display font-bold gradient-text mb-4">404</h1>
-          <p className="text-xl text-gw-text-secondary mb-8">The page you're looking for doesn't exist.</p>
-          <a href="/">
-            <Button variant="primary">
-              <Home className="w-4 h-4 mr-2" /> Back to Home
-            </Button>
-          </a>
-        </motion.div>
+        <div className="text-center max-w-md mx-auto">
+          <div className="bg-white border border-gw-border rounded-[24px] p-10">
+            <h1 className="text-7xl font-extrabold text-gw-red mb-4">404</h1>
+            <p className="text-gw-gray-500 mb-8">The page you're looking for doesn't exist.</p>
+            <a href="/">
+              <Button variant="primary" className="h-12">
+                <Home className="w-4 h-4 mr-2" /> Back to Home
+              </Button>
+            </a>
+          </div>
+        </div>
       </Container>
-    </div>
+    </section>
   );
 }

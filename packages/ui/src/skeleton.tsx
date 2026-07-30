@@ -13,13 +13,6 @@ export function Skeleton({ variant = "text", className, ...props }: SkeletonProp
   };
 
   return (
-    <div
-      className={cn(
-        "animate-pulse bg-white/10",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    />
+    <div className={cn("animate-pulse bg-gray-200", variants[variant], className)} {...props} />
   );
 }

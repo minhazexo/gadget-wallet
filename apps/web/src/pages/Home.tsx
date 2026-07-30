@@ -1,7 +1,6 @@
-import { motion } from "framer-motion";
 import { Container, Button, Card, Badge } from "@gadget-wallet/ui";
-import { ChevronDown, Star, Shield, Truck, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Star, Truck, Shield, Wallet, Lock, Clock } from "lucide-react";
 import api from "../lib/api";
 
 interface Product {
@@ -17,326 +16,290 @@ interface Product {
   isBestSeller: boolean;
 }
 
-const brands = [
-  { name: "Apple", color: "#555" },
-  { name: "Samsung", color: "#1428A0" },
-  { name: "Sony", color: "#000" },
-  { name: "ASUS", color: "#000" },
-  { name: "Logitech", color: "#00B8FC" },
-  { name: "Dell", color: "#007DB8" },
-  { name: "Bose", color: "#000" },
-  { name: "Canon", color: "#000" },
+const categories = [
+  { name: "Smartphones", slug: "smartphones", img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=128&q=80" },
+  { name: "Laptops", slug: "laptops", img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=128&q=80" },
+  { name: "Smartwatches", slug: "smartwatches", img: "https://images.unsplash.com/photo-1546868871-af0de0ae72d8?w=128&q=80" },
+  { name: "Headphones", slug: "headphones", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=128&q=80" },
+  { name: "Gaming", slug: "gaming", img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=128&q=80" },
+  { name: "Cameras", slug: "cameras", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=128&q=80" },
 ];
 
-const testimonials = [
+const brands = ["Apple", "Samsung", "Sony", "ASUS", "Logitech", "Dell", "Bose", "Canon"];
+
+const reviews = [
   { name: "Alex M.", text: "Absolutely love my new MacBook! The delivery was incredibly fast and the packaging was premium.", rating: 5 },
   { name: "Sarah K.", text: "Best electronics store I've ever shopped at. The customer service is outstanding.", rating: 5 },
   { name: "James R.", text: "Got my Sony headphones at an amazing price. Will definitely be a returning customer.", rating: 5 },
+  { name: "Emma L.", text: "The iPhone arrived in 2 days. Authentic product with official warranty. Highly recommended!", rating: 5 },
 ];
 
 export default function Home() {
   const [featured, setFeatured] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
-  const [bestSellers, setBestSellers] = useState<Product[]>([]);
 
   useEffect(() => {
     Promise.all([
       api.get("/products/featured"),
       api.get("/products/new-arrivals"),
-      api.get("/products/best-sellers"),
-    ]).then(([f, n, b]) => {
+    ]).then(([f, n]) => {
       setFeatured(f.data.data || []);
       setNewArrivals(n.data.data || []);
-      setBestSellers(b.data.data || []);
     });
   }, []);
 
   return (
     <div>
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1920"
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="https://videos.pexels.com/video-files/3195398/3195398-uhd_2560_1440_30fps.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-gw-bg/80 via-gw-bg/60 to-gw-bg" />
-        <div className="absolute inset-0 bg-gradient-to-r from-gw-accent/10 to-gw-accent-secondary/10" />
-
-        <Container className="relative z-10 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-              className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-6"
-            >
-              Experience the{" "}
-              <span className="gradient-text">Future</span>
-              <br />of Technology
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-lg md:text-xl text-gw-text-secondary mb-10 max-w-2xl mx-auto"
-            >
-              Premium gadgets delivered to your doorstep.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="flex items-center justify-center gap-4"
-            >
-              <Button variant="primary" size="lg">
-                Shop Now
-              </Button>
-              <Button variant="outline" size="lg">
-                Explore Collection
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2"
-          >
-            <ChevronDown className="w-6 h-6 text-gw-text-secondary animate-scroll-indicator" />
-          </motion.div>
+      <section className="pt-0">
+        <Container>
+          <div className="relative min-h-[520px] rounded-hero overflow-hidden bg-gw-black">
+            <div className="absolute inset-0 bg-gradient-to-r from-black/65 to-black/25 z-10" />
+            <img
+              src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1320&q=80"
+              alt="Hero"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="relative z-20 flex items-center min-h-[520px] px-10 md:px-16">
+              <div className="max-w-[520px]">
+                <p className="text-gw-red font-semibold text-sm mb-3 tracking-wider uppercase">Premium Electronics Store</p>
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+                  Experience the Future of Technology
+                </h1>
+                <p className="text-white/70 text-lg mb-8">
+                  Premium gadgets delivered to your doorstep with official warranty.
+                </p>
+                <div className="flex gap-3">
+                  <a href="/shop">
+                    <Button variant="primary" size="lg" className="rounded-full px-8">
+                      Shop Now
+                    </Button>
+                  </a>
+                  <a href="/categories">
+                    <Button variant="outline" size="lg" className="rounded-full px-8 border-white/30 text-white hover:bg-white/10">
+                      Explore Collection
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </Container>
-
-        <div className="absolute top-1/4 left-10 w-64 h-64 bg-gw-accent/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/4 right-10 w-80 h-80 bg-gw-accent-secondary/20 rounded-full blur-[120px]" />
       </section>
 
-      <Container className="py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Featured Products</h2>
-          <p className="text-gw-text-secondary mb-10">Curated selection of our finest electronics</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featured.slice(0, 4).map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
+      <section>
+        <Container>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: Truck, title: "Fast Delivery", desc: "2-5 business days" },
+              { icon: Shield, title: "Official Warranty", desc: "100% authentic products" },
+              { icon: Wallet, title: "Cash on Delivery", desc: "Pay when you receive" },
+              { icon: Lock, title: "Secure Payment", desc: "256-bit SSL encrypted" },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-3.5 bg-white border border-gw-border rounded-[20px] p-5">
+                <div className="w-12 h-12 rounded-full bg-gw-red/10 flex items-center justify-center shrink-0">
+                  <item.icon className="w-6 h-6 text-gw-red" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gw-black">{item.title}</p>
+                  <p className="text-xs text-gw-gray-500">{item.desc}</p>
+                </div>
+              </div>
             ))}
           </div>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">New Arrivals</h2>
-          <p className="text-gw-text-secondary mb-10">The latest gadgets just landed</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {newArrivals.slice(0, 4).map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
+      <section>
+        <Container>
+          <div className="section-header">
+            <h2>Popular Categories</h2>
+            <a href="/categories">View All &rarr;</a>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {categories.map((cat) => (
+              <a
+                key={cat.slug}
+                href={`/category/${cat.slug}`}
+                className="bg-white border border-gw-border rounded-category p-6 text-center hover:-translate-y-1 hover:shadow-gw-md transition-all duration-300 group"
+              >
+                <img src={cat.img} alt={cat.name} className="w-16 h-16 object-contain mx-auto mb-3" />
+                <p className="text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
+              </a>
             ))}
           </div>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative rounded-2xl overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 to-gw-bg/80 z-10" />
-          <img
-            src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200"
-            alt="Gaming Collection"
-            className="w-full h-[400px] object-cover"
-          />
-          <div className="absolute inset-0 z-20 flex items-center p-10">
-            <div>
-              <h3 className="text-4xl font-display font-bold mb-4">Gaming Collection</h3>
-              <p className="text-gw-text-secondary mb-6 max-w-md">Level up your setup with the latest gaming gear</p>
-              <Button variant="secondary">Shop Gaming</Button>
+      <section>
+        <Container>
+          <div className="section-header">
+            <h2>Featured Products</h2>
+            <a href="/shop">View All &rarr;</a>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+            {featured.slice(0, 10).map((product, i) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      <section className="bg-gw-bg">
+        <Container>
+          <div className="section-header">
+            <h2>Flash Sale</h2>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5">
+                {[
+                  { label: "02", unit: "Hours" },
+                  { label: "45", unit: "Mins" },
+                  { label: "30", unit: "Secs" },
+                ].map((t) => (
+                  <div key={t.unit} className="w-14 h-14 rounded-xl bg-gw-black text-white flex flex-col items-center justify-center">
+                    <span className="text-lg font-extrabold leading-none">{t.label}</span>
+                    <span className="text-[10px] text-white/60">{t.unit}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </motion.div>
-      </Container>
-
-      <Container className="py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Best Sellers</h2>
-          <p className="text-gw-text-secondary mb-10">Most popular products our customers love</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {bestSellers.slice(0, 4).map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+            {featured.slice(0, 5).map((product) => (
+              <ProductCard key={product.id} product={product} showSale />
             ))}
           </div>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative rounded-2xl overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-l from-blue-900/80 to-gw-bg/80 z-10" />
-          <img
-            src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200"
-            alt="Laptop Collection"
-            className="w-full h-[400px] object-cover"
-          />
-          <div className="absolute inset-0 z-20 flex items-center justify-end p-10">
-            <div className="text-right">
-              <h3 className="text-4xl font-display font-bold mb-4">Laptop Collection</h3>
-              <p className="text-gw-text-secondary mb-6 max-w-md ml-auto">Power and portability for every professional</p>
-              <Button variant="primary">Shop Laptops</Button>
-            </div>
+      <section>
+        <Container>
+          <div className="section-header">
+            <h2>New Arrivals</h2>
+            <a href="/shop">View All &rarr;</a>
           </div>
-        </motion.div>
-      </Container>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+            {newArrivals.slice(0, 10).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 text-center">Top Brands</h2>
-          <p className="text-gw-text-secondary mb-10 text-center">We carry the world's most trusted brands</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section>
+        <Container>
+          <div className="section-header">
+            <h2>Top Brands</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             {brands.map((brand) => (
-              <div key={brand.name} className="glass rounded-xl p-6 flex items-center justify-center hover:border-gw-accent/30 transition-all cursor-pointer">
-                <span className="text-xl font-bold opacity-50 hover:opacity-100 transition-opacity">
-                  {brand.name}
+              <div key={brand} className="bg-white border border-gw-border rounded-category p-5 flex items-center justify-center hover:shadow-gw-sm transition-shadow cursor-pointer">
+                <span className="text-sm font-bold text-gw-gray-300 opacity-70 hover:opacity-100 transition-opacity">
+                  {brand}
                 </span>
               </div>
             ))}
           </div>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4 text-center">What Our Customers Say</h2>
-          <p className="text-gw-text-secondary mb-10 text-center">Trusted by thousands of customers worldwide</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <Card key={i} glass className="p-6">
+      <section>
+        <Container>
+          <div className="section-header">
+            <h2>What Our Customers Say</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {reviews.map((r, i) => (
+              <div key={i} className="bg-white border border-gw-border rounded-[24px] p-6">
                 <div className="flex items-center gap-1 mb-3">
-                  {Array.from({ length: t.rating }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  {Array.from({ length: r.rating }).map((_, j) => (
+                    <Star key={j} className="w-4 h-4 fill-gw-yellow text-gw-yellow" />
                   ))}
                 </div>
-                <p className="text-gw-text-secondary mb-4">"{t.text}"</p>
-                <p className="font-semibold text-gw-text-primary">{t.name}</p>
-              </Card>
+                <p className="text-sm text-gw-gray-500 mb-4 leading-relaxed">"{r.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gw-red/10 flex items-center justify-center text-sm font-bold text-gw-red">
+                    {r.name[0]}
+                  </div>
+                  <p className="text-sm font-semibold text-gw-black">{r.name}</p>
+                </div>
+              </div>
             ))}
           </div>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
 
-      <Container className="py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="glass rounded-2xl p-12 text-center"
-        >
-          <h2 className="text-3xl font-display font-bold mb-4">Stay Updated</h2>
-          <p className="text-gw-text-secondary mb-8 max-w-md mx-auto">
-            Subscribe to get notified about new arrivals, exclusive deals, and tech news.
-          </p>
-          <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 bg-gw-bg border border-white/10 rounded-lg text-gw-text-primary placeholder:text-gw-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-gw-accent/50"
-            />
-            <Button variant="primary">Subscribe</Button>
+      <section>
+        <Container>
+          <div className="bg-gw-black rounded-newsletter p-10 md:p-12 text-center">
+            <h2 className="text-3xl font-bold text-white mb-3">Stay Updated</h2>
+            <p className="text-white/60 mb-8 max-w-md mx-auto">
+              Subscribe to get notified about new arrivals, exclusive deals, and tech news.
+            </p>
+            <div className="flex items-center justify-center gap-3 max-w-lg mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="flex-1 h-[52px] px-6 rounded-full border-none bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-gw-red/50"
+              />
+              <Button variant="primary" size="lg" className="rounded-full px-8 h-[52px]">
+                Subscribe
+              </Button>
+            </div>
           </div>
-        </motion.div>
-      </Container>
-
-      <Container className="pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          <Card glass className="p-6 flex items-start gap-4">
-            <Shield className="w-8 h-8 text-gw-accent shrink-0" />
-            <div>
-              <h3 className="font-semibold mb-1">2-Year Warranty</h3>
-              <p className="text-sm text-gw-text-secondary">All products covered by manufacturer warranty</p>
-            </div>
-          </Card>
-          <Card glass className="p-6 flex items-start gap-4">
-            <Truck className="w-8 h-8 text-gw-accent shrink-0" />
-            <div>
-              <h3 className="font-semibold mb-1">Free Shipping</h3>
-              <p className="text-sm text-gw-text-secondary">Free delivery on orders over $100</p>
-            </div>
-          </Card>
-          <Card glass className="p-6 flex items-start gap-4">
-            <RotateCcw className="w-8 h-8 text-gw-accent shrink-0" />
-            <div>
-              <h3 className="font-semibold mb-1">30-Day Returns</h3>
-              <p className="text-sm text-gw-text-secondary">Hassle-free returns within 30 days</p>
-            </div>
-          </Card>
-        </motion.div>
-      </Container>
+        </Container>
+      </section>
     </div>
   );
 }
 
-function ProductCard({ product, index }: { product: Product; index: number }) {
+function ProductCard({ product, showSale }: { product: Product; showSale?: boolean }) {
+  const discount = product.discountPrice
+    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+    : 0;
+
   return (
-    <motion.a
+    <a
       href={`/product/${product.slug}`}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ y: -5 }}
-      className="group"
+      className="bg-white rounded-product border border-gw-border overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300 group"
     >
-      <Card className="overflow-hidden">
-        <div className="relative aspect-square overflow-hidden bg-gw-surface">
-          <img
-            src={product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isNewArrival && <Badge variant="new">New</Badge>}
-            {product.isBestSeller && <Badge variant="best">Best Seller</Badge>}
-            {product.discountPrice && <Badge variant="sale">Sale</Badge>}
-          </div>
+      <div className="relative p-5 bg-white">
+        {discount > 0 && (
+          <span className="absolute top-3 left-3 bg-gw-red text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+            -{discount}%
+          </span>
+        )}
+        {showSale && (
+          <span className="absolute top-3 right-3 bg-gw-yellow text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+            Sale
+          </span>
+        )}
+        <img
+          src={product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
+          alt={product.name}
+          className="w-full aspect-square object-contain transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+      </div>
+      <div className="px-5 pb-5">
+        <h3 className="text-sm font-semibold text-gw-black line-clamp-2 min-h-[2.5rem]">
+          {product.name}
+        </h3>
+        <div className="flex items-center gap-1 mt-1.5">
+          <Star className="w-3.5 h-3.5 fill-gw-yellow text-gw-yellow" />
+          <span className="text-xs text-gw-gray-500">{product.rating}</span>
         </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-sm group-hover:text-gw-accent transition-colors line-clamp-1">
-            {product.name}
-          </h3>
-          <div className="flex items-center gap-1 mt-1">
-            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs text-gw-text-secondary">{product.rating} ({product.reviewCount})</span>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            {product.discountPrice ? (
-              <>
-                <span className="text-lg font-bold text-gw-accent">${product.discountPrice}</span>
-                <span className="text-sm text-gw-text-secondary line-through">${product.price}</span>
-              </>
-            ) : (
-              <span className="text-lg font-bold">${product.price}</span>
-            )}
-          </div>
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-2xl font-extrabold text-gw-red">
+            ${product.discountPrice || product.price}
+          </span>
+          {product.discountPrice && (
+            <span className="text-sm text-gw-gray-300 line-through">${product.price}</span>
+          )}
         </div>
-      </Card>
-    </motion.a>
+        <button className="mt-4 w-full h-11 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-all">
+          Add to Cart
+        </button>
+      </div>
+    </a>
   );
 }

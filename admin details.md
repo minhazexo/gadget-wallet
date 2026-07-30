@@ -1,0 +1,1 @@
+1 admin user (admin@gadgetwallet.com / admin123)

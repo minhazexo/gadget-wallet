@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminProductDetail from "./pages/admin/AdminProductDetail";
 import AdminOrders from "./pages/admin/AdminOrders";
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
+            <Route path="products/:id" element={<AdminProductDetail />} />
             <Route path="orders" element={<AdminOrders />} />
           </Route>
           <Route path="*" element={<NotFound />} />

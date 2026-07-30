@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import { join } from "path";
 import { authRoutes } from "./routes/auth";
 import { productRoutes } from "./routes/products";
 import { categoryRoutes } from "./routes/categories";
@@ -20,6 +21,32 @@ app.use("*", logger());
 app.use("*", secureHeaders());
 
 app.get("/api/health", (c) => c.json({ success: true, message: "Gadget Wallet API is running" }));
+
+// Serve uploaded files
+app.get("/uploads/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  if (!filename || filename.includes("..")) {
+    return c.json({ success: false, error: "Invalid filename" }, 400);
+  }
+  const filepath = join(import.meta.dir, "..", "uploads", filename);
+  const file = Bun.file(filepath);
+  const exists = await file.exists();
+  if (!exists) {
+    return c.json({ success: false, error: "File not found" }, 404);
+  }
+  const ext = filename.split(".").pop()?.toLowerCase();
+  const mimeMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+  };
+  return new Response(file, {
+    headers: { "Content-Type": mimeMap[ext || ""] || "application/octet-stream" },
+  });
+});
 
 app.route("/api/auth", authRoutes);
 app.route("/api/products", productRoutes);

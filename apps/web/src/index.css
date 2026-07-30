@@ -9,21 +9,36 @@
     box-sizing: border-box;
   }
 
-  html {
-    scroll-behavior: smooth;
-  }
-
   body {
     font-family: "Inter", system-ui, sans-serif;
-    background-color: #0B0F19;
-    color: #F9FAFB;
+    color: #111827;
+    background: #f8fafc;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background-color: rgba(0, 212, 255, 0.3);
-    color: #F9FAFB;
+    background-color: rgba(225, 29, 46, 0.15);
+  }
+
+  a {
+    transition: color .2s ease;
+  }
+
+  button:not(:active) {
+    transition: all .2s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  img {
+    transition: transform .3s ease;
   }
 
   ::-webkit-scrollbar {
@@ -31,29 +46,45 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0B0F19;
+    background: #f1f5f9;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #1f2937;
+    background: #cbd5e1;
     border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #374151;
   }
 }
 
 @layer components {
-  .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  .container-gw {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 16px;
   }
 
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-gw-accent to-gw-accent-secondary;
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
   }
 
-  .glow {
-    box-shadow: 0 0 30px rgba(0, 212, 255, 0.15), 0 0 60px rgba(0, 212, 255, 0.05);
+  .section-header h2 {
+    font-size: 32px;
+    font-weight: 700;
+  }
+
+  .section-header a {
+    color: #e11d2e;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .section-header a:hover {
+    color: #c1121f;
+  }
+
+  section {
+    padding: 64px 0;
   }
 }

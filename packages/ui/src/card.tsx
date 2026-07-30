@@ -3,17 +3,12 @@ import type { ReactNode, HTMLAttributes } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
-  glass?: boolean;
 }
 
-export function Card({ children, glass, className, ...props }: CardProps) {
+export function Card({ children, className, ...props }: CardProps) {
   return (
     <div
-      className={cn(
-        "rounded-xl border border-white/10 bg-gw-surface/80 backdrop-blur-sm shadow-xl",
-        glass && "bg-white/5 backdrop-blur-xl border-white/10",
-        className,
-      )}
+      className={cn("bg-white rounded-product border border-gw-border overflow-hidden shadow-gw-sm", className)}
       {...props}
     >
       {children}
@@ -23,7 +18,7 @@ export function Card({ children, glass, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("p-6 border-b border-white/10", className)} {...props}>
+    <div className={cn("p-5 border-b border-gw-border", className)} {...props}>
       {children}
     </div>
   );
@@ -31,7 +26,7 @@ export function CardHeader({ children, className, ...props }: CardProps) {
 
 export function CardContent({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("p-6", className)} {...props}>
+    <div className={cn("p-5", className)} {...props}>
       {children}
     </div>
   );
@@ -39,7 +34,7 @@ export function CardContent({ children, className, ...props }: CardProps) {
 
 export function CardFooter({ children, className, ...props }: CardProps) {
   return (
-    <div className={cn("p-6 border-t border-white/10", className)} {...props}>
+    <div className={cn("p-5 border-t border-gw-border", className)} {...props}>
       {children}
     </div>
   );

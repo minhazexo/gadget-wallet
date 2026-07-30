@@ -1,5 +1,4 @@
-import { Container, Card } from "@gadget-wallet/ui";
-import { motion } from "framer-motion";
+import { Container } from "@gadget-wallet/ui";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -16,36 +15,34 @@ export default function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <div className="pt-20 min-h-screen">
-      <Container className="py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-display font-bold mb-4 text-center">Frequently Asked Questions</h1>
-          <p className="text-gw-text-secondary mb-10 text-center">Find answers to common questions about our products and services.</p>
+    <section>
+      <Container>
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gw-black mb-3">Frequently Asked Questions</h2>
+            <p className="text-gw-gray-500">Find answers to common questions about our products and services.</p>
+          </div>
 
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <Card key={i} className="overflow-hidden">
+              <div key={i} className="bg-white border border-gw-border rounded-[24px] overflow-hidden transition-all duration-200">
                 <button
                   onClick={() => setOpen(open === i ? null : i)}
-                  className="w-full p-5 flex items-center justify-between text-left"
+                  className="w-full p-5 flex items-center justify-between text-left hover:bg-gw-bg transition-colors"
                 >
-                  <span className="font-medium">{faq.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-gw-text-secondary transition-transform ${open === i ? "rotate-180" : ""}`} />
+                  <span className="font-medium text-gw-black text-sm">{faq.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-gw-gray-300 shrink-0 ml-4 transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
                 </button>
                 {open === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    className="px-5 pb-5"
-                  >
-                    <p className="text-gw-text-secondary">{faq.a}</p>
-                  </motion.div>
+                  <div className="px-5 pb-5 border-t border-gw-border">
+                    <p className="text-sm text-gw-gray-500 pt-4">{faq.a}</p>
+                  </div>
                 )}
-              </Card>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </Container>
-    </div>
+    </section>
   );
 }

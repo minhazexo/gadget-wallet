@@ -1,5 +1,4 @@
-import { Container, Button, Input, Card } from "@gadget-wallet/ui";
-import { motion } from "framer-motion";
+import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
@@ -23,26 +22,26 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
+    <section>
       <Container>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto">
-          <Card className="p-8">
-            <h1 className="text-2xl font-display font-bold mb-2 text-center">Create Account</h1>
-            <p className="text-gw-text-secondary text-center mb-8">Join Gadget Wallet today</p>
-            {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-[24px] border border-gw-border p-8">
+            <h1 className="text-2xl font-bold text-gw-black mb-2 text-center">Create Account</h1>
+            <p className="text-gw-gray-500 text-center mb-8">Join Gadget Wallet today</p>
+            {error && <p className="text-gw-red text-sm mb-4 text-center">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input label="Full Name" id="name" value={name} onChange={(e) => setName(e.target.value)} required />
               <Input label="Email" type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Input label="Password" type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-              <Button type="submit" variant="primary" className="w-full">Create Account</Button>
+              <Button type="submit" variant="primary" className="w-full h-12">Create Account</Button>
             </form>
-            <p className="text-center text-sm text-gw-text-secondary mt-6">
+            <p className="text-center text-sm text-gw-gray-500 mt-6">
               Already have an account?{" "}
-              <Link to="/login" className="text-gw-accent hover:underline">Sign in</Link>
+              <Link to="/login" className="text-gw-red hover:text-gw-red-hover font-medium">Sign in</Link>
             </p>
-          </Card>
-        </motion.div>
+          </div>
+        </div>
       </Container>
-    </div>
+    </section>
   );
 }
