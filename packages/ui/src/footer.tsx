@@ -38,9 +38,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-2">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-gw-accent to-gw-accent-secondary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">G</span>
-              </div>
+              <img src="/logo.png" alt="Gadget Wallet" className="w-8 h-8 object-contain" />
               <span className="font-display text-xl font-bold text-white">
                 Gadget<span className="text-gw-accent">Wallet</span>
               </span>
