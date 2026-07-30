@@ -1,0 +1,22 @@
+{
+  "name": "gadget-wallet",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --env-file=.env --parallel dev:web dev:server",
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev:server": "bun run --cwd apps/server dev",
+    "build": "bun run --cwd apps/web build && bun run --cwd apps/server build",
+    "db:generate": "bun run --cwd packages/db generate",
+    "db:push": "bun run --env-file=.env --cwd packages/db push",
+    "db:seed": "bun run --env-file=.env --cwd packages/db seed",
+    "lint": "bun run --cwd apps/web lint",
+    "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/server typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

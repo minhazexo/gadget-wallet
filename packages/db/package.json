@@ -1,0 +1,25 @@
+{
+  "name": "@gadget-wallet/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "push": "drizzle-kit push",
+    "seed": "bun run src/seed.ts",
+    "migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@gadget-wallet/types": "workspace:*",
+    "drizzle-orm": "^0.33.0",
+    "postgres": "^3.4.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.24.0",
+    "@types/bcryptjs": "^2.4.6"
+  }
+}
