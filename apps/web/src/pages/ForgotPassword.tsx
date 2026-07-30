@@ -6,7 +6,7 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false);
 
   return (
-    <section className="min-h-[70vh] flex items-center">
+    <section>
       <Container>
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-[24px] border border-gw-border p-8 text-center">
@@ -14,16 +14,14 @@ export default function ForgotPassword() {
             {sent ? (
               <>
                 <p className="text-gw-gray-500 mb-6">Check your email for the reset link.</p>
-                <Link to="/login"><Button variant="primary" className="h-12">Back to Login</Button></Link>
+                <Link to="/login"><Button variant="primary">Back to Login</Button></Link>
               </>
             ) : (
               <>
                 <p className="text-gw-gray-500 mb-8">Enter your email and we'll send you a reset link.</p>
-                <div className="space-y-4 text-left">
+                <div className="space-y-4">
                   <Input label="Email" type="email" id="email" placeholder="your@email.com" />
-                  <Button variant="primary" className="w-full h-12" onClick={() => setSent(true)}>
-                    Send Reset Link
-                  </Button>
+                  <Button variant="primary" className="w-full h-12" onClick={() => setSent(true)}>Send Reset Link</Button>
                 </div>
               </>
             )}

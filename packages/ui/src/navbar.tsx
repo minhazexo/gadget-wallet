@@ -34,7 +34,7 @@ export function Navbar() {
       </div>
       <div className={cn("bg-white transition-shadow duration-200", isScrolled && "shadow-gw-sm")}>
         <Container>
-          <div className="flex items-center h-[100px] gap-6">
+          <div className="flex items-center h-[72px] md:h-[100px] gap-4 md:gap-6">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="lg:hidden p-2 text-gw-gray-500 hover:text-gw-red transition-colors"
@@ -44,7 +44,7 @@ export function Navbar() {
             </button>
 
             <a href="/" className="flex items-center gap-2 shrink-0">
-              <img src="/logo.png" alt="Gadget Wallet" className="h-[64px] w-auto" />
+              <img src="/logo.png" alt="Gadget Wallet" className="h-10 md:h-[64px] w-auto" />
             </a>
 
             <div className="hidden lg:flex items-center flex-1 max-w-[600px] mx-auto">
@@ -62,15 +62,15 @@ export function Navbar() {
             </div>
 
             <div className="flex items-center gap-0 ml-auto">
-              <a href="/login" className="p-3 text-gw-gray-500 hover:text-gw-red transition-colors" aria-label="Account">
-                <User className="w-8 h-8" />
+              <a href="/login" className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors" aria-label="Account">
+                <User className="w-6 h-6 md:w-8 md:h-8" />
               </a>
-              <a href="/wishlist" className="p-3 text-gw-gray-500 hover:text-gw-red transition-colors" aria-label="Wishlist">
-                <Heart className="w-8 h-8" />
+              <a href="/wishlist" className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors" aria-label="Wishlist">
+                <Heart className="w-6 h-6 md:w-8 md:h-8" />
               </a>
-              <a href="/cart" className="p-3 text-gw-gray-500 hover:text-gw-red transition-colors relative" aria-label="Cart">
-                <ShoppingCart className="w-8 h-8" />
-                <span className="absolute -top-1 -right-1 w-[26px] h-[26px] rounded-full bg-gw-red text-white text-[14px] font-bold flex items-center justify-center shadow-sm">
+              <a href="/cart" className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors relative" aria-label="Cart">
+                <ShoppingCart className="w-6 h-6 md:w-8 md:h-8" />
+                <span className="absolute -top-1 -right-1 w-[22px] h-[22px] md:w-[26px] md:h-[26px] rounded-full bg-gw-red text-white text-[11px] md:text-[14px] font-bold flex items-center justify-center shadow-sm">
                   0
                 </span>
               </a>

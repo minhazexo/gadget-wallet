@@ -1,37 +1,33 @@
-import { Container, Button, Input } from "@gadget-wallet/ui";
+import { Container, Button, Input, Card } from "@gadget-wallet/ui";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
 export default function Contact() {
   return (
     <section>
       <Container>
-        <div className="section-header">
-          <h2>Contact Us</h2>
-        </div>
-        <p className="text-gw-gray-500 mb-10 -mt-5">We'd love to hear from you. Get in touch with our team.</p>
+        <h1 className="text-3xl font-bold text-gw-black mb-4">Contact Us</h1>
+        <p className="text-gw-gray-500 mb-10">We'd love to hear from you. Get in touch with our team.</p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="space-y-6">
             {[
-              { icon: Mail, title: "Email", desc: "support@gadgetwallet.com" },
-              { icon: Phone, title: "Phone", desc: "+1 (555) 000-0000" },
-              { icon: MapPin, title: "Address", desc: "123 Tech Street, San Francisco, CA 94102" },
-              { icon: Clock, title: "Business Hours", desc: "Mon - Fri: 9AM - 6PM EST" },
+              { icon: Mail, label: "Email", value: "support@gadgetwallet.com" },
+              { icon: Phone, label: "Phone", value: "+1 (555) 000-0000" },
+              { icon: MapPin, label: "Address", value: "123 Tech Street, San Francisco, CA 94102" },
+              { icon: Clock, label: "Business Hours", value: "Mon - Fri: 9AM - 6PM EST" },
             ].map((item) => (
-              <div key={item.title} className="bg-white border border-gw-border rounded-category p-5 flex items-start gap-4 hover:shadow-gw-sm transition-all">
-                <div className="w-10 h-10 rounded-full bg-gw-red/10 flex items-center justify-center shrink-0">
-                  <item.icon className="w-5 h-5 text-gw-red" />
-                </div>
+              <div key={item.label} className="flex items-start gap-4">
+                <item.icon className="w-5 h-5 text-gw-red mt-1" />
                 <div>
-                  <h3 className="font-semibold text-gw-black">{item.title}</h3>
-                  <p className="text-sm text-gw-gray-500">{item.desc}</p>
+                  <h3 className="font-semibold text-gw-black">{item.label}</h3>
+                  <p className="text-gw-gray-500">{item.value}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-white border border-gw-border rounded-[24px] p-6">
-            <h3 className="text-lg font-semibold text-gw-black mb-6">Send us a Message</h3>
+          <Card className="p-6">
+            <h3 className="font-semibold text-lg text-gw-black mb-4">Send us a Message</h3>
             <div className="space-y-4">
               <Input label="Name" placeholder="Your name" />
               <Input label="Email" type="email" placeholder="your@email.com" />
@@ -40,12 +36,12 @@ export default function Contact() {
                 <textarea
                   rows={4}
                   placeholder="How can we help you?"
-                  className="w-full px-4 py-2.5 bg-white border border-gw-border rounded-btn text-gw-black placeholder:text-gw-gray-300 focus:outline-none focus:ring-2 focus:ring-gw-red/20 focus:border-gw-red transition-all duration-200 resize-none"
+                  className="w-full px-4 py-2.5 bg-white border border-gw-border rounded-btn text-gw-black placeholder:text-gw-gray-300 focus:outline-none focus:ring-2 focus:ring-gw-red/20 focus:border-gw-red resize-none"
                 />
               </div>
-              <Button variant="primary" className="h-12">Send Message</Button>
+              <Button variant="primary">Send Message</Button>
             </div>
-          </div>
+          </Card>
         </div>
       </Container>
     </section>

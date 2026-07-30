@@ -27,7 +27,7 @@ export function Footer() {
   return (
     <footer className="bg-gw-footer text-slate-300">
       <Container>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 py-10 md:py-16">
           <div>
             <a href="/" className="flex items-center gap-2 mb-4">
               <img src="/logo.png" alt="Gadget Wallet" className="h-16 w-auto brightness-0 invert" />

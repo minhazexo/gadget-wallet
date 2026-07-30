@@ -18,24 +18,22 @@ export default function FAQ() {
     <section>
       <Container>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gw-black mb-3">Frequently Asked Questions</h2>
-            <p className="text-gw-gray-500">Find answers to common questions about our products and services.</p>
-          </div>
+          <h1 className="text-3xl font-bold text-gw-black mb-4 text-center">Frequently Asked Questions</h1>
+          <p className="text-gw-gray-500 mb-10 text-center">Find answers to common questions about our products and services.</p>
 
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <div key={i} className="bg-white border border-gw-border rounded-[24px] overflow-hidden transition-all duration-200">
+              <div key={i} className="bg-white border border-gw-border rounded-[20px] overflow-hidden">
                 <button
                   onClick={() => setOpen(open === i ? null : i)}
-                  className="w-full p-5 flex items-center justify-between text-left hover:bg-gw-bg transition-colors"
+                  className="w-full p-5 flex items-center justify-between text-left"
                 >
-                  <span className="font-medium text-gw-black text-sm">{faq.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-gw-gray-300 shrink-0 ml-4 transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
+                  <span className="font-medium text-gw-black">{faq.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-gw-gray-300 transition-transform shrink-0 ${open === i ? "rotate-180" : ""}`} />
                 </button>
                 {open === i && (
-                  <div className="px-5 pb-5 border-t border-gw-border">
-                    <p className="text-sm text-gw-gray-500 pt-4">{faq.a}</p>
+                  <div className="px-5 pb-5">
+                    <p className="text-gw-gray-500">{faq.a}</p>
                   </div>
                 )}
               </div>

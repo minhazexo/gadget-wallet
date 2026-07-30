@@ -1,7 +1,16 @@
-import { Container, Button, Card, Badge } from "@gadget-wallet/ui";
+import { Container, Button } from "@gadget-wallet/ui";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Star, Truck, Shield, Wallet, Lock, Clock } from "lucide-react";
 import api from "../lib/api";
+import {
+  heroContainer,
+  heroItem,
+  staggerContainer,
+  staggerItem,
+  staggerContainerFast,
+} from "../lib/animations";
+import { SectionReveal } from "../components/PageTransition";
 
 interface Product {
   id: string;
@@ -50,204 +59,349 @@ export default function Home() {
 
   return (
     <div>
+      {/* ── Hero ── */}
       <section className="pt-0">
         <Container>
-          <div className="relative min-h-[520px] rounded-hero overflow-hidden bg-gw-black">
+          <motion.div
+            variants={heroContainer}
+            initial="hidden"
+            animate="visible"
+            className="relative min-h-[360px] md:min-h-[520px] rounded-hero overflow-hidden bg-gw-black"
+          >
+            <motion.div
+              initial={{ scale: 1.1, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="absolute inset-0"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1320&q=80"
+                alt="Hero"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </motion.div>
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 to-black/25 z-10" />
-            <img
-              src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1320&q=80"
-              alt="Hero"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="relative z-20 flex items-center min-h-[520px] px-10 md:px-16">
-              <div className="max-w-[520px]">
-                <p className="text-gw-red font-semibold text-sm mb-3 tracking-wider uppercase">Premium Electronics Store</p>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+            <div className="relative z-20 flex items-center min-h-[360px] md:min-h-[520px] px-6 md:px-16">
+              <motion.div variants={heroItem} className="max-w-[520px]">
+                <p className="text-gw-red font-semibold text-xs md:text-sm mb-2 md:mb-3 tracking-wider uppercase">
+                  Premium Electronics Store
+                </p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3 md:mb-4">
                   Experience the Future of Technology
                 </h1>
-                <p className="text-white/70 text-lg mb-8">
+                <p className="text-white/70 text-sm md:text-lg mb-6 md:mb-8 max-w-[420px]">
                   Premium gadgets delivered to your doorstep with official warranty.
                 </p>
-                <div className="flex gap-3">
+                <motion.div variants={heroItem} className="flex flex-wrap gap-3">
                   <a href="/shop">
-                    <Button variant="primary" size="lg" className="rounded-full px-8">
-                      Shop Now
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant="primary" size="lg" className="rounded-full px-6 md:px-8 h-11 md:h-12 text-xs md:text-sm">
+                        Shop Now
+                      </Button>
+                    </motion.div>
                   </a>
                   <a href="/categories">
-                    <Button variant="outline" size="lg" className="rounded-full px-8 border-white/30 text-white hover:bg-white/10">
-                      Explore Collection
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant="outline" size="lg" className="rounded-full px-6 md:px-8 h-11 md:h-12 text-xs md:text-sm border-white/30 text-white hover:bg-white/10">
+                        Explore Collection
+                      </Button>
+                    </motion.div>
                   </a>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </Container>
       </section>
 
-      <section>
+      {/* ── Service Strip ── */}
+      <SectionReveal>
         <Container>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+          >
             {[
               { icon: Truck, title: "Fast Delivery", desc: "2-5 business days" },
               { icon: Shield, title: "Official Warranty", desc: "100% authentic products" },
               { icon: Wallet, title: "Cash on Delivery", desc: "Pay when you receive" },
               { icon: Lock, title: "Secure Payment", desc: "256-bit SSL encrypted" },
             ].map((item) => (
-              <div key={item.title} className="flex items-center gap-3.5 bg-white border border-gw-border rounded-[20px] p-5">
-                <div className="w-12 h-12 rounded-full bg-gw-red/10 flex items-center justify-center shrink-0">
-                  <item.icon className="w-6 h-6 text-gw-red" />
+              <motion.div
+                key={item.title}
+                variants={staggerItem}
+                whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.08)" }}
+                className="flex items-center gap-3 bg-white border border-gw-border rounded-[20px] p-4 md:p-5 transition-shadow"
+              >
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gw-red/10 flex items-center justify-center shrink-0">
+                  <item.icon className="w-5 h-5 md:w-6 md:h-6 text-gw-red" />
                 </div>
-                <div>
-                  <p className="font-semibold text-sm text-gw-black">{item.title}</p>
-                  <p className="text-xs text-gw-gray-500">{item.desc}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-gw-black truncate">{item.title}</p>
+                  <p className="text-xs text-gw-gray-500 truncate">{item.desc}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── Popular Categories ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>Popular Categories</h2>
             <a href="/categories">View All &rarr;</a>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <motion.div
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4"
+          >
             {categories.map((cat) => (
-              <a
+              <motion.a
                 key={cat.slug}
+                variants={staggerItem}
                 href={`/category/${cat.slug}`}
-                className="bg-white border border-gw-border rounded-category p-6 text-center hover:-translate-y-1 hover:shadow-gw-md transition-all duration-300 group"
+                whileHover={{ y: -5, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
+                className="bg-white border border-gw-border rounded-category p-4 md:p-6 text-center transition-shadow duration-300 group"
               >
-                <img src={cat.img} alt={cat.name} className="w-16 h-16 object-contain mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
-              </a>
+                <img src={cat.img} alt={cat.name} className="w-12 h-12 md:w-16 md:h-16 object-contain mx-auto mb-2 md:mb-3" />
+                <p className="text-xs md:text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
+              </motion.a>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── Featured Products ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>Featured Products</h2>
             <a href="/shop">View All &rarr;</a>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
-            {featured.slice(0, 10).map((product, i) => (
-              <ProductCard key={product.id} product={product} />
+          <motion.div
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.05 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
+          >
+            {featured.slice(0, 10).map((product) => (
+              <motion.div key={product.id} variants={staggerItem}>
+                <ProductCard product={product} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section className="bg-gw-bg">
+      {/* ── Flash Sale ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>Flash Sale</h2>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="flex items-center gap-2 md:gap-3"
+            >
+              <div className="flex gap-1 md:gap-1.5">
                 {[
                   { label: "02", unit: "Hours" },
                   { label: "45", unit: "Mins" },
                   { label: "30", unit: "Secs" },
                 ].map((t) => (
-                  <div key={t.unit} className="w-14 h-14 rounded-xl bg-gw-black text-white flex flex-col items-center justify-center">
-                    <span className="text-lg font-extrabold leading-none">{t.label}</span>
-                    <span className="text-[10px] text-white/60">{t.unit}</span>
-                  </div>
+                  <motion.div
+                    key={t.unit}
+                    initial={{ y: 20, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gw-black text-white flex flex-col items-center justify-center"
+                  >
+                    <span className="text-base md:text-lg font-extrabold leading-none">{t.label}</span>
+                    <span className="text-[9px] md:text-[10px] text-white/60">{t.unit}</span>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+          <motion.div
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.05 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
+          >
             {featured.slice(0, 5).map((product) => (
-              <ProductCard key={product.id} product={product} showSale />
+              <motion.div key={product.id} variants={staggerItem}>
+                <ProductCard product={product} showSale />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── New Arrivals ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>New Arrivals</h2>
             <a href="/shop">View All &rarr;</a>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+          <motion.div
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.05 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
+          >
             {newArrivals.slice(0, 10).map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <motion.div key={product.id} variants={staggerItem}>
+                <ProductCard product={product} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── Top Brands ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>Top Brands</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <motion.div
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 md:gap-4"
+          >
             {brands.map((brand) => (
-              <div key={brand} className="bg-white border border-gw-border rounded-category p-5 flex items-center justify-center hover:shadow-gw-sm transition-shadow cursor-pointer">
-                <span className="text-sm font-bold text-gw-gray-300 opacity-70 hover:opacity-100 transition-opacity">
+              <motion.div
+                key={brand}
+                variants={staggerItem}
+                whileHover={{ y: -3, boxShadow: "0 8px 16px rgba(0,0,0,0.06)" }}
+                className="bg-white border border-gw-border rounded-category p-4 md:p-5 flex items-center justify-center hover:shadow-gw-sm transition-shadow cursor-pointer"
+              >
+                <span className="text-xs md:text-sm font-bold text-gw-gray-300 opacity-70 hover:opacity-100 transition-opacity">
                   {brand}
                 </span>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── Reviews ── */}
+      <SectionReveal>
         <Container>
           <div className="section-header">
             <h2>What Our Customers Say</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5"
+          >
             {reviews.map((r, i) => (
-              <div key={i} className="bg-white border border-gw-border rounded-[24px] p-6">
-                <div className="flex items-center gap-1 mb-3">
+              <motion.div
+                key={i}
+                variants={staggerItem}
+                whileHover={{ y: -4, boxShadow: "0 12px 28px rgba(0,0,0,0.08)" }}
+                className="bg-white border border-gw-border rounded-[24px] p-5 md:p-6 transition-all"
+              >
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  className="flex items-center gap-1 mb-3"
+                >
                   {Array.from({ length: r.rating }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-gw-yellow text-gw-yellow" />
+                    <motion.div
+                      key={j}
+                      initial={{ scale: 0, rotate: -180 }}
+                      whileInView={{ scale: 1, rotate: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: j * 0.1 + i * 0.05, type: "spring", stiffness: 300 }}
+                    >
+                      <Star className="w-3.5 h-3.5 md:w-4 md:h-4 fill-gw-yellow text-gw-yellow" />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
                 <p className="text-sm text-gw-gray-500 mb-4 leading-relaxed">"{r.text}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gw-red/10 flex items-center justify-center text-sm font-bold text-gw-red">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gw-red/10 flex items-center justify-center text-sm font-bold text-gw-red shrink-0">
                     {r.name[0]}
                   </div>
                   <p className="text-sm font-semibold text-gw-black">{r.name}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
 
-      <section>
+      {/* ── Newsletter ── */}
+      <SectionReveal>
         <Container>
-          <div className="bg-gw-black rounded-newsletter p-10 md:p-12 text-center">
-            <h2 className="text-3xl font-bold text-white mb-3">Stay Updated</h2>
-            <p className="text-white/60 mb-8 max-w-md mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="bg-gw-black rounded-newsletter p-8 md:p-12 text-center"
+          >
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+              className="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-3"
+            >
+              Stay Updated
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="text-white/60 text-sm md:text-base mb-6 md:mb-8 max-w-md mx-auto"
+            >
               Subscribe to get notified about new arrivals, exclusive deals, and tech news.
-            </p>
-            <div className="flex items-center justify-center gap-3 max-w-lg mx-auto">
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.45, duration: 0.5 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto"
+            >
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 h-[52px] px-6 rounded-full border-none bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-gw-red/50"
+                className="w-full sm:flex-1 h-[48px] md:h-[52px] px-5 md:px-6 rounded-full border-none bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-gw-red/50 text-sm"
               />
-              <Button variant="primary" size="lg" className="rounded-full px-8 h-[52px]">
-                Subscribe
-              </Button>
-            </div>
-          </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                <Button variant="primary" className="w-full sm:w-auto rounded-full px-6 md:px-8 h-[48px] md:h-[52px] text-sm">
+                  Subscribe
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </Container>
-      </section>
+      </SectionReveal>
     </div>
   );
 }
@@ -262,14 +416,14 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
       href={`/product/${product.slug}`}
       className="bg-white rounded-product border border-gw-border overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300 group"
     >
-      <div className="relative p-5 bg-white">
+      <div className="relative p-3 md:p-5 bg-white">
         {discount > 0 && (
-          <span className="absolute top-3 left-3 bg-gw-red text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+          <span className="absolute top-2 md:top-3 left-2 md:left-3 bg-gw-red text-white text-[10px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full z-10">
             -{discount}%
           </span>
         )}
         {showSale && (
-          <span className="absolute top-3 right-3 bg-gw-yellow text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+          <span className="absolute top-2 md:top-3 right-2 md:right-3 bg-gw-yellow text-white text-[10px] md:text-xs font-bold px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full z-10">
             Sale
           </span>
         )}
@@ -280,23 +434,23 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
           loading="lazy"
         />
       </div>
-      <div className="px-5 pb-5">
-        <h3 className="text-sm font-semibold text-gw-black line-clamp-2 min-h-[2.5rem]">
+      <div className="px-3 md:px-5 pb-3 md:pb-5">
+        <h3 className="text-xs md:text-sm font-semibold text-gw-black line-clamp-2 min-h-[2rem] md:min-h-[2.5rem]">
           {product.name}
         </h3>
-        <div className="flex items-center gap-1 mt-1.5">
-          <Star className="w-3.5 h-3.5 fill-gw-yellow text-gw-yellow" />
-          <span className="text-xs text-gw-gray-500">{product.rating}</span>
+        <div className="flex items-center gap-1 mt-1 md:mt-1.5">
+          <Star className="w-3 h-3 md:w-3.5 md:h-3.5 fill-gw-yellow text-gw-yellow" />
+          <span className="text-[10px] md:text-xs text-gw-gray-500">{product.rating}</span>
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-2xl font-extrabold text-gw-red">
+        <div className="mt-1.5 md:mt-2 flex items-baseline gap-1 md:gap-2 flex-wrap">
+          <span className="text-lg md:text-2xl font-extrabold text-gw-red">
             ${product.discountPrice || product.price}
           </span>
           {product.discountPrice && (
-            <span className="text-sm text-gw-gray-300 line-through">${product.price}</span>
+            <span className="text-[11px] md:text-sm text-gw-gray-300 line-through">${product.price}</span>
           )}
         </div>
-        <button className="mt-4 w-full h-11 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-all">
+        <button className="mt-3 md:mt-4 w-full h-9 md:h-11 rounded-xl bg-gw-black text-white text-[11px] md:text-sm font-bold hover:bg-gw-red transition-all">
           Add to Cart
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
 
 export default function Login() {
@@ -28,25 +29,109 @@ export default function Login() {
   return (
     <section>
       <Container>
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-[24px] border border-gw-border p-8">
-            <h1 className="text-2xl font-bold text-gw-black mb-2 text-center">Welcome Back</h1>
-            <p className="text-gw-gray-500 text-center mb-8">Sign in to your Gadget Wallet account</p>
-            {error && <p className="text-gw-red text-sm mb-4 text-center">{error}</p>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input label="Email" type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Input label="Password" type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              <div className="text-right">
-                <Link to="/forgot-password" className="text-sm text-gw-red hover:text-gw-red-hover">Forgot password?</Link>
-              </div>
-              <Button type="submit" variant="primary" className="w-full h-12">Sign In</Button>
-            </form>
-            <p className="text-center text-sm text-gw-gray-500 mt-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-md mx-auto"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+            className="bg-white rounded-[24px] border border-gw-border p-8"
+          >
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-bold text-gw-black mb-2 text-center"
+            >
+              Welcome Back
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              className="text-gw-gray-500 text-center mb-8"
+            >
+              Sign in to your Gadget Wallet account
+            </motion.p>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-gw-red text-sm mb-4 text-center"
+              >
+                {error}
+              </motion.p>
+            )}
+            <motion.form
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+              >
+                <Input
+                  label="Email"
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Input
+                  label="Password"
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.45 }}
+                className="text-right"
+              >
+                <Link to="/forgot-password" className="text-sm text-gw-red hover:text-gw-red-hover">
+                  Forgot password?
+                </Link>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Button type="submit" variant="primary" className="w-full h-12">Sign In</Button>
+              </motion.div>
+            </motion.form>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.55 }}
+              className="text-center text-sm text-gw-gray-500 mt-6"
+            >
               Don't have an account?{" "}
               <Link to="/register" className="text-gw-red hover:text-gw-red-hover font-medium">Create one</Link>
-            </p>
-          </div>
-        </div>
+            </motion.p>
+          </motion.div>
+        </motion.div>
       </Container>
     </section>
   );

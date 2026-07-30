@@ -17,17 +17,17 @@ export default function AdminOrders() {
   }, []);
 
   const statusColors: Record<string, string> = {
-    pending: "bg-yellow-500/10 text-yellow-600",
-    confirmed: "bg-blue-500/10 text-blue-600",
-    shipped: "bg-purple-500/10 text-purple-600",
-    delivered: "bg-gw-green/10 text-gw-green",
-    cancelled: "bg-gw-red/10 text-gw-red",
+    pending: "bg-yellow-100 text-yellow-700",
+    confirmed: "bg-blue-100 text-blue-700",
+    shipped: "bg-purple-100 text-purple-700",
+    delivered: "bg-green-100 text-green-700",
+    cancelled: "bg-red-100 text-red-700",
   };
 
   return (
-    <Container className="py-8">
-      <div>
-        <h2 className="text-2xl font-bold text-gw-black mb-8">Manage Orders</h2>
+    <section>
+      <Container>
+        <h2 className="text-3xl font-bold text-gw-black mb-8">Manage Orders</h2>
         <div className="bg-white border border-gw-border rounded-[24px] p-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -40,21 +40,21 @@ export default function AdminOrders() {
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.id} className="border-b border-gw-border hover:bg-gw-bg transition-colors">
+                <tr key={o.id} className="border-b border-gw-border/50 hover:bg-gray-50">
                   <td className="py-3 px-2 font-medium text-gw-black">{o.id.slice(0, 8)}</td>
                   <td className="py-3 px-2 text-center">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusColors[o.status] || ""}`}>
-                      {o.status.charAt(0).toUpperCase() + o.status.slice(1)}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[o.status] || ""}`}>
+                      {o.status}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-right text-gw-black font-bold">${Number(o.total).toFixed(2)}</td>
+                  <td className="py-3 px-2 text-right text-gw-black">${Number(o.total).toFixed(2)}</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">{new Date(o.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-    </Container>
+      </Container>
+    </section>
   );
 }
