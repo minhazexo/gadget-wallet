@@ -66,10 +66,10 @@
   .section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+    align-items: flex-end;
+    margin-bottom: 32px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 16px;
   }
 
   .section-header h2 {
@@ -89,10 +89,14 @@
   }
 
   section {
-    padding: 48px 0;
+    padding: 64px 0;
   }
 
   @media (min-width: 768px) {
+    .section-header {
+      margin-bottom: 40px;
+    }
+
     .section-header h2 {
       font-size: 32px;
     }
@@ -102,7 +106,7 @@
     }
 
     section {
-      padding: 64px 0;
+      padding: 96px 0;
     }
   }
 }

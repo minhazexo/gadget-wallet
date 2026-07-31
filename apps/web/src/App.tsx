@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
-import { Navbar, Footer } from "@gadget-wallet/ui";
+import { Navbar, Footer, ScrollToTop } from "@gadget-wallet/ui";
 import { useEffect } from "react";
 import { useAuthStore } from "./store/useAuthStore";
 import { AnimatePresence } from "framer-motion";
@@ -46,6 +46,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gw-bg text-gw-black flex flex-col">
       <Navbar />
+      <ScrollToTop />
       <main className="flex-1 pt-0">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>

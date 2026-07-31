@@ -28,13 +28,22 @@ interface Product {
 const categories = [
   { name: "Smartphones", slug: "smartphones", img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=128&q=80" },
   { name: "Laptops", slug: "laptops", img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=128&q=80" },
-  { name: "Smartwatches", slug: "smartwatches", img: "https://images.unsplash.com/photo-1546868871-af0de0ae72d8?w=128&q=80" },
+  { name: "Smartwatches", slug: "smartwatches", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&q=80" },
   { name: "Headphones", slug: "headphones", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=128&q=80" },
   { name: "Gaming", slug: "gaming", img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=128&q=80" },
   { name: "Cameras", slug: "cameras", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=128&q=80" },
 ];
 
-const brands = ["Apple", "Samsung", "Sony", "ASUS", "Logitech", "Dell", "Bose", "Canon"];
+const brands = [
+  { name: "Apple", slug: "apple", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&q=80" },
+  { name: "Samsung", slug: "samsung", img: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=128&q=80" },
+  { name: "Sony", slug: "sony", img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=128&q=80" },
+  { name: "ASUS", slug: "asus", img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=128&q=80" },
+  { name: "Logitech", slug: "logitech", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=128&q=80" },
+  { name: "Dell", slug: "dell", img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=128&q=80" },
+  { name: "Bose", slug: "bose", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=128&q=80" },
+  { name: "Canon", slug: "canon", img: "https://picsum.photos/seed/canon/128" },
+];
 
 const reviews = [
   { name: "Alex M.", text: "Absolutely love my new MacBook! The delivery was incredibly fast and the packaging was premium.", rating: 5 },
@@ -60,7 +69,7 @@ export default function Home() {
   return (
     <div>
       {/* ── Hero ── */}
-      <section className="pt-0">
+      <section className="pt-0 pb-8 md:pb-12">
         <Container>
           <motion.div
             variants={heroContainer}
@@ -284,19 +293,29 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
-            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 md:gap-4"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4 md:gap-5"
           >
             {brands.map((brand) => (
-              <motion.div
-                key={brand}
+              <motion.a
+                key={brand.slug}
                 variants={staggerItem}
-                whileHover={{ y: -3, boxShadow: "0 8px 16px rgba(0,0,0,0.06)" }}
-                className="bg-white border border-gw-border rounded-category p-4 md:p-5 flex items-center justify-center hover:shadow-gw-sm transition-shadow cursor-pointer"
+                href={`/shop?brand=${brand.slug}`}
+                whileHover={{ y: -5, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
+                whileTap={{ scale: 0.97 }}
+                className="bg-gw-bg border border-gw-border rounded-[16px] p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
               >
-                <span className="text-xs md:text-sm font-bold text-gw-gray-300 opacity-70 hover:opacity-100 transition-opacity">
-                  {brand}
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gw-border p-3 flex items-center justify-center group-hover:border-gw-red/30 transition-colors">
+                  <img
+                    src={brand.img}
+                    alt={brand.name}
+                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+                <span className="text-[11px] md:text-sm font-bold text-gw-black group-hover:text-gw-red transition-colors text-center leading-tight">
+                  {brand.name}
                 </span>
-              </motion.div>
+              </motion.a>
             ))}
           </motion.div>
         </Container>

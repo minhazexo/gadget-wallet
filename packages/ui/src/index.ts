@@ -8,3 +8,5 @@ export { Skeleton } from "./skeleton";
 export { Toast } from "./toast";
 export { Navbar } from "./navbar";
 export { Footer } from "./footer";
+export { ScrollToTop } from "./scroll-to-top";
+export { BlurImage } from "./blur-image";
