@@ -6,6 +6,9 @@ export interface User {
   phone?: string;
   avatar?: string;
   role: "user" | "admin";
+  isActive: boolean;
+  tokenVersion: number;
+  twoFactorEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
@@ -108,6 +111,7 @@ export interface Order {
   id: string;
   userId: string;
   status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+  paymentStatus: "pending" | "paid" | "refunded" | "failed";
   total: number;
   subtotal: number;
   discount: number;
@@ -115,6 +119,9 @@ export interface Order {
   paymentMethod: string;
   shippingAddressId: string;
   couponId?: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string;
+  returnRequestedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -176,6 +183,48 @@ export interface SiteSetting {
   id: string;
   key: string;
   value: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  userId: string;
+  type: "card" | "mobile_banking" | "cash_on_delivery";
+  brand?: string;
+  last4?: string;
+  holderName?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+  provider?: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  userId: string;
+  orderUpdates: boolean;
+  promotional: boolean;
+  sms: boolean;
+  push: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecentlyViewed {
+  id: string;
+  userId: string;
+  productId: string;
+  viewedAt: string;
 }
 
 export interface ApiResponse<T = unknown> {

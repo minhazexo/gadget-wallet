@@ -6,10 +6,10 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false);
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-[24px] border border-gw-border p-8 text-center">
+        <div className="gw-auth-wrap">
+          <div className="gw-panel-light p-8 text-center">
             <h1 className="text-2xl font-bold text-gw-black mb-2">Reset Password</h1>
             {sent ? (
               <>

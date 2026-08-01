@@ -4,17 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { success, error } from "../utils/response";
-import { mkdirSync, existsSync } from "fs";
-import { writeFile, unlink } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
-
-const UPLOADS_DIR = join(import.meta.dir, "..", "..", "uploads");
-
-// Ensure uploads directory exists
-if (!existsSync(UPLOADS_DIR)) {
-  mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+import { uploadImage, deleteImage } from "../utils/storage";
 
 export const adminRoutes = new Hono();
 
@@ -211,14 +201,13 @@ adminRoutes.post("/products/:id/images", async (c) => {
     .where(eq(schema.productImages.productId, productId));
   const nextOrder = Number(lastImage?.maxOrder ?? -1) + 1;
 
-  // Save file
-  const ext = file.name.split(".").pop() || "jpg";
-  const filename = `${randomUUID()}.${ext}`;
-  const filepath = join(UPLOADS_DIR, filename);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filepath, buffer);
-
-  const imageUrl = `/uploads/${filename}`;
+  // Save file (Supabase Storage in production, local disk in dev)
+  let imageUrl: string;
+  try {
+    imageUrl = await uploadImage(file);
+  } catch (err) {
+    return error(c, 500, err instanceof Error ? err.message : "Failed to save image");
+  }
 
   // Create DB record
   const [image] = await db
@@ -245,12 +234,8 @@ adminRoutes.delete("/products/:id/images/:imageId", async (c) => {
 
   if (!image) return error(c, 404, "Image not found");
 
-  // Delete file from disk
-  const filename = image.url.split("/").pop();
-  if (filename) {
-    const filepath = join(UPLOADS_DIR, filename);
-    try { await unlink(filepath); } catch { /* file may not exist */ }
-  }
+  // Delete file (Supabase Storage in production, local disk in dev)
+  await deleteImage(image.url);
 
   // Delete DB record
   await db.delete(schema.productImages).where(eq(schema.productImages.id, imageId));

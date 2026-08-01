@@ -1,29 +1,63 @@
-import { Container, Card, Badge } from "@gadget-wallet/ui";
+import { Container, Card, Badge, Button } from "@gadget-wallet/ui";
 import { Package } from "lucide-react";
-
-const orders = [
-  { id: "ORD-001", date: "2024-01-15", status: "delivered", total: 1099.99, items: 1 },
-  { id: "ORD-002", date: "2024-01-20", status: "shipped", total: 349.99, items: 2 },
-];
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import api from "../lib/api";
+import { useAuthStore } from "../store/useAuthStore";
+import type { Order } from "./profile/types";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
   confirmed: "bg-blue-100 text-blue-700",
+  processing: "bg-orange-100 text-orange-700",
   shipped: "bg-purple-100 text-purple-700",
   delivered: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-700",
 };
 
-export default function MyOrders() {
-  return (
-    <section>
-      <Container>
-        <h2 className="text-3xl font-bold text-gw-black mb-8">My Orders</h2>
+const formatDate = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
-        {orders.length === 0 ? (
+export default function MyOrders() {
+  const user = useAuthStore((s) => s.user);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    api
+      .get(`/orders/user/${user.id}`)
+      .then((res) => setOrders(res.data.data || []))
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  return (
+    <section className="gw-section">
+      <Container>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="gw-title">My Orders</h2>
+          <Link to="/profile?tab=orders">
+            <Button variant="ghost" className="text-sm">Open Dashboard</Button>
+          </Link>
+        </div>
+
+        {!user ? (
           <div className="text-center py-20">
             <Package className="w-16 h-16 text-gw-gray-300 mx-auto mb-4" />
-            <p className="text-gw-gray-500">No orders yet</p>
+            <p className="gw-muted mb-4">Sign in to view your orders</p>
+            <Link to="/login"><Button variant="primary">Sign In</Button></Link>
+          </div>
+        ) : loading ? (
+          <div className="text-center py-20 text-gw-gray-500 animate-pulse">Loading orders...</div>
+        ) : orders.length === 0 ? (
+          <div className="gw-empty-compact">
+            <Package className="w-16 h-16 text-gw-gray-300 mx-auto mb-4" />
+            <p className="gw-muted mb-4">No orders yet</p>
+            <Link to="/shop"><Button variant="primary">Start Shopping</Button></Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -31,16 +65,25 @@ export default function MyOrders() {
               <Card key={order.id} className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="font-semibold text-gw-black">{order.id}</p>
-                    <p className="text-sm text-gw-gray-500">{order.date}</p>
+                    <p className="gw-heading">
+                      {order.id.slice(0, 8).toUpperCase()}
+                    </p>
+                    <p className="gw-muted-sm">{formatDate(order.createdAt)}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Badge className={statusColors[order.status] || statusColors.pending}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </Badge>
+                    <Badge className={order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
+                      {order.paymentStatus.toUpperCase()}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gw-gray-500">{order.items} item(s)</span>
-                  <span className="font-bold text-gw-red">${order.total}</span>
+                  <span className="gw-muted">
+                    {(order.items || []).reduce((s, it) => s + it.quantity, 0)} item(s)
+                  </span>
+                  <span className="font-bold text-gw-red">${Number(order.total).toFixed(2)}</span>
                 </div>
               </Card>
             ))}

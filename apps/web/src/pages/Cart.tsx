@@ -2,20 +2,53 @@ import { Container, Button } from "@gadget-wallet/ui";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import {
   staggerContainer,
   staggerItem,
-  lineItem,
-  fadeIn,
 } from "../lib/animations";
-
-const cartItems = [
-  { id: "1", name: "iPhone 15 Pro Max", price: 1099.99, quantity: 1, image: "https://picsum.photos/seed/iphone-15-pro-max/200/200" },
-  { id: "2", name: "Sony WH-1000XM5", price: 349.99, quantity: 2, image: "https://picsum.photos/seed/sony-wh-1000xm5/200/200" },
-];
+import { useCartStore, selectCartSummary } from "../store/useCartStore";
+import { showToast } from "../store/useToastStore";
 
 export default function Cart() {
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const items = useCartStore((s) => s.items);
+  const isLoading = useCartStore((s) => s.isLoading);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+
+  useEffect(() => {
+    useCartStore.getState().load();
+  }, []);
+
+  const { count, subtotal } = selectCartSummary(items);
+
+  const handleRemove = async (productId: string, name: string) => {
+    try {
+      await removeItem(productId);
+      showToast(`${name} removed from cart`, "info");
+    } catch {
+      showToast("Failed to remove item", "error");
+    }
+  };
+
+  const handleQty = async (productId: string, quantity: number) => {
+    if (quantity < 1) return;
+    try {
+      await updateQuantity(productId, quantity);
+    } catch {
+      showToast("Failed to update quantity", "error");
+    }
+  };
+
+  if (isLoading && items.length === 0) {
+    return (
+      <section className="gw-section">
+        <Container>
+          <div className="py-24 text-center text-gw-gray-500 animate-pulse">Loading cart...</div>
+        </Container>
+      </section>
+    );
+  }
 
   return (
     <motion.section
@@ -28,136 +61,139 @@ export default function Cart() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-2xl md:text-3xl font-bold text-gw-black mb-6 md:mb-8"
+          className="gw-page-title"
         >
-          Shopping Cart
+          Shopping Cart {count > 0 && <span className="text-gw-red">({count})</span>}
         </motion.h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="lg:col-span-2 space-y-3 md:space-y-4"
-          >
-            {cartItems.map((item) => (
-              <motion.div
-                key={item.id}
-                variants={staggerItem}
-                layout
-                className="bg-white rounded-[24px] border border-gw-border p-4 md:p-5"
-              >
-                <div className="flex items-start md:items-center gap-3 md:gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="w-16 h-16 md:w-24 md:h-24 rounded-xl overflow-hidden bg-white border border-gw-border shrink-0 p-2 md:p-3"
-                  >
-                    <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
-                  </motion.div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gw-black text-sm md:text-base truncate">{item.name}</h3>
-                    <p className="text-lg md:text-xl font-extrabold text-gw-red mt-0.5 md:mt-1">${item.price}</p>
+        {items.length === 0 ? (
+          <div className="gw-empty">
+            <ShoppingBag className="w-12 h-12 mx-auto text-gw-gray-300 mb-4" />
+            <p className="gw-muted mb-4">Your cart is empty.</p>
+            <Link to="/shop">
+              <Button variant="primary">Start Shopping</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="lg:col-span-2 space-y-3 md:space-y-4"
+            >
+              {items.map((item) => (
+                <motion.div
+                  key={item.productId}
+                  variants={staggerItem}
+                  layout
+                  className="gw-panel p-4 md:p-5"
+                >
+                  <div className="flex items-start md:items-center gap-3 md:gap-4">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      className="w-16 h-16 md:w-24 md:h-24 rounded-xl overflow-hidden bg-white border border-gw-border shrink-0 p-2 md:p-3"
+                    >
+                      <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                    </motion.div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="gw-heading-md truncate">{item.name}</h3>
+                      <p className="text-lg md:text-xl font-extrabold text-gw-red mt-0.5 md:mt-1">
+                        ${Number(item.discountPrice || item.price).toFixed(2)}
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleRemove(item.productId, item.name)}
+                      className="p-1.5 md:p-2 text-gw-gray-300 hover:text-gw-red transition-colors shrink-0 -mt-1 md:mt-0"
+                      aria-label={`Remove ${item.name}`}
+                    >
+                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                    </motion.button>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-1.5 md:p-2 text-gw-gray-300 hover:text-gw-red transition-colors shrink-0 -mt-1 md:mt-0"
-                  >
-                    <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                  </motion.button>
-                </div>
-                <div className="flex items-center justify-between mt-3 md:mt-4 pt-3 md:pt-0 md:border-t-0 border-t border-gw-border">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center border border-gw-border rounded-xl"
-                  >
-                    <motion.button
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                  <div className="flex items-center justify-between mt-3 md:mt-4 pt-3 md:pt-0 md:border-t-0 border-t border-gw-border dark:border-gray-700">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center border border-gw-border dark:border-gray-700 rounded-xl"
                     >
-                      <Minus className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    </motion.button>
-                    <span className="px-3 md:px-4 font-semibold text-gw-black text-sm md:text-base">{item.quantity}</span>
-                    <motion.button
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQty(item.productId, item.quantity - 1)}
+                        className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      </motion.button>
+                      <span className="px-3 md:px-4 gw-heading-md">{item.quantity}</span>
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleQty(item.productId, item.quantity + 1)}
+                        className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      </motion.button>
+                    </motion.div>
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="font-bold text-gw-black dark:text-white text-sm md:text-base"
                     >
-                      <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    </motion.button>
-                  </motion.div>
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="font-bold text-gw-black text-sm md:text-base"
-                  >
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </motion.span>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+                      ${(Number(item.discountPrice || item.price) * item.quantity).toFixed(2)}
+                    </motion.span>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            <div className="bg-white rounded-[24px] border border-gw-border p-5 md:p-6 lg:sticky lg:top-[148px]">
-              <h3 className="font-semibold text-lg text-gw-black mb-4">Order Summary</h3>
-              <div className="space-y-3 text-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <div className="gw-panel p-5 md:p-6 lg:sticky lg:top-[148px]">
+                <h3 className="gw-heading-lg mb-4">Order Summary</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between gw-muted">
+                    <span>Subtotal ({count} items)</span>
+                    <span className="gw-text-body font-medium">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between gw-muted">
+                    <span>Shipping</span>
+                    <span className="text-gw-green font-medium">Free</span>
+                  </div>
+                  <div className="border-t border-gw-border dark:border-gray-700 pt-3 flex justify-between font-bold text-lg">
+                    <span className="gw-text-body">Total</span>
+                    <span className="text-gw-red">${subtotal.toFixed(2)}</span>
+                  </div>
+                </div>
                 <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex justify-between text-gw-gray-500"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="mt-5 md:mt-6"
                 >
-                  <span>Subtotal</span>
-                  <span className="text-gw-black font-medium">${subtotal.toFixed(2)}</span>
+                  <Link to="/checkout">
+                    <Button variant="primary" className="w-full h-11 md:h-12">Proceed to Checkout</Button>
+                  </Link>
                 </motion.div>
                 <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 }}
-                  className="flex justify-between text-gw-gray-500"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
                 >
-                  <span>Shipping</span>
-                  <span className="text-gw-green font-medium">Free</span>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="border-t border-gw-border pt-3 flex justify-between font-bold text-lg"
-                >
-                  <span className="text-gw-black">Total</span>
-                  <span className="text-gw-red">${subtotal.toFixed(2)}</span>
+                  <Link to="/shop">
+                    <Button variant="ghost" className="w-full mt-2">
+                      <ShoppingBag className="w-4 h-4 mr-2" /> Continue Shopping
+                    </Button>
+                  </Link>
                 </motion.div>
               </div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="mt-5 md:mt-6"
-              >
-                <Link to="/checkout">
-                  <Button variant="primary" className="w-full h-11 md:h-12">Proceed to Checkout</Button>
-                </Link>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <Link to="/shop">
-                  <Button variant="ghost" className="w-full mt-2">
-                    <ShoppingBag className="w-4 h-4 mr-2" /> Continue Shopping
-                  </Button>
-                </Link>
-              </motion.div>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
+          </div>
+        )}
       </Container>
     </motion.section>
   );

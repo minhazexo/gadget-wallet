@@ -2,7 +2,7 @@ import { Container, Card } from "@gadget-wallet/ui";
 
 export default function Privacy() {
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-gw-black mb-6">Privacy Policy</h1>

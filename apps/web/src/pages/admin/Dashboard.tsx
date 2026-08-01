@@ -25,14 +25,14 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <h2 className="text-3xl font-bold text-gw-black mb-8">Admin Dashboard</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="bg-white border border-gw-border rounded-[24px] p-6">
+              <div key={card.label} className="gw-panel-light p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-full bg-gw-red/10 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-gw-red" />
@@ -48,7 +48,7 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        <div className="bg-white border border-gw-border rounded-[24px] p-6">
+        <div className="gw-panel-light p-6">
           <h3 className="font-semibold text-lg text-gw-black mb-4">Recent Orders</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -63,13 +63,13 @@ export default function AdminDashboard() {
               <tbody>
                 <tr className="border-b border-gw-border/50">
                   <td className="py-3 px-2 font-medium text-gw-black">ORD-001</td>
-                  <td className="py-3 px-2"><span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">Delivered</span></td>
+                  <td className="py-3 px-2"><span className="gw-status-badge--compact bg-green-100 text-green-700">Delivered</span></td>
                   <td className="py-3 px-2 text-right text-gw-black">$1,099.99</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">2024-01-20</td>
                 </tr>
                 <tr className="border-b border-gw-border/50">
                   <td className="py-3 px-2 font-medium text-gw-black">ORD-002</td>
-                  <td className="py-3 px-2"><span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">Shipped</span></td>
+                  <td className="py-3 px-2"><span className="gw-status-badge--compact bg-purple-100 text-purple-700">Shipped</span></td>
                   <td className="py-3 px-2 text-right text-gw-black">$349.99</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">2024-01-19</td>
                 </tr>

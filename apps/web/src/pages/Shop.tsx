@@ -1,9 +1,11 @@
 import { Container, Button } from "@gadget-wallet/ui";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Grid3X3, List } from "lucide-react";
 import api from "../lib/api";
+import { useCartStore } from "../store/useCartStore";
+import { showToast } from "../store/useToastStore";
 import {
   staggerContainerFast,
   staggerContainer,
@@ -24,13 +26,34 @@ interface Product {
 
 export default function Shop() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
+  const brand = searchParams.get("brand");
   const [products, setProducts] = useState<Product[]>([]);
   const [view, setView] = useState<"grid" | "list">("grid");
+  const addToCart = useCartStore((s) => s.addItem);
+
+  const handleAddToCart = async (id: string, name: string) => {
+    try {
+      await addToCart(id);
+      showToast(`${name} added to cart`);
+    } catch {
+      showToast("Failed to add to cart", "error");
+    }
+  };
 
   useEffect(() => {
-    const url = slug ? `/products?category=${slug}` : "/products";
-    api.get(url).then((res) => setProducts(res.data.data || []));
-  }, [slug]);
+    const params = new URLSearchParams();
+    if (slug) params.set("category", slug);
+    if (brand) params.set("brand", brand);
+    const qs = params.toString();
+    api.get(`/products${qs ? `?${qs}` : ""}`).then((res) => setProducts(res.data.data || []));
+  }, [slug, brand]);
+
+  const title = brand
+    ? brand.charAt(0).toUpperCase() + brand.slice(1)
+    : slug
+      ? slug.charAt(0).toUpperCase() + slug.slice(1)
+      : "All Products";
 
   return (
     <motion.section
@@ -43,10 +66,10 @@ export default function Shop() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="section-header"
+          className="gw-section-header"
         >
           <div>
-            <h2>{slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : "All Products"}</h2>
+            <h2 className="gw-section-title">{title}</h2>
             <p className="text-sm text-gw-gray-500 font-normal">{products.length} products found</p>
           </div>
           <motion.div
@@ -91,11 +114,11 @@ export default function Shop() {
                 <motion.div key={product.id} variants={staggerItem}>
                   <a
                     href={`/product/${product.slug}`}
-                    className="block bg-white rounded-product border border-gw-border overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300 group"
+                    className="gw-product-card group"
                   >
                     <div className="relative p-5 bg-white">
                       {discount > 0 && (
-                        <span className="absolute top-3 left-3 bg-gw-red text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+                        <span className="gw-status-badge absolute top-3 left-3 z-10 bg-gw-red text-white font-bold">
                           -{discount}%
                         </span>
                       )}
@@ -119,6 +142,7 @@ export default function Shop() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
+                        onClick={() => handleAddToCart(product.id, product.name)}
                         className="mt-4 w-full h-11 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-all"
                       >
                         Add to Cart
@@ -146,11 +170,11 @@ export default function Shop() {
                 <motion.div key={product.id} variants={staggerItem}>
                   <a
                     href={`/product/${product.slug}`}
-                    className="flex bg-white rounded-[24px] border border-gw-border overflow-hidden hover:shadow-gw-md transition-all duration-300 group"
+                    className="gw-product-card-row group"
                   >
                     <div className="w-48 h-48 shrink-0 p-4 bg-white relative">
                       {discount > 0 && (
-                        <span className="absolute top-3 left-3 bg-gw-red text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+                        <span className="gw-status-badge absolute top-3 left-3 z-10 bg-gw-red text-white font-bold">
                           -{discount}%
                         </span>
                       )}
@@ -175,6 +199,7 @@ export default function Shop() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
+                        onClick={() => handleAddToCart(product.id, product.name)}
                         className="mt-4 w-full h-11 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-all max-w-[200px]"
                       >
                         Add to Cart

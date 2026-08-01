@@ -3,10 +3,10 @@ import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
 export default function Contact() {
   return (
-    <section>
+    <section className="gw-section">
       <Container>
-        <h1 className="text-3xl font-bold text-gw-black mb-4">Contact Us</h1>
-        <p className="text-gw-gray-500 mb-10">We'd love to hear from you. Get in touch with our team.</p>
+        <h1 className="gw-page-title-md">Contact Us</h1>
+        <p className="gw-page-subtitle">We'd love to hear from you. Get in touch with our team.</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           <div className="space-y-6">
@@ -36,7 +36,7 @@ export default function Contact() {
                 <textarea
                   rows={4}
                   placeholder="How can we help you?"
-                  className="w-full px-4 py-2.5 bg-white border border-gw-border rounded-btn text-gw-black placeholder:text-gw-gray-300 focus:outline-none focus:ring-2 focus:ring-gw-red/20 focus:border-gw-red resize-none"
+                  className="gw-form-input resize-none"
                 />
               </div>
               <Button variant="primary">Send Message</Button>

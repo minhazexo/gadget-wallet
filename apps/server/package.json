@@ -11,14 +11,14 @@
   "dependencies": {
     "@gadget-wallet/db": "workspace:*",
     "@gadget-wallet/types": "workspace:*",
-    "hono": "^4.5.0",
     "@hono/zod-validator": "^0.2.0",
-    "zod": "^3.23.0",
-    "jsonwebtoken": "^9.0.0",
+    "@supabase/supabase-js": "^2.111.0",
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.0.0",
     "drizzle-orm": "^0.33.0",
-    "postgres": "^3.4.0"
+    "hono": "^4.5.0",
+    "jsonwebtoken": "^9.0.0",
+    "postgres": "^3.4.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.0",

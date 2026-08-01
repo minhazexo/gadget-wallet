@@ -1,1 +1,0 @@
-the name of this website is Gadget Wallet

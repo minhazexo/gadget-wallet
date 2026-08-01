@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
+import { useCartStore } from "../store/useCartStore";
+import { useWishlistStore } from "../store/useWishlistStore";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,6 +18,10 @@ export default function Login() {
     try {
       await login(email, password);
       const currentUser = useAuthStore.getState().user;
+      await Promise.all([
+        useCartStore.getState().mergeGuestCart(),
+        useWishlistStore.getState().load(),
+      ]);
       if (currentUser?.role === "admin") {
         navigate("/admin");
       } else {
@@ -27,25 +33,25 @@ export default function Login() {
   };
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-md mx-auto"
+          className="gw-auth-wrap"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
-            className="bg-white rounded-[24px] border border-gw-border p-8"
+            className="gw-panel-light p-8"
           >
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl font-bold text-gw-black mb-2 text-center"
+              className="gw-auth-title"
             >
               Welcome Back
             </motion.h1>
@@ -53,7 +59,7 @@ export default function Login() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
-              className="text-gw-gray-500 text-center mb-8"
+              className="gw-auth-subtitle"
             >
               Sign in to your Gadget Wallet account
             </motion.p>
@@ -107,7 +113,7 @@ export default function Login() {
                 transition={{ delay: 0.45 }}
                 className="text-right"
               >
-                <Link to="/forgot-password" className="text-sm text-gw-red hover:text-gw-red-hover">
+                <Link to="/forgot-password" className="gw-link-sm">
                   Forgot password?
                 </Link>
               </motion.div>
@@ -128,7 +134,7 @@ export default function Login() {
               className="text-center text-sm text-gw-gray-500 mt-6"
             >
               Don't have an account?{" "}
-              <Link to="/register" className="text-gw-red hover:text-gw-red-hover font-medium">Create one</Link>
+              <Link to="/register" className="gw-link">Create one</Link>
             </motion.p>
           </motion.div>
         </motion.div>

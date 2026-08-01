@@ -20,14 +20,14 @@ export default function AdminProducts() {
   }, []);
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gw-black">Manage Products</h2>
           <Button variant="primary"><Plus className="w-4 h-4 mr-2" /> Add Product</Button>
         </div>
 
-        <div className="bg-white border border-gw-border rounded-[24px] p-6 overflow-x-auto">
+        <div className="gw-panel-light p-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-gw-gray-500 border-b border-gw-border">

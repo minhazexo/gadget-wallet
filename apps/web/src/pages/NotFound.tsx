@@ -3,7 +3,7 @@ import { Home } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <div className="text-center py-20">
           <h1 className="text-8xl font-extrabold text-gw-red mb-4">404</h1>

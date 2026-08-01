@@ -1,9 +1,13 @@
 import { Container, Button, Badge } from "@gadget-wallet/ui";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Heart, Share2, Minus, Plus, Truck, Shield, RotateCcw } from "lucide-react";
 import api from "../lib/api";
+import { useCartStore } from "../store/useCartStore";
+import { useWishlistStore } from "../store/useWishlistStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { showToast } from "../store/useToastStore";
 import {
   staggerContainer,
   staggerItem,
@@ -29,13 +33,23 @@ interface Product {
 
 export default function ProductDetails() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const addToCart = useCartStore((s) => s.addItem);
+  const toggleWishlist = useWishlistStore((s) => s.toggle);
+  const wishlistItems = useWishlistStore((s) => s.items);
 
   useEffect(() => {
     if (slug) {
       api.get(`/products/${slug}`).then((res) => setProduct(res.data.data));
+      if (useAuthStore.getState().user) {
+        api.get(`/products/${slug}`).then((res) => {
+          const p = res.data.data;
+          if (p?.id) api.post("/recently-viewed", { productId: p.id }).catch(() => {});
+        });
+      }
     }
   }, [slug]);
 
@@ -57,6 +71,28 @@ export default function ProductDetails() {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  const isWishlisted = wishlistItems.some((i) => i.productId === product.id);
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product.id, quantity);
+      showToast("Added to cart");
+    } catch {
+      showToast("Failed to add to cart", "error");
+    }
+  };
+
+  const handleBuyNow = () => {
+    navigate(`/checkout?buyNow=1&productId=${product.id}&qty=${quantity}`);
+  };
+
+  const handleWishlist = async () => {
+    const added = await toggleWishlist(product.id);
+    if (added !== undefined) {
+      showToast(added ? "Added to wishlist" : "Removed from wishlist", "info");
+    }
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -76,7 +112,7 @@ export default function ProductDetails() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="aspect-square rounded-[24px] overflow-hidden bg-white border border-gw-border mb-3 md:mb-4 p-6 md:p-8"
+              className="aspect-square rounded-product overflow-hidden bg-white border border-gw-border mb-3 md:mb-4 p-6 md:p-8"
             >
               <img
                 src={product.images?.[selectedImage]?.url || `https://picsum.photos/seed/${slug}/800/800`}
@@ -228,15 +264,23 @@ export default function ProductDetails() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Button variant="dark" size="lg" className="w-full h-11 md:h-12 text-sm">Add to Cart</Button>
+                <Button variant="dark" size="lg" className="w-full h-11 md:h-12 text-sm" onClick={handleAddToCart}>
+                  Add to Cart
+                </Button>
               </motion.div>
               <div className="flex gap-2">
                 <motion.button
                   whileHover={{ scale: 1.1, borderColor: "#e11d2e", color: "#e11d2e" }}
                   whileTap={{ scale: 0.9 }}
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-xl border border-gw-border flex items-center justify-center text-gw-gray-300 hover:text-gw-red hover:border-gw-red transition-all"
+                  onClick={handleWishlist}
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-xl border flex items-center justify-center transition-all"
+                  aria-label="Add to wishlist"
+                  style={{
+                    borderColor: isWishlisted ? "#e11d2e" : undefined,
+                    color: isWishlisted ? "#e11d2e" : undefined,
+                  }}
                 >
-                  <Heart className="w-4 h-4 md:w-5 md:h-5" />
+                  <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isWishlisted ? "fill-gw-red" : ""}`} />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.1, borderColor: "#e11d2e", color: "#e11d2e" }}
@@ -255,7 +299,9 @@ export default function ProductDetails() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
             >
-              <Button variant="primary" size="lg" className="w-full mb-6 md:mb-8 h-11 md:h-12 text-sm">Buy Now</Button>
+              <Button variant="primary" size="lg" className="w-full mb-6 md:mb-8 h-11 md:h-12 text-sm" onClick={handleBuyNow}>
+                Buy Now
+              </Button>
             </motion.div>
 
             {/* Service features */}
@@ -322,7 +368,7 @@ export default function ProductDetails() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white border border-gw-border rounded-[24px] overflow-hidden"
+                className="gw-panel-light overflow-hidden"
               >
                 <div className="divide-y divide-gw-border">
                   {product.specs?.map((spec, i) => (

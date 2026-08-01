@@ -13,6 +13,11 @@ import { orderRoutes } from "./routes/orders";
 import { reviewRoutes } from "./routes/reviews";
 import { couponRoutes } from "./routes/coupons";
 import { adminRoutes } from "./routes/admin";
+import { profileRoutes } from "./routes/profile";
+import { addressRoutes } from "./routes/addresses";
+import { paymentMethodRoutes } from "./routes/paymentMethods";
+import { notificationRoutes } from "./routes/notifications";
+import { recentlyViewedRoutes } from "./routes/recentlyViewed";
 
 const app = new Hono();
 
@@ -49,6 +54,7 @@ app.get("/uploads/:filename", async (c) => {
 });
 
 app.route("/api/auth", authRoutes);
+app.route("/api/profile", profileRoutes);
 app.route("/api/products", productRoutes);
 app.route("/api/categories", categoryRoutes);
 app.route("/api/brands", brandRoutes);
@@ -58,6 +64,10 @@ app.route("/api/orders", orderRoutes);
 app.route("/api/reviews", reviewRoutes);
 app.route("/api/coupons", couponRoutes);
 app.route("/api/admin", adminRoutes);
+app.route("/api/address", addressRoutes);
+app.route("/api/payment-methods", paymentMethodRoutes);
+app.route("/api/notifications", notificationRoutes);
+app.route("/api/recently-viewed", recentlyViewedRoutes);
 
 const port = parseInt(process.env.PORT || "3000");
 

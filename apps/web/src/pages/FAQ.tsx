@@ -15,15 +15,15 @@ export default function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold text-gw-black mb-4 text-center">Frequently Asked Questions</h1>
-          <p className="text-gw-gray-500 mb-10 text-center">Find answers to common questions about our products and services.</p>
+          <h1 className="gw-page-title-md text-center">Frequently Asked Questions</h1>
+          <p className="gw-page-subtitle text-center">Find answers to common questions about our products and services.</p>
 
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <div key={i} className="bg-white border border-gw-border rounded-[20px] overflow-hidden">
+              <div key={i} className="bg-white border border-gw-border rounded-category overflow-hidden">
                 <button
                   onClick={() => setOpen(open === i ? null : i)}
                   className="w-full p-5 flex items-center justify-between text-left"

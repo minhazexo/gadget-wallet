@@ -175,7 +175,7 @@ export default function AdminProductDetail() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              className="bg-white border border-gw-border rounded-[24px] overflow-hidden mb-4"
+              className="gw-panel-light overflow-hidden mb-4"
             >
               <div className="aspect-square bg-white p-8 flex items-center justify-center">
                 {product.images.length > 0 ? (
@@ -223,7 +223,7 @@ export default function AdminProductDetail() {
             className="space-y-6"
           >
             {/* Status badges */}
-            <div className="bg-white border border-gw-border rounded-[24px] p-6">
+            <div className="gw-panel-light p-6">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -263,7 +263,7 @@ export default function AdminProductDetail() {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.35, type: "spring" }}
-                      className="text-xs font-bold text-gw-green bg-gw-green/10 px-2 py-0.5 rounded-full"
+                      className="gw-status-badge--compact font-bold text-gw-green bg-gw-green/10"
                     >
                       -{discount}%
                     </motion.span>
@@ -324,7 +324,7 @@ export default function AdminProductDetail() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white border border-gw-border rounded-[24px] p-6"
+              className="gw-panel-light p-6"
             >
               <h3 className="text-sm font-semibold text-gw-black mb-2">Short Description</h3>
               <p className="text-sm text-gw-gray-500 leading-relaxed">{product.shortDescription}</p>
@@ -340,7 +340,7 @@ export default function AdminProductDetail() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="bg-white border border-gw-border rounded-[24px] p-6"
+              className="gw-panel-light p-6"
             >
               <h3 className="text-lg font-bold text-gw-black mb-4">Full Description</h3>
               <p className="text-sm text-gw-gray-500 leading-relaxed whitespace-pre-line">{product.fullDescription}</p>
@@ -351,7 +351,7 @@ export default function AdminProductDetail() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-white border border-gw-border rounded-[24px] p-6"
+              className="gw-panel-light p-6"
             >
               <h3 className="text-lg font-bold text-gw-black mb-4">Specifications</h3>
               {product.specs.length === 0 ? (
@@ -384,7 +384,7 @@ export default function AdminProductDetail() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-white border border-gw-border rounded-[24px] p-6 mt-8"
+              className="gw-panel-light p-6 mt-8"
             >
               <h3 className="text-lg font-bold text-gw-black mb-4">All Images ({product.images.length})</h3>
               <motion.div

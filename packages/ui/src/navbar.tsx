@@ -2,7 +2,7 @@ import { cn } from "./utils";
 import { Container } from "./container";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, ShoppingCart, User, Menu, X } from "lucide-react";
+import { Search, Heart, ShoppingCart, User, Menu, X, LogOut, Package, LayoutDashboard } from "lucide-react";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -12,12 +12,18 @@ const navLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-const cartCount = 0;
+interface NavbarProps {
+  isLoggedIn?: boolean;
+  cartCount?: number;
+  userName?: string;
+  onLogout?: () => void;
+}
 
-export function Navbar() {
+export function Navbar({ isLoggedIn = false, cartCount = 0, userName = "", onLogout }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [badgeBounce, setBadgeBounce] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setIsScrolled(window.scrollY > 136);
@@ -130,21 +136,72 @@ export function Navbar() {
 
             {/* Icons */}
             <div className="flex items-center gap-0 ml-auto">
-              {[
-                { href: "/login", icon: User, label: "Account" },
-                { href: "/wishlist", icon: Heart, label: "Wishlist" },
-              ].map(({ href, icon: Icon, label }) => (
+              {isLoggedIn ? (
+                <div className="relative" onMouseEnter={() => setUserMenuOpen(true)} onMouseLeave={() => setUserMenuOpen(false)}>
+                  <motion.a
+                    href="/profile"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors"
+                    aria-label="Account"
+                  >
+                    <User className="w-6 h-6 md:w-8 md:h-8" />
+                  </motion.a>
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full w-52 bg-white border border-gw-border rounded-xl shadow-gw-lg overflow-hidden z-50"
+                      >
+                        <div className="px-4 py-3 border-b border-gw-border">
+                          <p className="text-sm font-semibold text-gw-black truncate">{userName || "My Account"}</p>
+                          <p className="text-xs text-gw-gray-500">Welcome back</p>
+                        </div>
+                        <a
+                          href="/profile"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gw-gray-700 hover:bg-gw-bg hover:text-gw-red transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4" /> My Profile
+                        </a>
+                        <a
+                          href="/my-orders"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gw-gray-700 hover:bg-gw-bg hover:text-gw-red transition-colors"
+                        >
+                          <Package className="w-4 h-4" /> My Orders
+                        </a>
+                        <button
+                          onClick={onLogout}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gw-gray-700 hover:bg-gw-bg hover:text-gw-red transition-colors text-left border-t border-gw-border"
+                        >
+                          <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
                 <motion.a
-                  key={href}
-                  href={href}
+                  href="/login"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors"
-                  aria-label={label}
+                  aria-label="Account"
                 >
-                  <Icon className="w-6 h-6 md:w-8 md:h-8" />
+                  <User className="w-6 h-6 md:w-8 md:h-8" />
                 </motion.a>
-              ))}
+              )}
+              <motion.a
+                href="/wishlist"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 md:p-3 text-gw-gray-500 hover:text-gw-red transition-colors"
+                aria-label="Wishlist"
+              >
+                <Heart className="w-6 h-6 md:w-8 md:h-8" />
+              </motion.a>
               <motion.a
                 href="/cart"
                 whileHover={{ scale: 1.1 }}

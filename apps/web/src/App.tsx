@@ -2,8 +2,11 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { Navbar, Footer, ScrollToTop } from "@gadget-wallet/ui";
 import { useEffect } from "react";
 import { useAuthStore } from "./store/useAuthStore";
+import { useCartStore } from "./store/useCartStore";
+import { useWishlistStore } from "./store/useWishlistStore";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "./components/PageTransition";
+import { ToastProvider } from "./components/ToastProvider";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetails from "./pages/ProductDetails";
@@ -32,20 +35,41 @@ import AdminOrders from "./pages/admin/AdminOrders";
 
 export default function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const cartItems = useCartStore((s) => s.items);
   const location = useLocation();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  // Load cart + wishlist once auth state is known
+  useEffect(() => {
+    if (useAuthStore.getState().isLoading) return;
+    useCartStore.getState().load();
+    useWishlistStore.getState().load();
+  }, [user]);
+
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
+  const cartCount = cartItems.reduce((sum, it) => sum + it.quantity, 0);
+
   return (
-    <div className="min-h-screen bg-gw-bg text-gw-black flex flex-col">
-      <Navbar />
+    <div className="min-h-screen bg-gw-bg text-gw-black dark:text-gray-100 flex flex-col">
+      <Navbar
+        isLoggedIn={!!user}
+        cartCount={cartCount}
+        userName={user?.name}
+        onLogout={() => {
+          logout();
+          useCartStore.getState().clearCart();
+        }}
+      />
+      <ToastProvider />
       <ScrollToTop />
       <main className="flex-1 pt-0">
         <AnimatePresence mode="wait">

@@ -3,11 +3,11 @@ import { Shield, Users, Globe, Award } from "lucide-react";
 
 export default function About() {
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h1 className="text-4xl font-bold text-gw-black mb-4">About Gadget Wallet</h1>
-          <p className="text-gw-gray-500 text-lg leading-relaxed">
+          <h1 className="gw-page-title-lg">About Gadget Wallet</h1>
+          <p className="gw-page-subtitle-lg">
             We are a premium electronics retailer dedicated to bringing you the latest and greatest
             in technology. Our mission is to make cutting-edge gadgets accessible to everyone.
           </p>
@@ -20,7 +20,7 @@ export default function About() {
             { icon: Globe, title: "Global Shipping", desc: "Worldwide delivery available" },
             { icon: Award, title: "Best Prices", desc: "Price match guarantee" },
           ].map((item) => (
-            <div key={item.title} className="bg-white border border-gw-border rounded-[24px] p-6 text-center">
+            <div key={item.title} className="gw-panel-light p-6 text-center">
               <item.icon className="w-10 h-10 text-gw-red mx-auto mb-4" />
               <h3 className="font-semibold text-gw-black mb-2">{item.title}</h3>
               <p className="text-sm text-gw-gray-500">{item.desc}</p>

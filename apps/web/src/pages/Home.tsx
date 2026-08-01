@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Truck, Shield, Wallet, Lock, Clock } from "lucide-react";
 import api from "../lib/api";
+import { useCartStore } from "../store/useCartStore";
+import { showToast } from "../store/useToastStore";
 import {
   heroContainer,
   heroItem,
@@ -143,7 +145,7 @@ export default function Home() {
                 key={item.title}
                 variants={staggerItem}
                 whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.08)" }}
-                className="flex items-center gap-3 bg-white border border-gw-border rounded-[20px] p-4 md:p-5 transition-shadow"
+                className="flex items-center gap-3 bg-white border border-gw-border rounded-category p-4 md:p-5 transition-shadow"
               >
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gw-red/10 flex items-center justify-center shrink-0">
                   <item.icon className="w-5 h-5 md:w-6 md:h-6 text-gw-red" />
@@ -161,9 +163,9 @@ export default function Home() {
       {/* ── Popular Categories ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>Popular Categories</h2>
-            <a href="/categories">View All &rarr;</a>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">Popular Categories</h2>
+            <a href="/categories" className="gw-section-link">View All &rarr;</a>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -191,9 +193,9 @@ export default function Home() {
       {/* ── Featured Products ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>Featured Products</h2>
-            <a href="/shop">View All &rarr;</a>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">Featured Products</h2>
+            <a href="/shop" className="gw-section-link">View All &rarr;</a>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -214,8 +216,8 @@ export default function Home() {
       {/* ── Flash Sale ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>Flash Sale</h2>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">Flash Sale</h2>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -262,9 +264,9 @@ export default function Home() {
       {/* ── New Arrivals ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>New Arrivals</h2>
-            <a href="/shop">View All &rarr;</a>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">New Arrivals</h2>
+            <a href="/shop" className="gw-section-link">View All &rarr;</a>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -285,8 +287,8 @@ export default function Home() {
       {/* ── Top Brands ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>Top Brands</h2>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">Top Brands</h2>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -302,7 +304,7 @@ export default function Home() {
                 href={`/shop?brand=${brand.slug}`}
                 whileHover={{ y: -5, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-gw-bg border border-gw-border rounded-[16px] p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
+                className="bg-gw-bg border border-gw-border rounded-card p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gw-border p-3 flex items-center justify-center group-hover:border-gw-red/30 transition-colors">
                   <img
@@ -324,8 +326,8 @@ export default function Home() {
       {/* ── Reviews ── */}
       <SectionReveal>
         <Container>
-          <div className="section-header">
-            <h2>What Our Customers Say</h2>
+          <div className="gw-section-header">
+            <h2 className="gw-section-title">What Our Customers Say</h2>
           </div>
           <motion.div
             variants={staggerContainer}
@@ -339,7 +341,7 @@ export default function Home() {
                 key={i}
                 variants={staggerItem}
                 whileHover={{ y: -4, boxShadow: "0 12px 28px rgba(0,0,0,0.08)" }}
-                className="bg-white border border-gw-border rounded-[24px] p-5 md:p-6 transition-all"
+                className="gw-panel-light p-5 md:p-6 transition-all"
               >
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -430,10 +432,21 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await useCartStore.getState().addItem(product.id);
+      showToast(`${product.name} added to cart`);
+    } catch {
+      showToast("Failed to add to cart", "error");
+    }
+  };
+
   return (
     <a
       href={`/product/${product.slug}`}
-      className="bg-white rounded-product border border-gw-border overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300 group"
+      className="gw-product-card group"
     >
       <div className="relative p-3 md:p-5 bg-white">
         {discount > 0 && (
@@ -469,7 +482,7 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
             <span className="text-[11px] md:text-sm text-gw-gray-300 line-through">${product.price}</span>
           )}
         </div>
-        <button className="mt-3 md:mt-4 w-full h-9 md:h-11 rounded-xl bg-gw-black text-white text-[11px] md:text-sm font-bold hover:bg-gw-red transition-all">
+        <button onClick={handleAddToCart} className="mt-3 md:mt-4 w-full h-9 md:h-11 rounded-xl bg-gw-black text-white text-[11px] md:text-sm font-bold hover:bg-gw-red transition-all">
           Add to Cart
         </button>
       </div>

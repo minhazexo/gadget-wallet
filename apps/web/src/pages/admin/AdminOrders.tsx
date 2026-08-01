@@ -25,10 +25,10 @@ export default function AdminOrders() {
   };
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <h2 className="text-3xl font-bold text-gw-black mb-8">Manage Orders</h2>
-        <div className="bg-white border border-gw-border rounded-[24px] p-6 overflow-x-auto">
+        <div className="gw-panel-light p-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-gw-gray-500 border-b border-gw-border">
@@ -43,7 +43,7 @@ export default function AdminOrders() {
                 <tr key={o.id} className="border-b border-gw-border/50 hover:bg-gray-50">
                   <td className="py-3 px-2 font-medium text-gw-black">{o.id.slice(0, 8)}</td>
                   <td className="py-3 px-2 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[o.status] || ""}`}>
+                    <span className={`gw-status-badge--compact font-medium ${statusColors[o.status] || ""}`}>
                       {o.status}
                     </span>
                   </td>

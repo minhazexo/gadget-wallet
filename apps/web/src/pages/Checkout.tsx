@@ -1,198 +1,300 @@
 import { Container, Button, Input } from "@gadget-wallet/ui";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CreditCard, Shield } from "lucide-react";
+import { CreditCard, Shield, Banknote, Smartphone, Zap } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
+import { useCartStore } from "../store/useCartStore";
+import { showToast } from "../store/useToastStore";
+import api from "../lib/api";
+
+interface LineItem {
+  productId: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [searchParams] = useSearchParams();
+  const user = useAuthStore((s) => s.user);
+  const cartItems = useCartStore((s) => s.items);
 
-  const handlePlaceOrder = () => {
-    navigate(`/order-success/ord_${crypto.randomUUID().slice(0, 8)}`);
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [buyNowItem, setBuyNowItem] = useState<LineItem | null>(null);
+  const [buyNowQty, setBuyNowQty] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [address, setAddress] = useState({ label: "", street: "", city: "", state: "", zip: "", country: "" });
+
+  const isBuyNow = searchParams.get("buyNow") === "1";
+  const productId = searchParams.get("productId");
+  const qtyParam = parseInt(searchParams.get("qty") || "1", 10);
+
+  // Load buy-now product directly (bypasses cart)
+  useEffect(() => {
+    if (isBuyNow && productId) {
+      api
+        .get(`/products/by-id/${productId}`)
+        .then((res) => {
+          const p = res.data.data;
+          setBuyNowItem({
+            productId: p.id,
+            name: p.name,
+            image: p.images?.[0]?.url || `https://picsum.photos/seed/${p.slug}/400/400`,
+            price: Number(p.discountPrice || p.price),
+            quantity: qtyParam,
+          });
+          setBuyNowQty(qtyParam);
+        })
+        .catch(() => showToast("Product not found", "error"));
+    }
+  }, [isBuyNow, productId, qtyParam]);
+
+  // Prefill shipping address from default saved address
+  useEffect(() => {
+    if (user) {
+      api
+        .get("/profile")
+        .then((res) => {
+          const addr = res.data.data?.defaultAddress;
+          if (addr) setAddress(addr);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const items: LineItem[] = useMemo(() => {
+    if (isBuyNow) return buyNowItem ? [buyNowItem] : [];
+    return cartItems.map((it) => ({
+      productId: it.productId,
+      name: it.name,
+      image: it.image || `https://picsum.photos/seed/${it.slug}/200/200`,
+      price: Number(it.discountPrice || it.price),
+      quantity: it.quantity,
+    }));
+  }, [isBuyNow, buyNowItem, cartItems]);
+
+  const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+  const shipping = 0;
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax + shipping;
+
+  const paymentOptions = [
+    { value: "card", icon: CreditCard, title: "Credit/Debit Card", sub: "Visa, Mastercard, Amex" },
+    { value: "mobile_banking", icon: Smartphone, title: "Mobile Banking", sub: "bKash, Nagad, Rocket" },
+    { value: "cod", icon: Banknote, title: "Cash on Delivery", sub: "Pay when you receive" },
+  ];
+
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (!address.street || !address.city || !address.country) {
+      showToast("Please fill in your shipping address", "error");
+      return;
+    }
+    if (items.length === 0) {
+      showToast("Your cart is empty", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      // Find or create the shipping address
+      let addressId: string | null = null;
+      const existing = await api.get("/address");
+      const match = existing.data.data?.find(
+        (a: any) =>
+          a.street === address.street &&
+          a.city === address.city &&
+          a.state === address.state &&
+          a.zip === address.zip,
+      );
+      if (match) {
+        addressId = match.id;
+      } else {
+        const created = await api.post("/address", {
+          label: address.label || "Checkout",
+          street: address.street,
+          city: address.city,
+          state: address.state || "—",
+          zip: address.zip,
+          country: address.country,
+          isDefault: (existing.data.data || []).length === 0,
+        });
+        addressId = created.data.data.id;
+      }
+
+      const { data } = await api.post("/orders", {
+        items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, price: it.price })),
+        subtotal: Number(subtotal.toFixed(2)),
+        discount: 0,
+        shipping,
+        total: Number(total.toFixed(2)),
+        paymentMethod,
+        shippingAddressId: addressId,
+        paymentStatus: paymentMethod === "cod" ? "pending" : "paid",
+      });
+
+      showToast("Order placed successfully");
+      // Clear cart after order (only in cart mode)
+      if (!isBuyNow) {
+        for (const it of cartItems) {
+          await api
+            .delete("/cart/remove", { data: { productId: it.productId, userId: user.id } })
+            .catch(() => {});
+        }
+        useCartStore.getState().clearCart();
+      }
+      navigate(`/order-success/${data.data.id}`);
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || "Failed to place order", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const addressFields = [
+    { key: "label", label: "Address Label", placeholder: "Home / Office" },
+    { key: "street", label: "Street Address", placeholder: "123 Main Street" },
+    { key: "city", label: "City", placeholder: "San Francisco" },
+    { key: "state", label: "State", placeholder: "CA" },
+    { key: "zip", label: "ZIP Code", placeholder: "94102" },
+    { key: "country", label: "Country", placeholder: "United States" },
+  ] as const;
+
   return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <Container>
-        <motion.h2
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-2xl md:text-3xl font-bold text-gw-black mb-6 md:mb-8"
-        >
-          Checkout
-        </motion.h2>
+        <motion.div className="flex items-center gap-2 mb-6 md:mb-8">
+          <h2 className="gw-title">Checkout</h2>
+          {isBuyNow && (
+            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-gw-red/10 text-gw-red text-xs font-bold">
+              <Zap className="w-3.5 h-3.5" /> Buy Now
+            </span>
+          )}
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white rounded-[24px] border border-gw-border p-5 md:p-6"
-            >
-              <div className="flex items-center gap-3 mb-4 md:mb-6">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-                  className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gw-red text-white flex items-center justify-center text-xs md:text-sm font-bold shrink-0"
-                >
-                  1
-                </motion.div>
-                <h3 className="text-base md:text-lg font-semibold text-gw-black">Shipping Information</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 + i * 0.05 }}
-                    className={i === 2 ? "sm:col-span-2" : ""}
-                  >
-                    <Input
-                      label={["Full Name", "Phone", "Address", "City", "ZIP Code", "State", "Country"][i]}
-                      placeholder={[
-                        "John Doe",
-                        "+1 (555) 000-0000",
-                        "123 Main Street",
-                        "San Francisco",
-                        "94102",
-                        "CA",
-                        "United States",
-                      ][i]}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            <AnimatePresence>
-              {step === 2 && (
-                <motion.div
-                  key="payment"
-                  initial={{ opacity: 0, y: 20, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: "auto" }}
-                  exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="bg-white rounded-[24px] border border-gw-border p-5 md:p-6 overflow-hidden"
-                >
-                  <div className="flex items-center gap-3 mb-4 md:mb-6">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300, delay: 0.1 }}
-                      className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gw-red text-white flex items-center justify-center text-xs md:text-sm font-bold shrink-0"
-                    >
-                      2
-                    </motion.div>
-                    <h3 className="text-base md:text-lg font-semibold text-gw-black">Payment Method</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { icon: CreditCard, title: "Credit/Debit Card", sub: "Visa, Mastercard, Amex" },
-                      { icon: Shield, title: "Cash on Delivery", sub: "Pay when you receive" },
-                    ].map((pay, i) => (
-                      <motion.label
-                        key={pay.title}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        whileHover={{ x: 4, borderColor: "#e11d2e" }}
-                        className="flex items-center gap-3 p-3 md:p-4 border border-gw-border rounded-xl cursor-pointer hover:border-gw-red/50 transition-all"
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          defaultChecked={i === 0}
-                          className="accent-gw-red"
-                        />
-                        <pay.icon className="w-4 h-4 md:w-5 md:h-5 text-gw-red shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-medium text-gw-black text-sm md:text-base">{pay.title}</p>
-                          <p className="text-xs md:text-sm text-gw-gray-500">{pay.sub}</p>
-                        </div>
-                      </motion.label>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {items.length === 0 ? (
+          <div className="gw-empty">
+            <p className="gw-muted mb-4">Nothing to checkout yet.</p>
+            <Button variant="primary" onClick={() => navigate("/shop")}>Browse Products</Button>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className="bg-white rounded-[24px] border border-gw-border p-5 md:p-6 lg:sticky lg:top-[148px]">
-              <h3 className="font-semibold text-lg text-gw-black mb-4">Order Summary</h3>
-              <div className="space-y-2 md:space-y-3 text-sm">
-                {[
-                  { label: "Items (3)", value: "$1,799.97" },
-                  { label: "Shipping", value: "Free", green: true },
-                  { label: "Tax", value: "$143.99" },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                    className="flex justify-between text-gw-gray-500"
-                  >
-                    <span>{item.label}</span>
-                    <span className={item.green ? "text-gw-green font-medium" : "text-gw-black font-medium"}>
-                      {item.value}
-                    </span>
-                  </motion.div>
-                ))}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="border-t border-gw-border pt-3 flex justify-between font-bold text-base md:text-lg"
-                >
-                  <span className="text-gw-black">Total</span>
-                  <span className="text-gw-red">$1,943.96</span>
-                </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
+              {/* Step 1: Shipping */}
+              <div className="gw-panel p-5 md:p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="gw-step-badge">1</div>
+                  <h3 className="gw-heading-lg">Shipping Information</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {addressFields.map((f) => (
+                    <Input
+                      key={f.key}
+                      label={f.label}
+                      placeholder={f.placeholder}
+                      value={address[f.key]}
+                      onChange={(e) => setAddress((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    />
+                  ))}
+                </div>
               </div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="mt-5 md:mt-6"
-              >
-                {step === 1 ? (
-                  <Button variant="primary" className="w-full h-11 md:h-12" onClick={() => setStep(2)}>
-                    Continue to Payment
-                  </Button>
-                ) : (
+
+              {/* Step 2: Payment */}
+              <AnimatePresence>
+                {step === 2 && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    key="payment"
+                    initial={{ opacity: 0, y: 20, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -10, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="gw-panel p-5 md:p-6 overflow-hidden"
                   >
-                    <Button variant="primary" className="w-full h-11 md:h-12" onClick={handlePlaceOrder}>
-                      Place Order
-                    </Button>
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="gw-step-badge">2</div>
+                      <h3 className="gw-heading-lg">Payment Method</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {paymentOptions.map((pay, i) => (
+                        <motion.label
+                          key={pay.value}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.08 }}
+                          className="flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all"
+                          style={{ borderColor: paymentMethod === pay.value ? "#e11d2e" : undefined }}
+                        >
+                          <input
+                            type="radio"
+                            name="payment"
+                            checked={paymentMethod === pay.value}
+                            onChange={() => setPaymentMethod(pay.value)}
+                            className="accent-gw-red"
+                          />
+                          <pay.icon className="w-5 h-5 text-gw-red shrink-0" />
+                          <div>
+                            <p className="gw-text-body font-medium">{pay.title}</p>
+                            <p className="gw-muted-sm">{pay.sub}</p>
+                          </div>
+                        </motion.label>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
-              </motion.div>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="text-xs text-center mt-3 text-gw-gray-300"
-              >
-                Secured with 256-bit SSL encryption
-              </motion.p>
+              </AnimatePresence>
             </div>
-          </motion.div>
-        </div>
+
+            {/* Summary */}
+            <div>
+              <div className="gw-panel p-5 md:p-6 lg:sticky lg:top-[148px]">
+                <h3 className="gw-heading-lg mb-4">Order Summary</h3>
+                <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+                  {items.map((it, i) => (
+                    <div key={it.productId} className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-white border border-gw-border p-1 overflow-hidden shrink-0">
+                        <img src={it.image} alt={it.name} className="w-full h-full object-contain" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium gw-text-body truncate">{it.name}</p>
+                        <p className="gw-muted-xs">Qty: {it.quantity}</p>
+                      </div>
+                      <p className="gw-heading-sm">${(it.price * it.quantity).toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2 mt-4 text-sm gw-muted-sm">
+                  <div className="flex justify-between"><span>Subtotal</span><span className="gw-text-body font-medium">${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Shipping</span><span className="text-gw-green font-medium">Free</span></div>
+                  <div className="flex justify-between"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
+                  <div className="border-t border-gw-border dark:border-gray-700 pt-3 flex justify-between font-bold text-lg">
+                    <span className="gw-text-body">Total</span>
+                    <span className="text-gw-red">${total.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  {step === 1 ? (
+                    <Button variant="primary" className="w-full h-12" onClick={() => setStep(2)}>
+                      Continue to Payment
+                    </Button>
+                  ) : (
+                    <Button variant="primary" className="w-full h-12" isLoading={loading} onClick={handlePlaceOrder}>
+                      Place Order — ${total.toFixed(2)}
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-center mt-3 text-gw-gray-300 dark:text-gray-600 flex items-center justify-center gap-1">
+                  <Shield className="w-3.5 h-3.5" /> Secured with 256-bit SSL encryption
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </Container>
     </motion.section>
   );

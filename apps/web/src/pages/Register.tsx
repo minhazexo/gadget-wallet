@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
+import { useCartStore } from "../store/useCartStore";
+import { useWishlistStore } from "../store/useWishlistStore";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -16,6 +18,10 @@ export default function Register() {
     e.preventDefault();
     try {
       await register(email, name, password);
+      await Promise.all([
+        useCartStore.getState().mergeGuestCart(),
+        useWishlistStore.getState().load(),
+      ]);
       navigate("/");
     } catch {
       setError("Registration failed. Try again.");
@@ -23,25 +29,25 @@ export default function Register() {
   };
 
   return (
-    <section>
+    <section className="gw-section">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-md mx-auto"
+          className="gw-auth-wrap"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
-            className="bg-white rounded-[24px] border border-gw-border p-8"
+            className="gw-panel-light p-8"
           >
             <motion.h1
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl font-bold text-gw-black mb-2 text-center"
+              className="gw-auth-title"
             >
               Create Account
             </motion.h1>
@@ -49,7 +55,7 @@ export default function Register() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
-              className="text-gw-gray-500 text-center mb-8"
+              className="gw-auth-subtitle"
             >
               Join Gadget Wallet today
             </motion.p>
@@ -110,7 +116,7 @@ export default function Register() {
               className="text-center text-sm text-gw-gray-500 mt-6"
             >
               Already have an account?{" "}
-              <Link to="/login" className="text-gw-red hover:text-gw-red-hover font-medium">Sign in</Link>
+              <Link to="/login" className="gw-link">Sign in</Link>
             </motion.p>
           </motion.div>
         </motion.div>

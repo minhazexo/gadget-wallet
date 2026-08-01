@@ -23,7 +23,7 @@ export default function OrderSuccess() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
-            className="bg-white rounded-[24px] border border-gw-border p-6 md:p-10"
+            className="gw-panel-light p-6 md:p-10"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -69,7 +69,7 @@ export default function OrderSuccess() {
               className="space-y-3"
             >
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                <a href="/my-orders"><Button variant="primary" className="w-full h-12">Track Order</Button></a>
+                <a href="/profile?tab=orders"><Button variant="primary" className="w-full h-12">Track Order</Button></a>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                 <a href="/shop"><Button variant="outline" className="w-full h-12">Continue Shopping</Button></a>
