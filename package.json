@@ -17,6 +17,9 @@
     "lint": "bun run --cwd apps/web lint",
     "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/server typecheck"
   },
+  "dependencies": {
+    "drizzle-orm": "0.36.3"
+  },
   "devDependencies": {
     "typescript": "^5.5.0"
   },
