@@ -274,7 +274,7 @@ adminRoutes.post("/products", async (c) => {
           isFeatured: values.isFeatured || false,
           isNewArrival: values.isNewArrival || false,
           isBestSeller: values.isBestSeller || false,
-        })
+        } as typeof schema.products.$inferInsert)
         .returning();
 
       if (files.length > 0) {

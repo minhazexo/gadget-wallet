@@ -49,7 +49,7 @@ reviewRoutes.post("/", requireAuth, zValidator("json", createReviewSchema), asyn
   const data = c.req.valid("json");
   const [review] = await db
     .insert(schema.reviews)
-    .values({ ...data, userId: user.id })
+    .values({ ...data, userId: user.id } as typeof schema.reviews.$inferInsert)
     .returning();
   return success(c, review, "Review submitted");
 });

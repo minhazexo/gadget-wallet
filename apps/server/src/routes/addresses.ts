@@ -50,7 +50,7 @@ addressRoutes.post("/", zValidator("json", addressSchema), async (c) => {
 
   const [address] = await db
     .insert(schema.addresses)
-    .values({ ...data, userId: user.id, isDefault: makeDefault })
+    .values({ ...data, userId: user.id, isDefault: makeDefault } as typeof schema.addresses.$inferInsert)
     .returning();
   return success(c, address, "Address added successfully");
 });
