@@ -1,5 +1,4 @@
-import { app } from "../apps/server/src/app";
+import { handle } from "hono/vercel";
+import { app } from "../apps/server/src/app.js";
 
-export default async function handler(request: Request): Promise<Response> {
-  return app.fetch(request);
-}
+export default handle(app);

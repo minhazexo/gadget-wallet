@@ -10,7 +10,8 @@
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push",
     "seed": "bun run src/seed.ts",
-    "migrate": "drizzle-kit migrate"
+    "migrate": "drizzle-kit migrate",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@gadget-wallet/types": "*",
