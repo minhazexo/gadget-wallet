@@ -2,7 +2,12 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error(
+    "DATABASE_URL is not set. Add your Neon PostgreSQL connection string (prefer the pooled one, …-pooler… ?sslmode=require) to Vercel Environment Variables (Production + Preview).",
+  );
+}
 
 // Serverless-friendly pool settings:
 // - `max` bounds connections per function instance (Neon free tier ~10).

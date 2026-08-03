@@ -31,7 +31,14 @@ import { UPLOADS_DIR } from "./utils/storage";
  */
 export const app = new Hono();
 
-app.use("*", cors({ origin: process.env.APP_URL || "http://localhost:5173", credentials: true }));
+// CORS origins come from APP_URL (comma-separated for multiple domains, e.g.
+// production + preview). Same-origin /api calls don't need CORS at all, so a
+// missing APP_URL only affects cross-origin access — dev falls back to Vite.
+const allowedOrigins = (process.env.APP_URL || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use("*", cors({ origin: allowedOrigins, credentials: true }));
 app.use("*", logger());
 app.use("*", secureHeaders());
 

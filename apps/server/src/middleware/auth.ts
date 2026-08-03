@@ -5,7 +5,16 @@ import { db, schema } from "@gadget-wallet/db";
 import { eq } from "drizzle-orm";
 import { error } from "../utils/response";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
+// JWT_SECRET is required in production — silently falling back to the dev
+// secret on Vercel would let anyone forge admin tokens.
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET must be set in production (generate with: openssl rand -hex 32)");
+  }
+  console.warn("[auth] JWT_SECRET not set — using dev fallback secret (do not use in production)");
+}
+const JWT_SECRET = jwtSecret || "dev-secret-change-in-production";
 
 export interface AuthUser {
   id: string;
