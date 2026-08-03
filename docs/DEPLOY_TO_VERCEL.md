@@ -10,7 +10,7 @@ no separate API domain, no `VITE_API_URL` needed.
 ```
 gadget-wallet/                     ← Vercel Root Directory
 ├── api/
-│   └── [[route]].ts               ← Vercel serverless entry (auto-detected)
+│   └── [[...route]].ts            ← Vercel serverless entry (catch-all, auto-detected)
 ├── apps/
 │   ├── web/                       ← Vite + React static build → apps/web/dist
 │   └── server/
@@ -18,7 +18,7 @@ gadget-wallet/                     ← Vercel Root Directory
 │       │   ├── app.ts             ← the whole Hono app (runtime-agnostic)
 │       │   ├── index.ts           ← Bun.serve wrapper (local dev only)
 │       │   └── routes/            ← auth, products, admin, …
-│       └── dist/app.js            ← pre-bundled app (bun build --target=node)
+│       └── dist/app.cjs           ← pre-bundled app (bun build --target=node, CJS)
 ├── packages/
 │   ├── db/                        ← Drizzle + PostgreSQL schema (Neon)
 │   ├── ui/                        ← shared React components
@@ -30,11 +30,21 @@ gadget-wallet/                     ← Vercel Root Directory
 **Stack:** React 18 + Vite + TailwindCSS · Hono (Bun/Node) · Drizzle ORM ·
 Neon PostgreSQL (data) · Supabase Storage (images) · JWT auth.
 
-> **Why `dist/app.js`?** Vercel's function builder is unreliable at bundling raw
+> **Why `dist/app.cjs`?** Vercel's function builder is unreliable at bundling raw
 > TypeScript from workspace packages (`@gadget-wallet/db` resolves to `.ts`
 > source). The root `build` script therefore bundles the server into one
-> self-contained Node-compatible file, and `api/[[route]].ts` is a thin wrapper
+> self-contained Node-compatible file, and `api/[[...route]].ts` is a thin wrapper
 > that calls `app.fetch(request)`.
+>
+> **Two deployment-critical details:**
+> 1. The file is named `[[...route]].ts` (**with the ellipsis**) — plain `[[route]]`
+>    only matches a single optional segment, so nested paths like
+>    `/api/products/featured` 404 at the platform level.
+> 2. The bundle is **CommonJS** (`.cjs`). Vercel compiles this handler to CJS
+>    (root `package.json` has no `"type": "module"`), so it `require()`s the
+>    bundle — requiring an ESM `.js` file would throw `ERR_REQUIRE_ESM` on
+>    Vercel's Node 18/20 and every `/api/*` call would return 500
+>    (`FUNCTION_INVOCATION_FAILED`).
 
 ---
 
@@ -132,7 +142,7 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
      "buildCommand": "bun run db:push:vercel && bun run build",
      "outputDirectory": "apps/web/dist",
      "functions": {
-       "api/[[route]].ts": { "maxDuration": 30 }
+       "api/[[...route]].ts": { "maxDuration": 30 }
      },
      "rewrites": [
        { "source": "/((?!api/).*)", "destination": "/index.html" }
@@ -149,8 +159,8 @@ bun install                    # installs all workspace deps at the root
 bun run db:push:vercel         # applies the current schema to DATABASE_URL
                                #   (idempotent — no-op when already in sync)
 bun run build                  # 1) builds web  → apps/web/dist
-                               # 2) bundles server → apps/server/dist/app.js
-Vercel packages api/[[route]].ts → serverless function (traces dist/app.js)
+                               # 2) bundles server → apps/server/dist/app.cjs
+Vercel packages api/[[...route]].ts → serverless function (traces dist/app.cjs)
 Static output apps/web/dist served as files; every other path rewrites to
 index.html; every /api/* request hits the Hono function.
 ```
@@ -230,7 +240,8 @@ data, the push fails loudly instead of silently truncating.
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
 | `error: Script not found "db:push:vercel"` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
-| Build succeeds but `/api/*` returns 404 | Confirm `api/[[route]].ts` exists at the repo root and `framework` in `vercel.json` is `null`. |
+| Build succeeds but `/api/*` returns 404 | The function file must be `api/[[...route]].ts` (**with ellipsis**) — plain `[[route]]` only matches one segment. Confirm it exists and `framework` in `vercel.json` is `null`. |
+| `/api/health` (and other `/api/*`) return **500 `FUNCTION_INVOCATION_FAILED`** | The function can't load the server bundle: the bundle must be **CommonJS** (`dist/app.cjs`, `--format=cjs`) because the handler compiles to CJS — requiring the ESM `app.js` throws `ERR_REQUIRE_ESM` on Node 18/20. Redeploy after `bun run build`. |
 | Site loads but **no products show** | The SPA rewrite `/(.*) → /index.html` is shadowing the API. Change it to `/((?!api/).*)` (excludes `/api/*`) and redeploy. Verify with `curl https://<project>.vercel.app/api/health` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |
 | `column does not exist` (500s) | The API is running against an older schema — redeploy (the build auto-pushes) or run `bun run db:push` manually. |

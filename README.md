@@ -21,7 +21,7 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 ```
 gadget-wallet/
 ├── api/
-│   └── [[route]].ts            # Vercel serverless entry (serves the Hono app)
+│   └── [[...route]].ts         # Vercel serverless entry (serves the Hono app)
 ├── apps/
 │   ├── web/                    # React + Vite frontend
 │   │   └── src/
@@ -84,7 +84,7 @@ bun run dev
 | Script | Description |
 |--------|-------------|
 | `bun run dev` | Run web + API in parallel (dev mode) |
-| `bun run build` | Production build: web (`apps/web/dist`) + Node bundle (`apps/server/dist/app.js`) |
+| `bun run build` | Production build: web (`apps/web/dist`) + Node bundle (`apps/server/dist/app.cjs`) |
 | `bun run typecheck` | Typecheck web + server |
 | `bun run db:generate` | Generate Drizzle migrations from `packages/db/src/schema.ts` |
 | `bun run db:push` | Apply schema to the database (loads `.env`) |
@@ -108,7 +108,7 @@ bun run dev
 The whole app — storefront + API — deploys to **one Vercel project** from this
 repo. `vercel.json` handles the build; migrations run automatically on every
 deploy (`bun run db:push:vercel`), and the Hono API runs as a serverless
-function via `api/[[route]].ts`.
+function via `api/[[...route]].ts`.
 
 ```bash
 # 1. Push the repo to GitHub

@@ -26,7 +26,7 @@ import { UPLOADS_DIR } from "./utils/storage";
  *
  * This module is intentionally runtime-agnostic (no `Bun.*`, no `serve()`):
  * - Local development  → `index.ts` boots it with `Bun.serve`
- * - Vercel             → `../../api/[[route]].ts` serves it via `app.fetch`
+ * - Vercel             → `../../api/[[...route]].ts` serves it via `app.fetch`
  * - Standalone Node    → any HTTP server that calls `app.fetch`
  */
 export const app = new Hono();

@@ -5,7 +5,7 @@
   "buildCommand": "bun run db:push:vercel && bun run build",
   "outputDirectory": "apps/web/dist",
   "functions": {
-    "api/[[route]].ts": {
+    "api/[[...route]].ts": {
       "maxDuration": 30
     }
   },
