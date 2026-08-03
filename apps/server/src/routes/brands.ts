@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db, schema } from "@gadget-wallet/db";
 import { eq } from "drizzle-orm";
-import { success } from "../utils/response";
+import { success } from "../utils/response.js";
 
 export const brandRoutes = new Hono();
 

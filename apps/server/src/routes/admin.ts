@@ -3,14 +3,14 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
-import { success, error } from "../utils/response";
+import { success, error } from "../utils/response.js";
 import {
   uploadImage,
   deleteImage,
   isAllowedImage,
   type UploadedImage,
-} from "../utils/storage";
-import { authMiddleware, adminMiddleware } from "../middleware/auth";
+} from "../utils/storage.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.js";
 
 export const adminRoutes = new Hono();
 

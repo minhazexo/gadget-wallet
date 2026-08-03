@@ -4,22 +4,22 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { authRoutes } from "./routes/auth";
-import { productRoutes } from "./routes/products";
-import { categoryRoutes } from "./routes/categories";
-import { brandRoutes } from "./routes/brands";
-import { cartRoutes } from "./routes/cart";
-import { wishlistRoutes } from "./routes/wishlist";
-import { orderRoutes } from "./routes/orders";
-import { reviewRoutes } from "./routes/reviews";
-import { couponRoutes } from "./routes/coupons";
-import { adminRoutes } from "./routes/admin";
-import { profileRoutes } from "./routes/profile";
-import { addressRoutes } from "./routes/addresses";
-import { paymentMethodRoutes } from "./routes/paymentMethods";
-import { notificationRoutes } from "./routes/notifications";
-import { recentlyViewedRoutes } from "./routes/recentlyViewed";
-import { UPLOADS_DIR } from "./utils/storage";
+import { authRoutes } from "./routes/auth.js";
+import { productRoutes } from "./routes/products.js";
+import { categoryRoutes } from "./routes/categories.js";
+import { brandRoutes } from "./routes/brands.js";
+import { cartRoutes } from "./routes/cart.js";
+import { wishlistRoutes } from "./routes/wishlist.js";
+import { orderRoutes } from "./routes/orders.js";
+import { reviewRoutes } from "./routes/reviews.js";
+import { couponRoutes } from "./routes/coupons.js";
+import { adminRoutes } from "./routes/admin.js";
+import { profileRoutes } from "./routes/profile.js";
+import { addressRoutes } from "./routes/addresses.js";
+import { paymentMethodRoutes } from "./routes/paymentMethods.js";
+import { notificationRoutes } from "./routes/notifications.js";
+import { recentlyViewedRoutes } from "./routes/recentlyViewed.js";
+import { UPLOADS_DIR } from "./utils/storage.js";
 
 /**
  * The full Gadget Wallet Hono application.

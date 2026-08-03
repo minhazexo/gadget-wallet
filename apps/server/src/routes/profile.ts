@@ -4,8 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, and, count } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { requireAuth } from "../middleware/auth";
-import { success, error } from "../utils/response";
+import { requireAuth } from "../middleware/auth.js";
+import { success, error } from "../utils/response.js";
 
 export const profileRoutes = new Hono();
 

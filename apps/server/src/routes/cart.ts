@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, and, sql } from "drizzle-orm";
-import { success, error } from "../utils/response";
+import { success, error } from "../utils/response.js";
 
 export const cartRoutes = new Hono();
 

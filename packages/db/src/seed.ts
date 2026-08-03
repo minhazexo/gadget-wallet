@@ -1,5 +1,5 @@
-import { db } from "./index";
-import { users, categories, brands, products, productImages, productSpecs, heroMedia, banners, settings } from "./schema";
+import { db } from "./index.js";
+import { users, categories, brands, products, productImages, productSpecs, heroMedia, banners, settings } from "./schema.js";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

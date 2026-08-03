@@ -3,8 +3,8 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
-import { success } from "../utils/response";
+import { requireAuth } from "../middleware/auth.js";
+import { success } from "../utils/response.js";
 
 export const notificationRoutes = new Hono();
 

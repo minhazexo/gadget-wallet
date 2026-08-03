@@ -3,7 +3,7 @@ import type { Context, Next } from "hono";
 import jwtLib from "jsonwebtoken";
 import { db, schema } from "@gadget-wallet/db";
 import { eq } from "drizzle-orm";
-import { error } from "../utils/response";
+import { error } from "../utils/response.js";
 
 // JWT_SECRET is required in production — silently falling back to the dev
 // secret on Vercel would let anyone forge admin tokens.
