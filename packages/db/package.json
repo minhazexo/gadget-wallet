@@ -13,7 +13,7 @@
     "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@gadget-wallet/types": "workspace:*",
+    "@gadget-wallet/types": "*",
     "drizzle-orm": "^0.33.0",
     "postgres": "^3.4.0",
     "bcryptjs": "^2.4.3",

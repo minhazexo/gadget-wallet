@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gadget-wallet/types": "workspace:*",
-    "@gadget-wallet/ui": "workspace:*",
+    "@gadget-wallet/types": "*",
+    "@gadget-wallet/ui": "*",
     "@hookform/resolvers": "^3.9.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
