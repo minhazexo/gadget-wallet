@@ -10,7 +10,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Bind to 0.0.0.0 and honor the workspace-injected PORT so the Freebuff
+    // preview is reachable; falls back to 5173 for plain local development.
+    host: true,
+    port: Number(process.env.PORT) || 5173,
     proxy: {
       "/api": {
         target: "http://localhost:3000",
