@@ -196,7 +196,7 @@ async function readProductPayload(c: import("hono").Context) {
  * clean up any files already uploaded.
  */
 async function attachImages(
-  tx: typeof db,
+  tx: any,
   productId: string,
   files: File[],
   altPrefix: string,

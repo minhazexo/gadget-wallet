@@ -29,9 +29,9 @@ export const users = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     deletedAt: timestamp("deleted_at"),
   },
-  (table) => ({
-    emailIdx: uniqueIndex("email_idx").on(table.email),
-  }),
+  (table) => [
+    uniqueIndex("email_idx").on(table.email),
+  ],
 );
 
 export const addresses = pgTable("addresses", {
@@ -98,13 +98,13 @@ export const products = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     deletedAt: timestamp("deleted_at"),
   },
-  (table) => ({
-    slugIdx: uniqueIndex("slug_idx").on(table.slug),
-    skuIdx: uniqueIndex("sku_idx").on(table.sku),
-    featuredIdx: index("featured_idx").on(table.isFeatured),
-    categoryIdx: index("category_idx").on(table.categoryId),
-    brandIdx: index("brand_idx").on(table.brandId),
-  }),
+  (table) => [
+    uniqueIndex("slug_idx").on(table.slug),
+    uniqueIndex("sku_idx").on(table.sku),
+    index("featured_idx").on(table.isFeatured),
+    index("category_idx").on(table.categoryId),
+    index("brand_idx").on(table.brandId),
+  ],
 );
 
 export const productImages = pgTable(
@@ -122,7 +122,7 @@ export const productImages = pgTable(
     order: integer("order").default(0).notNull(),
     isPrimary: boolean("is_primary").default(false).notNull(),
   },
-  (table) => ({ productImageIdx: index("product_image_idx").on(table.productId) }),
+  (table) => [index("product_image_idx").on(table.productId)],
 );
 
 export const productSpecs = pgTable(
@@ -135,7 +135,7 @@ export const productSpecs = pgTable(
     key: text("key").notNull(),
     value: text("value").notNull(),
   },
-  (table) => ({ productSpecIdx: index("product_spec_idx").on(table.productId) }),
+  (table) => [index("product_spec_idx").on(table.productId)],
 );
 
 export const carts = pgTable("carts", {
@@ -158,7 +158,7 @@ export const cartItems = pgTable(
       .references(() => products.id),
     quantity: integer("quantity").default(1).notNull(),
   },
-  (table) => ({ cartItemCartIdx: index("cart_item_cart_idx").on(table.cartId) }),
+  (table) => [index("cart_item_cart_idx").on(table.cartId)],
 );
 
 export const wishlists = pgTable(
@@ -173,9 +173,9 @@ export const wishlists = pgTable(
       .references(() => products.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    wishlistUserProductIdx: uniqueIndex("wishlist_user_product_idx").on(table.userId, table.productId),
-  }),
+  (table) => [
+    uniqueIndex("wishlist_user_product_idx").on(table.userId, table.productId),
+  ],
 );
 
 export const orders = pgTable(
@@ -210,10 +210,10 @@ export const orders = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => ({
-    orderUserIdx: index("order_user_idx").on(table.userId),
-    orderStatusIdx: index("order_status_idx").on(table.status),
-  }),
+  (table) => [
+    index("order_user_idx").on(table.userId),
+    index("order_status_idx").on(table.status),
+  ],
 );
 
 export const orderItems = pgTable(
@@ -229,7 +229,7 @@ export const orderItems = pgTable(
     quantity: integer("quantity").notNull(),
     price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   },
-  (table) => ({ orderItemOrderIdx: index("order_item_order_idx").on(table.orderId) }),
+  (table) => [index("order_item_order_idx").on(table.orderId)],
 );
 
 export const coupons = pgTable("coupons", {
@@ -261,10 +261,10 @@ export const reviews = pgTable(
     isApproved: boolean("is_approved").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    reviewProductIdx: index("review_product_idx").on(table.productId),
-    reviewUserIdx: index("review_user_idx").on(table.userId),
-  }),
+  (table) => [
+    index("review_product_idx").on(table.productId),
+    index("review_user_idx").on(table.userId),
+  ],
 );
 
 export const paymentMethods = pgTable(
@@ -286,7 +286,7 @@ export const paymentMethods = pgTable(
     isDefault: boolean("is_default").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({ paymentMethodUserIdx: index("payment_method_user_idx").on(table.userId) }),
+  (table) => [index("payment_method_user_idx").on(table.userId)],
 );
 
 export const notifications = pgTable(
@@ -302,7 +302,7 @@ export const notifications = pgTable(
     isRead: boolean("is_read").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({ notificationUserIdx: index("notification_user_idx").on(table.userId) }),
+  (table) => [index("notification_user_idx").on(table.userId)],
 );
 
 export const notificationPreferences = pgTable("notification_preferences", {
@@ -331,9 +331,9 @@ export const recentlyViewed = pgTable(
       .references(() => products.id),
     viewedAt: timestamp("viewed_at").defaultNow().notNull(),
   },
-  (table) => ({
-    recentlyViewedUserProductIdx: uniqueIndex("recently_viewed_user_product_idx").on(table.userId, table.productId),
-  }),
+  (table) => [
+    uniqueIndex("recently_viewed_user_product_idx").on(table.userId, table.productId),
+  ],
 );
 
 export const heroMedia = pgTable("hero_media", {
