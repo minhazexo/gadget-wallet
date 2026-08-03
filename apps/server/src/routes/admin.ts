@@ -4,9 +4,21 @@ import { zValidator } from "@hono/zod-validator";
 import { db, schema } from "@gadget-wallet/db";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { success, error } from "../utils/response";
-import { uploadImage, deleteImage } from "../utils/storage";
+import {
+  uploadImage,
+  deleteImage,
+  isAllowedImage,
+  type UploadedImage,
+} from "../utils/storage";
+import { authMiddleware, adminMiddleware } from "../middleware/auth";
 
 export const adminRoutes = new Hono();
+
+// ─── Security ─────────────────────────────────────────────────────
+// Every /api/admin route requires a valid JWT for an active admin account.
+adminRoutes.use("*", authMiddleware, adminMiddleware);
+
+const MAX_IMAGES_PER_PRODUCT = 12;
 
 adminRoutes.get("/dashboard", async (c) => {
   const [totalProducts] = await db
@@ -58,6 +70,8 @@ adminRoutes.patch("/orders/:id/status", async (c) => {
   return success(c, order, "Order status updated");
 });
 
+// ─── Products ─────────────────────────────────────────────────────
+
 adminRoutes.get("/products", async (c) => {
   const products = await db
     .select()
@@ -83,6 +97,7 @@ adminRoutes.get("/products/:id", async (c) => {
       brandId: schema.products.brandId,
       categoryId: schema.products.categoryId,
       stock: schema.products.stock,
+      thumbnailUrl: schema.products.thumbnailUrl,
       rating: schema.products.rating,
       reviewCount: schema.products.reviewCount,
       isFeatured: schema.products.isFeatured,
@@ -130,19 +145,150 @@ const productSchema = z.object({
   isBestSeller: z.coerce.boolean().optional(),
 });
 
-adminRoutes.post("/products", zValidator("json", productSchema), async (c) => {
-  const body = c.req.valid("json");
-  const [product] = await db
-    .insert(schema.products)
-    .values({
-      ...body,
-      discountPrice: body.discountPrice || null,
-      isFeatured: body.isFeatured || false,
-      isNewArrival: body.isNewArrival || false,
-      isBestSeller: body.isBestSeller || false,
+function coerceMultipartBooleans(body: Record<string, unknown>) {
+  const out: Record<string, unknown> = { ...body };
+  for (const key of ["isFeatured", "isNewArrival", "isBestSeller"]) {
+    if (typeof out[key] === "string") out[key] = out[key] === "true";
+    else out[key] = Boolean(out[key]);
+  }
+  return out;
+}
+
+/**
+ * Reads a product payload from either multipart/form-data (admin form with
+ * images[]) or application/json (API clients). Returns validated product
+ * values plus any image files to attach.
+ */
+async function readProductPayload(c: import("hono").Context) {
+  const contentType = c.req.header("content-type") || "";
+  const files: File[] = [];
+
+  if (contentType.includes("multipart/form-data")) {
+    const body = await c.req.parseBody({ all: true });
+    const raw = body["images"];
+    if (Array.isArray(raw)) {
+      for (const f of raw) if (f instanceof File && f.size > 0) files.push(f);
+    } else if (raw instanceof File && raw.size > 0) {
+      files.push(raw);
+    }
+
+    const fields: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(body)) {
+      if (key === "images" || value instanceof File) continue;
+      fields[key] = typeof value === "string" ? value : String(value);
+    }
+    if (fields["discountPrice"] === "") fields["discountPrice"] = undefined;
+
+    const values = productSchema.parse(coerceMultipartBooleans(fields));
+    return { values, files };
+  }
+
+  const json = await c.req.json();
+  // Apply the same boolean coercion so a JSON "false" string can't become true.
+  const values = productSchema.parse(coerceMultipartBooleans(json));
+  return { values, files };
+}
+
+/**
+ * Uploads image files into the product's storage folder and records them in
+ * the product_images table. The first image becomes the primary thumbnail.
+ * Throws on any failure so the caller can roll back the DB transaction and
+ * clean up any files already uploaded.
+ */
+async function attachImages(
+  tx: typeof db,
+  productId: string,
+  files: File[],
+  altPrefix: string,
+  uploadedPaths: string[],
+) {
+  const [countRow] = await tx
+    .select({
+      total: sql`count(*)`,
+      maxOrder: sql`coalesce(max(${schema.productImages.order}), -1)`,
     })
-    .returning();
-  return success(c, product, "Product created");
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, productId));
+  const existing = Number(countRow?.total ?? 0);
+  const nextOrder = Number(countRow?.maxOrder ?? -1) + 1;
+
+  if (existing + files.length > MAX_IMAGES_PER_PRODUCT) {
+    throw new Error(`A product can have at most ${MAX_IMAGES_PER_PRODUCT} images`);
+  }
+
+  const uploaded: UploadedImage[] = [];
+  for (const file of files) {
+    if (!isAllowedImage(file)) {
+      throw new Error(
+        "Invalid image. Allowed types: JPG, JPEG, PNG, WEBP (max 5MB).",
+      );
+    }
+    const result = await uploadImage(file, productId);
+    uploadedPaths.push(result.path);
+    uploaded.push(result);
+  }
+
+  const makePrimary = existing === 0 && uploaded.length > 0;
+  for (let i = 0; i < uploaded.length; i++) {
+    await tx.insert(schema.productImages).values({
+      productId,
+      url: uploaded[i].url,
+      imagePath: uploaded[i].path,
+      // Fall back to the original file name when no alt text was supplied.
+      alt: altPrefix || files[i].name || "",
+      order: nextOrder + i,
+      isPrimary: makePrimary && i === 0,
+    });
+  }
+
+  if (makePrimary) {
+    await tx
+      .update(schema.products)
+      .set({ thumbnailUrl: uploaded[0].url, updatedAt: new Date() })
+      .where(eq(schema.products.id, productId));
+  }
+}
+
+/**
+ * Create product — accepts multipart/form-data (fields + images[]) or JSON.
+ * Runs in a DB transaction; if any image upload fails, the transaction is
+ * rolled back and already-uploaded files are removed from storage.
+ */
+adminRoutes.post("/products", async (c) => {
+  let values: z.infer<typeof productSchema>;
+  let files: File[];
+  try {
+    ({ values, files } = await readProductPayload(c));
+  } catch (err) {
+    return error(c, 400, err instanceof Error ? err.message : "Invalid product data");
+  }
+
+  const uploadedPaths: string[] = [];
+  try {
+    const product = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(schema.products)
+        .values({
+          ...values,
+          discountPrice: values.discountPrice || null,
+          isFeatured: values.isFeatured || false,
+          isNewArrival: values.isNewArrival || false,
+          isBestSeller: values.isBestSeller || false,
+        })
+        .returning();
+
+      if (files.length > 0) {
+        await attachImages(tx, created.id, files, created.name, uploadedPaths);
+      }
+      return created;
+    });
+
+    return success(c, product, "Product created");
+  } catch (err) {
+    // Transaction rolled back — remove any orphaned files from storage.
+    await Promise.allSettled(uploadedPaths.map((p) => deleteImage(p)));
+    return error(c, 500, err instanceof Error ? err.message : "Failed to create product");
+  }
 });
 
 adminRoutes.patch("/products/:id", zValidator("json", productSchema.partial()), async (c) => {
@@ -163,14 +309,49 @@ adminRoutes.patch("/products/:id", zValidator("json", productSchema.partial()), 
 
 adminRoutes.delete("/products/:id", async (c) => {
   const id = c.req.param("id");
-  await db.update(schema.products).set({ deletedAt: new Date() }).where(eq(schema.products.id, id));
-  return success(c, null, "Product soft-deleted");
+
+  const [product] = await db
+    .select()
+    .from(schema.products)
+    .where(and(eq(schema.products.id, id), isNull(schema.products.deletedAt)))
+    .limit(1);
+  if (!product) return error(c, 404, "Product not found");
+
+  // Remove every image file from storage first, then the DB rows,
+  // then soft-delete the product itself.
+  const images = await db
+    .select()
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, id));
+
+  await Promise.allSettled(
+    images.map((img) => deleteImage(img.imagePath || img.url)),
+  );
+
+  await db.delete(schema.productImages).where(eq(schema.productImages.productId, id));
+  await db.delete(schema.productSpecs).where(eq(schema.productSpecs.productId, id));
+  await db
+    .update(schema.products)
+    .set({ deletedAt: new Date(), thumbnailUrl: null, updatedAt: new Date() })
+    .where(eq(schema.products.id, id));
+
+  return success(c, null, "Product deleted and its images removed");
 });
 
 // ─── Product Images ──────────────────────────────────────────────
 
+async function getProductOrNull(productId: string) {
+  const [product] = await db
+    .select({ id: schema.products.id })
+    .from(schema.products)
+    .where(and(eq(schema.products.id, productId), isNull(schema.products.deletedAt)))
+    .limit(1);
+  return product ?? null;
+}
+
 adminRoutes.get("/products/:id/images", async (c) => {
   const id = c.req.param("id");
+  if (!(await getProductOrNull(id))) return error(c, 404, "Product not found");
   const images = await db
     .select()
     .from(schema.productImages)
@@ -181,87 +362,195 @@ adminRoutes.get("/products/:id/images", async (c) => {
 
 adminRoutes.post("/products/:id/images", async (c) => {
   const productId = c.req.param("id");
-  const body = await c.req.parseBody();
-  const file = body["image"] as File | undefined;
 
-  if (!file) return error(c, 400, "No image file provided");
+  const product = await getProductOrNull(productId);
+  if (!product) return error(c, 404, "Product not found");
 
-  if (!file.type.startsWith("image/")) {
-    return error(c, 400, "File must be an image");
+  const body = await c.req.parseBody({ all: true });
+  const files: File[] = [];
+  for (const key of ["images", "image"]) {
+    const raw = body[key];
+    if (Array.isArray(raw)) {
+      for (const f of raw) if (f instanceof File && f.size > 0) files.push(f);
+    } else if (raw instanceof File && raw.size > 0) {
+      files.push(raw);
+    }
   }
+  if (files.length === 0) return error(c, 400, "No image file provided");
 
-  if (file.size > 5 * 1024 * 1024) {
-    return error(c, 400, "Image must be under 5MB");
-  }
-
-  // Get the next order number
-  const [lastImage] = await db
-    .select({ maxOrder: sql`coalesce(max(${schema.productImages.order}), -1)` })
-    .from(schema.productImages)
-    .where(eq(schema.productImages.productId, productId));
-  const nextOrder = Number(lastImage?.maxOrder ?? -1) + 1;
-
-  // Save file (Supabase Storage in production, local disk in dev)
-  let imageUrl: string;
+  const uploadedPaths: string[] = [];
   try {
-    imageUrl = await uploadImage(file);
+    const result = await db.transaction(async (tx) => {
+      await attachImages(tx, productId, files, (body["alt"] as string) || "", uploadedPaths);
+      const images = await tx
+        .select()
+        .from(schema.productImages)
+        .where(eq(schema.productImages.productId, productId))
+        .orderBy(schema.productImages.order);
+      return images;
+    });
+    return success(c, result, `Uploaded ${files.length} image${files.length > 1 ? "s" : ""}`);
   } catch (err) {
-    return error(c, 500, err instanceof Error ? err.message : "Failed to save image");
+    await Promise.allSettled(uploadedPaths.map((p) => deleteImage(p)));
+    return error(c, err instanceof Error && err.message.includes("at most") ? 400 : 500, err instanceof Error ? err.message : "Failed to upload image");
   }
-
-  // Create DB record
-  const [image] = await db
-    .insert(schema.productImages)
-    .values({
-      productId,
-      url: imageUrl,
-      alt: body["alt"] as string || file.name,
-      order: nextOrder,
-    })
-    .returning();
-
-  return success(c, image, "Image uploaded");
 });
 
-adminRoutes.delete("/products/:id/images/:imageId", async (c) => {
-  const { imageId } = c.req.param();
+/**
+ * PATCH /products/:id/images/:imageId — update alt text and/or promote to
+ * primary. Ownership is enforced: the image must belong to the product in
+ * the URL or the request is rejected.
+ */
+adminRoutes.patch("/products/:id/images/:imageId", async (c) => {
+  const { id: productId, imageId } = c.req.param();
 
   const [image] = await db
     .select()
     .from(schema.productImages)
     .where(eq(schema.productImages.id, imageId))
     .limit(1);
+  if (!image || image.productId !== productId) {
+    return error(c, 404, "Image not found for this product");
+  }
 
-  if (!image) return error(c, 404, "Image not found");
+  const body = await c.req.json().catch(() => ({}));
+  const { alt, isPrimary } = body as { alt?: string; isPrimary?: boolean };
 
-  // Delete file (Supabase Storage in production, local disk in dev)
-  await deleteImage(image.url);
+  const updates: Record<string, unknown> = {};
+  if (typeof alt === "string" && alt.trim()) updates.alt = alt.trim();
 
-  // Delete DB record
+  if (Object.keys(updates).length === 0 && isPrimary !== true) {
+    return error(c, 400, "Nothing to update — provide alt or isPrimary");
+  }
+
+  if (isPrimary === true) {
+    await db
+      .update(schema.productImages)
+      .set({ isPrimary: false })
+      .where(eq(schema.productImages.productId, productId));
+    updates.isPrimary = true;
+    await db
+      .update(schema.products)
+      .set({ thumbnailUrl: image.url, updatedAt: new Date() })
+      .where(eq(schema.products.id, productId));
+  }
+
+  const [updated] = await db
+    .update(schema.productImages)
+    .set(updates)
+    .where(eq(schema.productImages.id, imageId))
+    .returning();
+
+  return success(c, updated, "Image updated");
+});
+
+/**
+ * DELETE /products/:id/images/:imageId — removes the storage file and the DB
+ * row, but only if the image belongs to the product in the URL. If the
+ * deleted image was the primary one, the next image is promoted.
+ */
+adminRoutes.delete("/products/:id/images/:imageId", async (c) => {
+  const { id: productId, imageId } = c.req.param();
+
+  const [image] = await db
+    .select()
+    .from(schema.productImages)
+    .where(eq(schema.productImages.id, imageId))
+    .limit(1);
+  if (!image || image.productId !== productId) {
+    return error(c, 404, "Image not found for this product");
+  }
+
+  await deleteImage(image.imagePath || image.url);
   await db.delete(schema.productImages).where(eq(schema.productImages.id, imageId));
+
+  // If we removed the primary image, promote the next one (by sort order).
+  const remaining = await db
+    .select()
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, productId))
+    .orderBy(schema.productImages.order)
+    .limit(1);
+
+  if (image.isPrimary) {
+    if (remaining.length > 0) {
+      await db
+        .update(schema.productImages)
+        .set({ isPrimary: true })
+        .where(eq(schema.productImages.id, remaining[0].id));
+      await db
+        .update(schema.products)
+        .set({ thumbnailUrl: remaining[0].url, updatedAt: new Date() })
+        .where(eq(schema.products.id, productId));
+    } else {
+      await db
+        .update(schema.products)
+        .set({ thumbnailUrl: null, updatedAt: new Date() })
+        .where(eq(schema.products.id, productId));
+    }
+  }
 
   return success(c, null, "Image deleted");
 });
 
+/**
+ * PATCH /products/:id/images/reorder — reorders the product's images.
+ * Only image ids belonging to this product are accepted, and the first image
+ * always becomes the primary thumbnail.
+ */
 adminRoutes.patch("/products/:id/images/reorder", async (c) => {
   const productId = c.req.param("id");
-  const { imageIds } = await c.req.json();
+  const { imageIds } = await c.req.json().catch(() => ({}));
 
-  if (!Array.isArray(imageIds)) return error(c, 400, "imageIds must be an array");
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return error(c, 400, "imageIds must be a non-empty array");
+  }
 
-  await Promise.all(
-    imageIds.map((imageId: string, index: number) =>
-      db
+  const existing = await db
+    .select({ id: schema.productImages.id })
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, productId));
+
+  const existingIds = new Set(existing.map((e) => e.id));
+  if (
+    imageIds.length !== existing.length ||
+    imageIds.some((id: unknown) => typeof id !== "string" || !existingIds.has(id))
+  ) {
+    return error(c, 400, "imageIds must contain exactly this product's images");
+  }
+
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < imageIds.length; i++) {
+      await tx
         .update(schema.productImages)
-        .set({ order: index })
-        .where(
-          eq(schema.productImages.id, imageId)
-        )
-    )
-  );
+        .set({ order: i })
+        .where(eq(schema.productImages.id, imageIds[i] as string));
+    }
+    // First image is the primary thumbnail.
+    await tx
+      .update(schema.productImages)
+      .set({ isPrimary: false })
+      .where(eq(schema.productImages.productId, productId));
+    await tx
+      .update(schema.productImages)
+      .set({ isPrimary: true })
+      .where(eq(schema.productImages.id, imageIds[0] as string));
+
+    const [first] = await tx
+      .select({ url: schema.productImages.url })
+      .from(schema.productImages)
+      .where(eq(schema.productImages.id, imageIds[0] as string))
+      .limit(1);
+    await tx
+      .update(schema.products)
+      .set({ thumbnailUrl: first?.url ?? null, updatedAt: new Date() })
+      .where(eq(schema.products.id, productId));
+  });
 
   return success(c, null, "Images reordered");
 });
+
+// ─── Users ────────────────────────────────────────────────────────
 
 adminRoutes.get("/users", async (c) => {
   const users = await db

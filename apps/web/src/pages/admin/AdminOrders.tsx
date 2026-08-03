@@ -27,7 +27,7 @@ export default function AdminOrders() {
   return (
     <section className="gw-section">
       <Container>
-        <h2 className="text-3xl font-bold text-gw-black mb-8">Manage Orders</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gw-black mb-8">Manage Orders</h2>
         <div className="gw-panel-light p-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

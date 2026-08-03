@@ -94,6 +94,7 @@ export default function Register() {
                     onChange={(e) => field.set(e.target.value)}
                     required
                     minLength={field.id === "password" ? 6 : undefined}
+                    showPasswordToggle={field.type === "password"}
                   />
                 </motion.div>
               ))}

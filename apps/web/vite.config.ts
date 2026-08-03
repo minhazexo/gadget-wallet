@@ -22,4 +22,18 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy vendor libraries into their own cached chunks so the
+        // storefront's first load is smaller and repeat visits hit cache.
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom", "react-hook-form"],
+          "vendor-animation": ["framer-motion"],
+          "vendor-state": ["zustand", "axios", "@hookform/resolvers"],
+          "vendor-icons": ["lucide-react"],
+        },
+      },
+    },
+  },
 });

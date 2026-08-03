@@ -50,10 +50,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ user: null });
   },
   checkAuth: async () => {
+    // No token → definitely not authenticated. Skip the request entirely so
+    // guests don't trigger a noisy 401 on every page load.
+    if (!localStorage.getItem("token")) {
+      set({ user: null, isLoading: false });
+      return;
+    }
     try {
       const { data } = await api.get("/auth/me");
       set({ user: data.data, isLoading: false });
     } catch {
+      // Stale/expired token — the response interceptor already cleared it.
       set({ user: null, isLoading: false });
     }
   },

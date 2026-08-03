@@ -15,6 +15,13 @@
       "when": 1785600528935,
       "tag": "0001_stiff_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785612367472,
+      "tag": "0002_plain_toro",
+      "breakpoints": true
     }
   ]
 }

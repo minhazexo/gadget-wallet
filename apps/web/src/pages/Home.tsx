@@ -20,6 +20,7 @@ interface Product {
   slug: string;
   price: number;
   discountPrice?: number;
+  thumbnailUrl?: string;
   images?: { url: string; alt: string }[];
   rating: number;
   reviewCount: number;
@@ -460,7 +461,7 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
           </span>
         )}
         <img
-          src={product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
+          src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
           alt={product.name}
           className="w-full aspect-square object-contain transition-transform duration-300 group-hover:scale-105"
           loading="lazy"

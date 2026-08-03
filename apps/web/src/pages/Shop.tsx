@@ -21,6 +21,7 @@ interface Product {
   shortDescription: string;
   rating: number;
   reviewCount: number;
+  thumbnailUrl?: string;
   images?: { url: string; alt: string }[];
 }
 
@@ -123,7 +124,7 @@ export default function Shop() {
                         </span>
                       )}
                       <img
-                        src={product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
+                        src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
                         alt={product.name}
                         className="w-full aspect-square object-contain transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
@@ -172,14 +173,14 @@ export default function Shop() {
                     href={`/product/${product.slug}`}
                     className="gw-product-card-row group"
                   >
-                    <div className="w-48 h-48 shrink-0 p-4 bg-white relative">
+                    <div className="w-24 h-24 sm:w-48 sm:h-48 shrink-0 p-2 sm:p-4 bg-white relative">
                       {discount > 0 && (
                         <span className="gw-status-badge absolute top-3 left-3 z-10 bg-gw-red text-white font-bold">
                           -{discount}%
                         </span>
                       )}
                       <img
-                        src={product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
+                        src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
                         alt={product.name}
                         className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"

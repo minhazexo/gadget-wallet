@@ -40,7 +40,7 @@ interface ProductDetail {
   updatedAt: string;
   brandName: string;
   categoryName: string;
-  images: { id: string; url: string; alt: string; order: number }[];
+  images: { id: string; url: string; alt: string; order: number; isPrimary: boolean }[];
   specs: { id: string; key: string; value: string }[];
 }
 
@@ -125,10 +125,10 @@ export default function AdminProductDetail() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center justify-between mb-8"
+          className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8"
         >
-          <div className="flex items-center gap-4">
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <div className="flex items-center gap-4 min-w-0">
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="shrink-0">
               <Link
                 to="/admin/products"
                 className="w-10 h-10 rounded-xl border border-gw-border flex items-center justify-center text-gw-gray-300 hover:text-gw-red hover:border-gw-red transition-all"
@@ -136,19 +136,19 @@ export default function AdminProductDetail() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
             </motion.div>
-            <div>
-              <h2 className="text-2xl font-bold text-gw-black">{product.name}</h2>
+            <div className="min-w-0">
+              <h2 className="text-xl md:text-2xl font-bold text-gw-black break-words">{product.name}</h2>
               <p className="text-sm text-gw-gray-500">SKU: {product.sku}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
               <Link to={`/product/${product.slug}`} target="_blank">
                 <Button variant="outline" className="h-11 text-xs">View on Store</Button>
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-              <Link to={`/admin/products`}>
+              <Link to={`/admin/products/${product.id}/edit`}>
                 <Button variant="dark" className="h-11">
                   <Edit className="w-4 h-4 mr-2" /> Edit
                 </Button>
@@ -204,11 +204,16 @@ export default function AdminProductDetail() {
                     transition={{ delay: i * 0.05 }}
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`aspect-square rounded-xl overflow-hidden border-2 transition-all bg-white p-2 ${
+                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all bg-white p-2 ${
                       selectedImage === i ? "border-gw-red" : "border-gw-border hover:border-gw-gray-300"
                     }`}
                   >
                     <img src={img.url} alt={img.alt} className="w-full h-full object-contain" />
+                    {img.isPrimary && (
+                      <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gw-black text-white text-[9px] font-bold">
+                        <Star className="w-2 h-2 fill-current" /> Cover
+                      </span>
+                    )}
                   </motion.button>
                 ))}
               </div>

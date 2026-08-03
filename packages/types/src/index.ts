@@ -59,6 +59,7 @@ export interface Product {
   brandId: string;
   categoryId: string;
   stock: number;
+  thumbnailUrl?: string;
   videoUrl?: string;
   rating: number;
   reviewCount: number;
@@ -74,8 +75,11 @@ export interface ProductImage {
   id: string;
   productId: string;
   url: string;
+  /** Supabase storage path (products/{productId}/{file}) — used for reliable deletion. */
+  imagePath?: string;
   alt: string;
   order: number;
+  isPrimary: boolean;
 }
 
 export interface ProductSpec {

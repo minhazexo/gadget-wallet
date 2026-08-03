@@ -27,7 +27,7 @@ interface Product {
   sku: string;
   isNewArrival: boolean;
   isBestSeller: boolean;
-  images?: { url: string; alt: string }[];
+  images?: { url: string; alt: string; isPrimary?: boolean }[];
   specs?: { key: string; value: string }[];
 }
 
@@ -43,7 +43,13 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (slug) {
-      api.get(`/products/${slug}`).then((res) => setProduct(res.data.data));
+      api.get(`/products/${slug}`).then((res) => {
+        const p = res.data.data;
+        setProduct(p);
+        // Open the gallery on the primary (cover) image when available.
+        const primaryIdx = p?.images?.findIndex((i: { isPrimary?: boolean }) => i.isPrimary) ?? -1;
+        if (primaryIdx >= 0) setSelectedImage(primaryIdx);
+      });
       if (useAuthStore.getState().user) {
         api.get(`/products/${slug}`).then((res) => {
           const p = res.data.data;

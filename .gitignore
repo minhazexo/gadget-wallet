@@ -5,3 +5,9 @@ build/
 *.log
 .DS_Store
 .vite/
+
+# Vercel
+.vercel/
+
+# Local dev uploads (production uses Supabase Storage)
+apps/server/uploads/

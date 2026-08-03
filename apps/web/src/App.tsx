@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminProductForm from "./pages/admin/AdminProductForm";
 import AdminProductDetail from "./pages/admin/AdminProductDetail";
 import AdminOrders from "./pages/admin/AdminOrders";
 
@@ -97,7 +98,9 @@ export default function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<PageTransition><AdminDashboard /></PageTransition>} />
               <Route path="products" element={<PageTransition><AdminProducts /></PageTransition>} />
+              <Route path="products/new" element={<PageTransition><AdminProductForm /></PageTransition>} />
               <Route path="products/:id" element={<PageTransition><AdminProductDetail /></PageTransition>} />
+              <Route path="products/:id/edit" element={<PageTransition><AdminProductForm /></PageTransition>} />
               <Route path="orders" element={<PageTransition><AdminOrders /></PageTransition>} />
             </Route>
             <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

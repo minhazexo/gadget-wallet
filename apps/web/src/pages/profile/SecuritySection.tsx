@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { KeyRound, Shield, LogOut, Eye, EyeOff } from "lucide-react";
+import { KeyRound, Shield, LogOut } from "lucide-react";
 import { Button, Input } from "@gadget-wallet/ui";
 import { useAuthStore } from "../../store/useAuthStore";
 import { showToast } from "../../store/useToastStore";
@@ -30,7 +30,6 @@ export function SecuritySection() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [showPasswords, setShowPasswords] = useState(false);
   const [changing, setChanging] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -97,15 +96,17 @@ export function SecuritySection() {
           <div className="space-y-4">
             <Input
               label="Current Password"
-              type={showPasswords ? "text" : "password"}
+              type="password"
               value={current}
               onChange={(e) => setCurrent(e.target.value)}
+              showPasswordToggle
             />
             <Input
               label="New Password"
-              type={showPasswords ? "text" : "password"}
+              type="password"
               value={next}
               onChange={(e) => setNext(e.target.value)}
+              showPasswordToggle
             />
             {next && (
               <div>
@@ -124,17 +125,12 @@ export function SecuritySection() {
             )}
             <Input
               label="Confirm New Password"
-              type={showPasswords ? "text" : "password"}
+              type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               error={confirm && confirm !== next ? "Passwords do not match" : undefined}
+              showPasswordToggle
             />
-            <button
-              onClick={() => setShowPasswords(!showPasswords)}
-              className="flex items-center gap-1.5 text-xs text-gw-gray-500 hover:text-gw-red transition-colors"
-            >
-              {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {showPasswords ? "Hide" : "Show"} passwords
-            </button>
             <Button variant="primary" isLoading={changing} onClick={changePassword} className="w-full">
               Update Password
             </Button>

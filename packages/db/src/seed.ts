@@ -1,6 +1,40 @@
 import { db } from "./index";
 import { users, categories, brands, products, productImages, productSpecs, heroMedia, banners, settings } from "./schema";
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+const BUCKET = "products";
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } }) : null;
+
+const PLACEHOLDER_COLORS = ["#e11d2e", "#2563eb", "#16a34a", "#9333ea", "#f59e0b", "#0ea5e9", "#db2777", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
+
+/**
+ * Generates a tiny SVG placeholder, uploads it to Supabase Storage under
+ * products/{productId}/ and returns the storage path + public URL.
+ * Returns null when Supabase is not configured (seed then uses picsum URLs).
+ */
+async function uploadPlaceholder(productId: string, title: string, index: number) {
+  if (!supabase) return null;
+
+  const fileName = `${Date.now()}-seed-${index}.svg`;
+  const storagePath = `${BUCKET}/${productId}/${fileName}`;
+  const color = PLACEHOLDER_COLORS[index % PLACEHOLDER_COLORS.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="${color}"/><circle cx="400" cy="330" r="150" fill="rgba(255,255,255,0.18)"/><text x="400" y="560" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="700" fill="#ffffff" text-anchor="middle">${title}</text><text x="400" y="620" font-family="Inter, Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.75)" text-anchor="middle">Gadget Wallet</text></svg>`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(storagePath, svg, {
+    contentType: "image/svg+xml",
+    upsert: true,
+  });
+  if (error) throw new Error(`Failed to upload seed image for ${title}: ${error.message}`);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  return { path: storagePath, url: data.publicUrl };
+}
 
 async function seed() {
   console.log("Seeding database...");
@@ -236,14 +270,52 @@ async function seed() {
   ];
 
   for (const product of productsList) {
-    const [p] = await db.insert(products).values(product).returning();
+    // drizzle decimal columns are typed as strings — convert numeric seed values.
+    const [p] = await db
+      .insert(products)
+      .values({
+        ...product,
+        price: String(product.price),
+        discountPrice: product.discountPrice != null ? String(product.discountPrice) : null,
+        rating: String(product.rating),
+      })
+      .returning();
 
-    // Product images
-    await db.insert(productImages).values([
-      { productId: p.id, url: `https://picsum.photos/seed/${p.slug}-1/800/800`, alt: p.name, order: 0 },
-      { productId: p.id, url: `https://picsum.photos/seed/${p.slug}-2/800/800`, alt: `${p.name} alternate view`, order: 1 },
-      { productId: p.id, url: `https://picsum.photos/seed/${p.slug}-3/800/800`, alt: `${p.name} side view`, order: 2 },
-    ]);
+    // Product images — stored in Supabase Storage (products/{productId}/) when
+    // configured, otherwise external placeholder URLs. First image is primary
+    // and drives products.thumbnail_url.
+    const seedImages: {
+      productId: string;
+      url: string;
+      path: string | null;
+      alt: string;
+      order: number;
+      isPrimary: boolean;
+    }[] = [];
+    for (let i = 0; i < 3; i++) {
+      const uploaded = await uploadPlaceholder(p.id, p.name, i);
+      seedImages.push(
+        uploaded
+          ? {
+              productId: p.id,
+              url: uploaded.url,
+              path: uploaded.path,
+              alt: i === 0 ? p.name : `${p.name} view ${i + 1}`,
+              order: i,
+              isPrimary: i === 0,
+            }
+          : {
+              productId: p.id,
+              url: `https://picsum.photos/seed/${p.slug}-${i + 1}/800/800`,
+              path: null,
+              alt: i === 0 ? p.name : `${p.name} view ${i + 1}`,
+              order: i,
+              isPrimary: i === 0,
+            },
+      );
+    }
+    await db.insert(productImages).values(seedImages);
+    await db.update(products).set({ thumbnailUrl: seedImages[0].url }).where(eq(products.id, p.id));
 
     // Product specs
     await db.insert(productSpecs).values([

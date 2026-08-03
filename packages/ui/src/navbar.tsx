@@ -61,7 +61,7 @@ export function Navbar({ isLoggedIn = false, cartCount = 0, userName = "", onLog
         className="bg-gw-red h-9 flex items-center justify-center text-white text-[13px] font-medium px-4 text-center overflow-hidden"
       >
         <span className="truncate">
-          Free Shipping on orders over $100 | Official Warranty on all products
+        | Official Warranty on all products   |
         </span>
       </motion.div>
 
@@ -308,6 +308,66 @@ export function Navbar({ isLoggedIn = false, cartCount = 0, userName = "", onLog
                     </a>
                   </motion.div>
                 ))}
+
+                {/* Account actions (mobile only) */}
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: -10 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  className="pt-3 mt-1 border-t border-gw-border"
+                >
+                  {isLoggedIn ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 px-1 py-1.5">
+                        <div className="w-8 h-8 rounded-full bg-gw-red/10 flex items-center justify-center text-sm font-bold text-gw-red shrink-0">
+                          {userName ? userName.charAt(0).toUpperCase() : "U"}
+                        </div>
+                        <p className="text-sm font-semibold text-gw-black truncate">{userName || "My Account"}</p>
+                      </div>
+                      <a
+                        href="/profile"
+                        onClick={() => setIsOpen(false)}
+                        className="block py-2.5 text-sm font-medium text-gw-gray-500 hover:text-gw-red transition-colors"
+                      >
+                        My Profile
+                      </a>
+                      <a
+                        href="/my-orders"
+                        onClick={() => setIsOpen(false)}
+                        className="block py-2.5 text-sm font-medium text-gw-gray-500 hover:text-gw-red transition-colors"
+                      >
+                        My Orders
+                      </a>
+                      <button
+                        onClick={() => {
+                          setIsOpen(false);
+                          onLogout?.();
+                        }}
+                        className="w-full text-left py-2.5 text-sm font-medium text-gw-red hover:text-gw-red-hover transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 pt-1">
+                      <a
+                        href="/login"
+                        onClick={() => setIsOpen(false)}
+                        className="flex-1 text-center py-2.5 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-colors"
+                      >
+                        Sign In
+                      </a>
+                      <a
+                        href="/register"
+                        onClick={() => setIsOpen(false)}
+                        className="flex-1 text-center py-2.5 rounded-xl border border-gw-border text-gw-gray-700 text-sm font-bold hover:border-gw-red hover:text-gw-red transition-colors"
+                      >
+                        Create Account
+                      </a>
+                    </div>
+                  )}
+                </motion.div>
               </motion.div>
             </Container>
           </motion.div>

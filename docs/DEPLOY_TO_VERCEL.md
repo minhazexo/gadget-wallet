@@ -1,385 +1,242 @@
 # 🚀 Gadget Wallet — Vercel Deployment Guide
 
-## Architecture Overview
+This project is deployed to Vercel as a **single monolith project**: the React
+storefront (static files) and the Hono API (serverless function) live on the same
+domain, so the frontend can call `/api/...` relative to its own origin — no CORS,
+no separate API domain, no `VITE_API_URL` needed.
 
-This is a **Bun monorepo** with the following structure:
+## Architecture
 
 ```
-gadget-wallet/
+gadget-wallet/                     ← Vercel Root Directory
+├── api/
+│   └── [[route]].ts               ← Vercel serverless entry (auto-detected)
 ├── apps/
-│   ├── web/          # Vite + React frontend (port 5173)
-│   └── server/       # Hono API server on Bun (port 3000)
+│   ├── web/                       ← Vite + React static build → apps/web/dist
+│   └── server/
+│       ├── src/
+│       │   ├── app.ts             ← the whole Hono app (runtime-agnostic)
+│       │   ├── index.ts           ← Bun.serve wrapper (local dev only)
+│       │   └── routes/            ← auth, products, admin, …
+│       └── dist/app.js            ← pre-bundled app (bun build --target=node)
 ├── packages/
-│   ├── db/           # Drizzle ORM + PostgreSQL schema + seed
-│   ├── ui/           # Shared React UI components
-│   └── types/        # Shared TypeScript types
-└── package.json      # Bun workspaces root
+│   ├── db/                        ← Drizzle + PostgreSQL schema (Neon)
+│   ├── ui/                        ← shared React components
+│   └── types/                     ← shared TypeScript types
+├── vercel.json                    ← build + function config
+└── package.json                   ← Bun workspaces root
 ```
 
-**Stack:**
-- **Frontend:** React 18, TypeScript, Vite, TailwindCSS, Framer Motion
-- **Backend:** Hono (Bun-native), Drizzle ORM
-- **Database (user data):** PostgreSQL — **Neon.tech** (free tier)
-- **File Storage (images):** **Supabase Storage** (free tier) — local disk in dev only
-- **Auth:** JWT (jsonwebtoken + bcryptjs)
+**Stack:** React 18 + Vite + TailwindCSS · Hono (Bun/Node) · Drizzle ORM ·
+Neon PostgreSQL (data) · Supabase Storage (images) · JWT auth.
+
+> **Why `dist/app.js`?** Vercel's function builder is unreliable at bundling raw
+> TypeScript from workspace packages (`@gadget-wallet/db` resolves to `.ts`
+> source). The root `build` script therefore bundles the server into one
+> self-contained Node-compatible file, and `api/[[route]].ts` is a thin wrapper
+> that calls `app.fetch(request)`.
 
 ---
 
 ## 📋 Prerequisites
 
-1. **Vercel Account** — [vercel.com](https://vercel.com) (free tier works)
-2. **GitHub Repository** — Push this project to GitHub first
-3. **Neon Database** — [neon.tech](https://neon.tech) (free tier: 0.5GB storage) — stores **all app data (users, products, orders)**
-4. **Supabase Storage** — [supabase.com](https://supabase.com) (free tier: 1GB storage) — stores **product images**
-5. **Bun installed** locally (for running seeds) — `npm install -g bun`
+1. **Vercel account** — [vercel.com](https://vercel.com) (free tier works)
+2. **GitHub repository** — push this project to GitHub
+3. **Neon** — [neon.tech](https://neon.tech) free tier — all relational data
+4. **Supabase** — [supabase.com](https://supabase.com) free tier — product images
+5. **Bun installed locally** for seeding — `npm install -g bun`
 
 ---
 
-## 🗄️ Step 1: Set Up Database (Neon PostgreSQL — app data)
+## 🗄️ Step 1 — Database (Neon PostgreSQL)
 
-> **Data split:** All relational data (users, products, orders, cart, reviews) lives in **Neon PostgreSQL**. Images are stored separately in **Supabase Storage** (Step 2 below).
-
-1. Go to [neon.tech](https://neon.tech) and sign up / log in
-2. Create a new project → pick any region close to you
-3. After creation, copy the **connection string** — it looks like:
+1. Create a project at [neon.tech](https://neon.tech) and copy the connection string:
    ```
    postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
    ```
-
-4. **Run migrations locally** (from your project root):
+2. Apply the schema and seed **from your local machine**:
    ```bash
-   # Set the connection string temporarily
    export DATABASE_URL="postgresql://your-neon-connection-string-here"
-   
-   # Push schema to the database
-   bun run db:push
-   
-   # Seed with sample data
-   bun run db:seed
+   bun run db:push     # applies schema (this project's documented workflow)
+   bun run db:seed     # admin user, categories, brands, 12 products, hero, banners
    ```
+3. **For production on Vercel, use Neon's pooled connection string.** In the Neon
+   dashboard, copy the *Pooled connection* (host ends in `-pooler`, port `5432` or
+   `6543`). It multiplexes connections through PgBouncer, which matters when many
+   serverless function instances open sockets at once (free tier ≈ 10 connections).
 
-   > **Note:** The seed creates:
-   > - Admin user: `admin@gadgetwallet.com` / `admin123`
-   > - 8 categories, 8 brands, 12 products with images & specs
-   > - Hero media, banners, and site settings
-
----
-
-## 🖼️ Step 2: Set Up Image Storage (Supabase Storage)
-
-1. Go to [supabase.com](https://supabase.com) and sign up / log in
-2. Create a new project → pick a region close to you
-3. **Create a storage bucket:**
-   - Project Dashboard → **Storage** → **New bucket**
-   - Name: `products`
-   - Enable **Public bucket** (so image URLs are directly accessible without auth)
-4. **Get your credentials:** Project Settings → **API**:
-   - **Project URL** (e.g., `https://xxxx.supabase.co`)
-   - **Service role secret** (server-side only — never expose this in the frontend)
+> Seed credentials: `admin@gadgetwallet.com` / `admin123`
 
 ---
 
-## ⚙️ Step 3: Environment Variables
+## 🖼️ Step 2 — Image Storage (Supabase Storage)
 
-Create these environment variables in Vercel (Project Settings → Environment Variables):
+The server already uploads images to Supabase in production (local disk is a dev-only
+fallback). Setup is one-time:
 
-### Frontend (`apps/web/`)
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `VITE_API_URL` | `https://your-app.vercel.app/api` | API base URL (your deployed domain) |
+1. Create a project at [supabase.com](https://supabase.com).
+2. **Storage → New bucket** → name: `products` → enable **Public bucket**.
+3. Copy from **Project Settings → API**:
+   - Project URL (e.g. `https://xxxx.supabase.co`)
+   - `service_role` secret (**server-only** — never expose it in the frontend)
 
-### Backend (`apps/server/`)
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `DATABASE_URL` | `postgresql://...` | Neon PostgreSQL connection string (app data) |
+---
+
+## ⚙️ Step 3 — Environment Variables (Vercel)
+
+Add these in Vercel → **Project → Settings → Environment Variables** (apply to
+*Production*, *Preview*, and *Development* as needed):
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `DATABASE_URL` | `postgresql://…-pooler…?sslmode=require` | Neon **pooled** connection string |
 | `SUPABASE_URL` | `https://xxxx.supabase.co` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Supabase service role key (image uploads) |
-| `JWT_SECRET` | `your-random-secret-string` | JWT signing key (generate a long random string) |
-| `APP_URL` | `https://your-app.vercel.app` | CORS origin |
-| `PORT` | `3000` | Server port (Vercel sets this automatically) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ…` | Supabase service role key (uploads) |
+| `JWT_SECRET` | `openssl rand -hex 32` output | JWT signing key (long random string) |
+| `APP_URL` | `https://your-app.vercel.app` | CORS origin for cross-origin API calls |
 
-> **⚠️ Important:** Run `openssl rand -hex 32` or `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` to generate a strong `JWT_SECRET`.
+**Not needed:** `VITE_API_URL` — the frontend calls relative `/api` on the same
+domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automatic.
+
+> ⚠️ `JWT_SECRET` must be the same value across every environment, or users'
+> tokens stop validating.
+
+> 🔄 **Migrations run automatically on every deploy** (the build starts with
+> `bun run db:push:vercel`), so `DATABASE_URL` must be available **during the
+> build** — not just at runtime. Set it for **Production *and* Preview**, because
+> preview deployments run the same build command; otherwise preview builds fail.
+> One shared database for all environments is fine since `db:push` is idempotent.
 
 ---
 
-## 🏗️ Step 4: Vercel Project Setup
+## 🏗️ Step 4 — Vercel Project Setup
 
-### Option A: Deploy Frontend + API as a Single Vercel Project (Recommended)
+1. Push to GitHub, then **Import Project** at [vercel.com/new](https://vercel.com/new).
+2. Leave **Root Directory** as the repository root (default). The included
+   `vercel.json` handles everything.
 
-Vercel supports deploying **both** the frontend and API from one monorepo using a `vercel.json` configuration.
-
-1. **Push your code to GitHub**
-
-2. **Import project in Vercel:**
-   - Go to [vercel.com/new](https://vercel.com/new)
-   - Import your GitHub repository
-   - Set **Root Directory** to `apps/web` (for frontend)
-   - Framework preset: **Vite**
-   - Build command: `cd ../.. && bun install && bun run --cwd apps/web build`
-   - Output directory: `dist`
-
-3. **Create `vercel.json` at the project root:**
+   > ⚠️ **Already imported the project before?** If an earlier deployment used
+   > `apps/web` as the Root Directory (as the old guide suggested), you must
+   > change it back to the repository root — otherwise the `api/[[route]].ts`
+   > function and the workspace-wide build will not be picked up.
 
    ```json
    {
+     "$schema": "https://openapi.vercel.sh/vercel.json",
+     "framework": null,
+     "installCommand": "bun install",
+     "buildCommand": "bun run db:push:vercel && bun run build",
+     "outputDirectory": "apps/web/dist",
      "functions": {
-       "api/**/*.ts": {
-         "runtime": "vercel@latest"
-       }
+       "api/[[route]].ts": { "maxDuration": 30 }
      },
      "rewrites": [
-       {
-         "source": "/api/(.*)",
-         "destination": "/api/$1"
-       },
-       {
-         "source": "/(.*)",
-         "destination": "/"
-       }
+       { "source": "/(.*)", "destination": "/index.html" }
      ]
    }
    ```
 
-4. **For the API, add `@hono/vercel` adapter:**
+3. Vercel will auto-detect `bun.lock` and run `bun install` (Bun workspaces).
 
-   ```bash
-   bun add @hono/vercel
-   ```
+### What happens during a deploy
 
-5. **Create `apps/server/src/api/[[route]].ts`** (Vercel serverless entry point):
-
-   ```typescript
-   import { handle } from "@hono/vercel";
-   import { Hono } from "hono";
-   import { cors } from "hono/cors";
-   import { logger } from "hono/logger";
-   import { secureHeaders } from "hono/secure-headers";
-   import { authRoutes } from "../routes/auth";
-   import { productRoutes } from "../routes/products";
-   import { categoryRoutes } from "../routes/categories";
-   import { brandRoutes } from "../routes/brands";
-   import { cartRoutes } from "../routes/cart";
-   import { wishlistRoutes } from "../routes/wishlist";
-   import { orderRoutes } from "../routes/orders";
-   import { reviewRoutes } from "../routes/reviews";
-   import { couponRoutes } from "../routes/coupons";
-   import { adminRoutes } from "../routes/admin";
-
-   const app = new Hono().basePath("/api");
-
-   app.use("*", cors({ origin: process.env.APP_URL || "*", credentials: true }));
-   app.use("*", logger());
-   app.use("*", secureHeaders());
-
-   app.route("/auth", authRoutes);
-   app.route("/products", productRoutes);
-   app.route("/categories", categoryRoutes);
-   app.route("/brands", brandRoutes);
-   app.route("/cart", cartRoutes);
-   app.route("/wishlist", wishlistRoutes);
-   app.route("/orders", orderRoutes);
-   app.route("/reviews", reviewRoutes);
-   app.route("/coupons", couponRoutes);
-   app.route("/admin", adminRoutes);
-
-   export default handle(app);
-   ```
-
-6. **Update Vercel build settings:**
-   - **Root Directory:** `.` (project root)
-   - **Build Command:** `bun install && bun run build`
-   - **Output Directory:** `apps/web/dist`
-   - **Install Command:** `bun install`
-
-> **⚠️ Note:** The file uploads route (`/uploads/:filename`) reads from local disk. On Vercel serverless, this won't work for uploaded images. **You must switch to Supabase Storage for file uploads in production.** See the "File Uploads" section below.
-
----
-
-### Option B: Deploy Frontend Only + Separate API Hosting
-
-If you prefer to keep the API on a separate platform (e.g., Railway, Fly.io, Render):
-
-1. **Deploy the frontend:**
-   - Root Directory: `apps/web`
-   - Build Command: `cd ../.. && bun install && bun run --cwd apps/web build`
-   - Output Directory: `dist`
-   - Add rewrite rule for SPA routing in `vercel.json`:
-     ```json
-     {
-       "rewrites": [{ "source": "/(.*)", "destination": "/" }]
-     }
-     ```
-
-2. **Deploy the API separately** on:
-   - [Railway](https://railway.app) — Great for Bun apps
-   - [Fly.io](https://fly.io) — Supports Bun natively
-   - [Render](https://render.com) — Web Services with Docker
-
-3. **Update `VITE_API_URL`** to point to your hosted API
-
----
-
-## 📁 File Uploads — Production Setup
-
-The current code saves uploaded images to the local `apps/server/uploads/` directory and serves them from `/uploads/:filename`. **This won't work on Vercel** (serverless functions have ephemeral filesystems).
-
-**The production plan:**
-- **Images** → **Supabase Storage** (`products` public bucket)
-- **All app data** → **Neon PostgreSQL**
-
-### Switch to Supabase Storage
-
-1. **Create a free Supabase account** at [supabase.com](https://supabase.com) (done in Step 2) and create a public `products` bucket.
-
-2. **Add Supabase env vars** to Vercel (done in Step 3):
-   ```
-   SUPABASE_URL=https://xxxx.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-
-3. **Install the Supabase client:**
-   ```bash
-   bun add @supabase/supabase-js
-   ```
-
-4. **Update `apps/server/src/routes/admin.ts`** — Replace the local `writeFile` block with a Supabase upload:
-   ```typescript
-   import { createClient } from "@supabase/supabase-js";
-
-   const supabase = createClient(
-     process.env.SUPABASE_URL!,
-     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-   );
-
-   // In the image-upload route, replace writeFile with:
-   const ext = file.name.split(".").pop() || "jpg";
-   const filename = `${randomUUID()}.${ext}`;
-   const buffer = Buffer.from(await file.arrayBuffer());
-
-   const { data, error } = await supabase.storage
-     .from("products")
-     .upload(filename, buffer, { contentType: file.type });
-
-   if (error) return error(c, 500, error.message);
-
-   const { data: publicUrl } = supabase.storage
-     .from("products")
-     .getPublicUrl(filename);
-
-   const imageUrl = publicUrl.publicUrl; // https://xxxx.supabase.co/storage/v1/object/public/products/uuid.jpg
-   ```
-
-   > **Note:** Because Supabase returns a fully qualified URL, the frontend loads images directly — the `/uploads/:filename` proxy route in `apps/server/src/index.ts` is no longer needed for production. The bucket must be **public**.
-
-5. **Update the image-delete route** — Remove the file from the bucket as well as the DB record:
-   ```typescript
-   // In the delete route, replace the unlink() block with:
-   const filename = image.url.split("/").pop();
-   if (filename) {
-     await supabase.storage.from("products").remove([filename]);
-   }
-   ```
-
----
-
-## 🔧 Step 5: Configure `vercel.json`
-
-Create this file in the **project root** if using Option A (monolith deployment):
-
-```json
-{
-  "buildCommand": "bun install && bun run build",
-  "installCommand": "bun install",
-  "outputDirectory": "apps/web/dist",
-  "framework": null,
-  "functions": {
-    "api/**/*.ts": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/" }
-  ]
-}
+```
+bun install                    # installs all workspace deps at the root
+bun run db:push:vercel         # applies the current schema to DATABASE_URL
+                               #   (idempotent — no-op when already in sync)
+bun run build                  # 1) builds web  → apps/web/dist
+                               # 2) bundles server → apps/server/dist/app.js
+Vercel packages api/[[route]].ts → serverless function (traces dist/app.js)
+Static output apps/web/dist served as files; every other path rewrites to
+index.html; every /api/* request hits the Hono function.
 ```
 
 ---
 
-## 🧪 Step 6: Deploy & Verify
+## 🧪 Step 5 — Deploy & Verify
 
-1. **Push to GitHub** — Vercel auto-deploys on push to `main`
-2. **Check deployment logs** in Vercel dashboard
-3. **Verify endpoints:**
+1. First deploy will appear at `https://<project>.vercel.app`.
+2. Verify the API:
    ```
-   GET  https://your-app.vercel.app/api/health
-   GET  https://your-app.vercel.app/api/products
-   POST https://your-app.vercel.app/api/auth/login
+   GET  https://<project>.vercel.app/api/health      → {"success":true,…}
+   GET  https://<project>.vercel.app/api/products    → product list
+   POST https://<project>.vercel.app/api/auth/login  → token (admin@gadgetwallet.com / admin123)
    ```
-
-4. **Login with admin credentials:**
-   - Email: `admin@gadgetwallet.com`
-   - Password: `admin123`
-
-5. **Verify the frontend** loads at `https://your-app.vercel.app`
-
----
-
-## 🌐 Step 7: Custom Domain (Optional)
-
-1. Go to your Vercel project → **Settings** → **Domains**
-2. Add your custom domain (e.g., `gadgetwallet.com`)
-3. Update DNS records at your domain provider as instructed by Vercel
-4. Update `APP_URL` / `VITE_API_URL` environment variables to the new domain
+3. Verify the storefront loads and product cards show images (Supabase URLs).
+4. Test **client-side routing**: open `/shop` or `/profile` directly / refresh —
+   should render the app (SPA rewrite), not a 404.
+5. Test an **admin upload**: log in as admin → `/admin/products/new` → create a
+   product with an image. Confirm the image appears in the storefront (it lives in
+   Supabase, not the serverless filesystem).
 
 ---
 
-## ⚡ Performance Optimizations
+## 🌐 Step 6 — Custom Domain (Optional)
 
-The project already has:
-- ✅ Lazy image loading (`loading="lazy"`)
-- ✅ Framer Motion animations (with `viewport: { once: true }` for performance)
-- ✅ Tailwind CSS purging (production builds remove unused CSS)
-- ✅ Responsive images with `w=128&q=80` query params
-
-Additional Vercel optimizations:
-- Enable **Automatic Caching** in Vercel project settings
-- Enable **Edge Functions** for the API if you want global low-latency response
-- Consider enabling **Automatic Image Optimization** for uploaded product images
+Vercel → **Settings → Domains** → add your domain → update DNS. Then update the
+`APP_URL` env var to the new origin and redeploy. HTTPS is automatic.
 
 ---
 
-## 🔄 Post-Deployment Tasks
+## ⚡ Performance & Production Notes
 
-- [ ] **Set up monitoring** — Vercel Analytics or Sentry
-- [ ] **Configure backups** — Neon automatically backs up PostgreSQL
-- [ ] **Set up staging branch** — Deploy `staging` branch for testing
-- [ ] **Enable HTTPS** — Vercel does this automatically
-- [ ] **Set up automated DB migrations** — Run on each deploy via build command
+- **Code splitting** is configured in `apps/web/vite.config.ts` — vendor libraries
+  (React, Framer Motion, state, icons) are split into separately-cached chunks.
+- Lazy image loading, `once: true` scroll animations, and Tailwind purging are
+  already in place.
+- Optional: enable **Vercel Analytics** for real-user monitoring.
+
+---
+
+## 🔄 Migrations on Deploy
+
+`db:push` is the project's documented workflow (the DB was set up with
+`drizzle-kit push`, so journal-based `db:migrate` will conflict).
+
+**Automatic (default):** the `vercel.json` build command runs
+`bun run db:push:vercel` (`bun run --cwd packages/db push` — no `.env` file; it
+reads `DATABASE_URL` straight from the Vercel build environment) before building.
+Because `drizzle-kit push` is idempotent, a deploy with an unchanged schema is a
+no-op. Deliberately **no `--force` flag**: if a future schema change would drop
+data, the push fails loudly instead of silently truncating.
+
+**Notes**
+
+- **Preview deployments also run the build.** Give them `DATABASE_URL` too, or
+  scope migrations to production only:
+  ```json
+  "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then bun run db:push:vercel; fi && bun run build"
+  ```
+- **Local fallback:** for quick schema tweaks you can still run
+  `bun run db:push` locally (loads `.env`) before committing.
+- After editing `packages/db/src/schema.ts`, run `bun run db:generate` locally
+  and commit the generated migration — `push` applies whatever the schema
+  describes on the next deploy.
 
 ---
 
 ## 🐛 Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `Cannot find module '@gadget-wallet/ui'` | Ensure `bun install` runs at root level with `--frozen-lockfile` or workspace support enabled |
-| Database connection fails | Verify `DATABASE_URL` is correct in Vercel env vars and Neon has no IP allowlist enabled (Neon allows all IPs by default) |
-| CORS errors | Check `APP_URL` matches your exact Vercel deployment URL |
-| 404 on page refresh | Add SPA rewrite rule in `vercel.json` |
-| File uploads fail | Switch to Supabase Storage (see File Uploads section above) and verify `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set |
-| Images return 404 | Confirm the `products` bucket is **public** and `SUPABASE_URL` uses `https://` |
-| TypeScript build errors | Run `bun run typecheck` locally first to catch issues |
-| JWT auth fails | Make sure `JWT_SECRET` is set and consistent across deployments |
+| Symptom | Fix |
+|---------|-----|
+| `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
+| Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
+| Build succeeds but `/api/*` returns 404 | Confirm `api/[[route]].ts` exists at the repo root and `framework` in `vercel.json` is `null`. |
+| 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |
+| `column does not exist` (500s) | The API is running against an older schema — redeploy (the build auto-pushes) or run `bun run db:push` manually. |
+| `too many connections` from Neon | Switch `DATABASE_URL` to the **pooled** connection string (`-pooler`). |
+| Images fail to upload / 404 | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set? `products` bucket **public**? |
+| CORS errors calling the API | Same-origin `/api` needs no CORS; if calling cross-origin, set `APP_URL` to the exact origin. |
+| JWT auth fails after deploy | `JWT_SECRET` missing or different between environments. |
+| Function times out | Admin image operations can exceed 10 s — `maxDuration` is already 30 s; raise it in `vercel.json` if needed. |
 
 ---
 
 ## 📚 Useful Links
 
-- [Vercel Bun Documentation](https://vercel.com/docs/runtimes#bun)
-- [Hono Vercel Adapter](https://hono.dev/docs/getting-started/vercel)
-- [Neon PostgreSQL](https://neon.tech/docs)
+- [Hono + Vercel](https://hono.dev/docs/getting-started/vercel)
+- [Vercel Serverless Functions](https://vercel.com/docs/functions)
+- [Vercel Monorepos](https://vercel.com/docs/monorepos)
+- [Neon Connection Pooling](https://neon.tech/docs/connect/connection-pooling)
 - [Supabase Storage](https://supabase.com/docs/guides/storage)
-- [Supabase JS Client](https://supabase.com/docs/reference/javascript/storage-upload)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview)

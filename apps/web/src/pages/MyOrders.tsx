@@ -63,7 +63,7 @@ export default function MyOrders() {
           <div className="space-y-4">
             {orders.map((order) => (
               <Card key={order.id} className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <div>
                     <p className="gw-heading">
                       {order.id.slice(0, 8).toUpperCase()}

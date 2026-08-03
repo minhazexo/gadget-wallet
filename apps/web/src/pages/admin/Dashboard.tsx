@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   return (
     <section className="gw-section">
       <Container>
-        <h2 className="text-3xl font-bold text-gw-black mb-8">Admin Dashboard</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gw-black mb-8">Admin Dashboard</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {cards.map((card) => {
             const Icon = card.icon;

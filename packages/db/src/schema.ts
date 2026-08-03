@@ -87,6 +87,7 @@ export const products = pgTable(
       .notNull()
       .references(() => categories.id),
     stock: integer("stock").default(0).notNull(),
+    thumbnailUrl: text("thumbnail_url"),
     videoUrl: text("video_url"),
     rating: decimal("rating", { precision: 3, scale: 2 }).default("0").notNull(),
     reviewCount: integer("review_count").default(0).notNull(),
@@ -112,10 +113,14 @@ export const productImages = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     productId: uuid("product_id")
       .notNull()
-      .references(() => products.id),
+      .references(() => products.id, { onDelete: "cascade" }),
     url: text("url").notNull(),
+    // Supabase storage path (products/{productId}/{file}) — used for reliable storage deletion.
+    // Kept separate from `url` so files can never be mixed up across products.
+    imagePath: text("image_path"),
     alt: text("alt").notNull(),
     order: integer("order").default(0).notNull(),
+    isPrimary: boolean("is_primary").default(false).notNull(),
   },
   (table) => ({ productImageIdx: index("product_image_idx").on(table.productId) }),
 );
@@ -126,7 +131,7 @@ export const productSpecs = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     productId: uuid("product_id")
       .notNull()
-      .references(() => products.id),
+      .references(() => products.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     value: text("value").notNull(),
   },

@@ -105,6 +105,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  showPasswordToggle
                 />
               </motion.div>
               <motion.div
