@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "bun run --env-file=../../.env --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target=bun",
-    "build:vercel": "bun build src/app.ts --outfile dist/app.cjs --target=node --format=cjs --minify --define:process.env.NODE_ENV='\"production\"'",
-    "start": "bun run dist/index.js",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

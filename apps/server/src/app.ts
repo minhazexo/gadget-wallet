@@ -24,7 +24,7 @@ import { UPLOADS_DIR } from "./utils/storage";
 /**
  * The full Gadget Wallet Hono application.
  *
- * This module is intentionally runtime-agnostic (no `Bun.*`, no `serve()`):
+ * Runtime-agnostic:
  * - Local development  → `index.ts` boots it with `Bun.serve`
  * - Vercel             → `../../api/[[...route]].ts` serves it via `app.fetch`
  * - Standalone Node    → any HTTP server that calls `app.fetch`

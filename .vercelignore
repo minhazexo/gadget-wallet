@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.vercel
+.env
+.env.local
+.env.*.local
+apps/server/uploads
