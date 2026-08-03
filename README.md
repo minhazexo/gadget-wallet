@@ -14,7 +14,7 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 - **Icons**: Lucide React
 - **State Management**: Zustand
 - **Auth**: JWT (jsonwebtoken + bcryptjs)
-- **Analytics**: Vercel Web Analytics
+- **Analytics**: Vercel Web Analytics + Speed Insights
 
 ## Project Structure
 
@@ -101,7 +101,7 @@ bun run dev
 - **Show/hide password toggles** on login, register, and security forms
 - Fully responsive — storefront **and** admin (mobile navigation included)
 - Framer Motion animations, dark premium theme
-- Vercel Web Analytics (visitors + page views)
+- Vercel Web Analytics (visitors + page views) and Speed Insights (real-user performance)
 
 ## Deployment (Vercel)
 
