@@ -1,29 +1,46 @@
-# Gadget Wallet - Premium Electronics eCommerce
+# Gadget Wallet — Premium Electronics eCommerce
 
-A full-stack premium electronics eCommerce website built with modern technologies.
+A full-stack premium electronics eCommerce store. React storefront + Hono API
+deployed to Vercel as a **single monolith project** — frontend and API share one
+domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 
 ## Tech Stack
 
-- **Frontend**: React + TypeScript + Vite (Bun runtime)
-- **Backend**: Bun + Hono
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Hono (runs on Bun locally, Node.js on Vercel)
 - **Database**: Neon PostgreSQL + Drizzle ORM
+- **Image Storage**: Supabase Storage (public `products` bucket; local disk fallback in dev)
 - **Styling**: Tailwind CSS + Framer Motion
 - **Icons**: Lucide React
 - **State Management**: Zustand
+- **Auth**: JWT (jsonwebtoken + bcryptjs)
+- **Analytics**: Vercel Web Analytics
 
 ## Project Structure
 
 ```
-/gadget-wallet
+gadget-wallet/
+├── api/
+│   └── [[route]].ts            # Vercel serverless entry (serves the Hono app)
 ├── apps/
-│   ├── web/          # React frontend
-│   └── server/       # Hono API server
+│   ├── web/                    # React + Vite frontend
+│   │   └── src/
+│   │       ├── pages/          # Storefront + admin pages
+│   │       └── store/          # Zustand stores (auth, cart, wishlist, toast)
+│   └── server/
+│       └── src/
+│           ├── app.ts          # The whole Hono app (runtime-agnostic)
+│           ├── index.ts        # Bun.serve wrapper (local dev only)
+│           ├── routes/         # auth, products, admin, orders, …
+│           └── utils/          # storage (Supabase), response helpers
 ├── packages/
-│   ├── ui/           # Shared UI components
-│   ├── db/           # Database schema & migrations
-│   └── types/        # Shared TypeScript types
-├── package.json      # Workspace root
-└── .env.example
+│   ├── ui/                     # Shared React components
+│   ├── db/                     # Drizzle schema + migrations + seed
+│   └── types/                  # Shared TypeScript types
+├── docs/
+│   └── DEPLOY_TO_VERCEL.md     # Full deployment guide
+├── vercel.json                 # Vercel build + function config
+└── package.json                # Bun workspaces root
 ```
 
 ## Getting Started
@@ -31,66 +48,78 @@ A full-stack premium electronics eCommerce website built with modern technologie
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1.1+
-- [Neon PostgreSQL](https://neon.tech) database
+- [Neon PostgreSQL](https://neon.tech) — app data
+- [Supabase](https://supabase.com) — product images (optional in dev; required in production)
 
 ### Setup
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 bun install
 
-# Copy environment variables
+# 2. Copy and configure environment variables
 cp .env.example .env
+#    - DATABASE_URL                → your Neon connection string
+#    - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY → for image uploads
+#    - JWT_SECRET                  → any long random string
 
-# Edit .env with your credentials
-
-# Generate database migrations
-bun run db:generate
-
-# Push schema to database
+# 3. Apply schema and seed demo data
 bun run db:push
-
-# Seed with demo data
 bun run db:seed
 
-# Start development
+# 4. Start development (web on :5173 + API on :3000)
 bun run dev
 ```
 
-The frontend runs on http://localhost:5173 and the API on http://localhost:3000.
+> Without Supabase credentials the app falls back to local disk for uploaded
+> images (dev only) — in production the server requires Supabase.
 
 ### Default Admin
 
-- Email: admin@gadgetwallet.com
-- Password: admin123
+- Email: `admin@gadgetwallet.com`
+- Password: `admin123`
+
+## Scripts (root `package.json`)
+
+| Script | Description |
+|--------|-------------|
+| `bun run dev` | Run web + API in parallel (dev mode) |
+| `bun run build` | Production build: web (`apps/web/dist`) + Node bundle (`apps/server/dist/app.js`) |
+| `bun run typecheck` | Typecheck web + server |
+| `bun run db:generate` | Generate Drizzle migrations from `packages/db/src/schema.ts` |
+| `bun run db:push` | Apply schema to the database (loads `.env`) |
+| `bun run db:push:vercel` | Same, but reads env from the environment — used by the Vercel build |
+| `bun run db:seed` | Seed admin user, categories, brands, products, banners |
 
 ## Features
 
 - Cinematic hero section with video background
-- 20+ public pages (Home, Shop, Product Details, Cart, Checkout, etc.)
-- Full admin dashboard
-- Product management with images, specs, and variants
-- Shopping cart (guest + persistent)
-- Wishlist functionality
-- Order management
-- Coupon system
-- Responsive design (mobile to 4K)
-- Framer Motion animations
-- Dark premium theme
-- SEO optimized
+- 20+ public pages (Home, Shop, Product Details, Cart, Checkout, …) + full admin dashboard
+- Product management with **multi-image uploads to Supabase** (drag & drop, cover selection, reordering)
+- Shopping cart (guest + persistent), wishlist, coupon system, order management, reviews
+- User profile: addresses, payment methods, notifications, recently viewed, security
+- **Show/hide password toggles** on login, register, and security forms
+- Fully responsive — storefront **and** admin (mobile navigation included)
+- Framer Motion animations, dark premium theme
+- Vercel Web Analytics (visitors + page views)
 
-## Deployment
+## Deployment (Vercel)
 
-### Frontend (Vercel)
-
-```bash
-cd apps/web
-vercel deploy
-```
-
-### Backend (Railway/Fly.io)
+The whole app — storefront + API — deploys to **one Vercel project** from this
+repo. `vercel.json` handles the build; migrations run automatically on every
+deploy (`bun run db:push:vercel`), and the Hono API runs as a serverless
+function via `api/[[route]].ts`.
 
 ```bash
-cd apps/server
-railway up
+# 1. Push the repo to GitHub
+# 2. Import it in Vercel (Root Directory = repo root)
+# 3. Add env vars: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+#    JWT_SECRET, APP_URL  (scope DATABASE_URL to Production + Preview)
+# 4. Deploy 🚀
 ```
+
+Verify: `GET /api/health`, log in with the admin credentials, and create a
+product with an image upload.
+
+> 📖 Full step-by-step guide, env var table, troubleshooting, and Neon pooling
+> tips: **`docs/DEPLOY_TO_VERCEL.md`**.

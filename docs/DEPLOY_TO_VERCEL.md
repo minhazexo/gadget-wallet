@@ -184,7 +184,9 @@ Vercel → **Settings → Domains** → add your domain → update DNS. Then upd
   (React, Framer Motion, state, icons) are split into separately-cached chunks.
 - Lazy image loading, `once: true` scroll animations, and Tailwind purging are
   already in place.
-- Optional: enable **Vercel Analytics** for real-user monitoring.
+- **Vercel Web Analytics** is enabled (`@vercel/analytics` in `main.tsx`) —
+  visitor & page-view counts show up under Vercel → **Analytics** after the
+  first production deployment. It's a no-op on localhost.
 
 ---
 
