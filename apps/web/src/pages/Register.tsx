@@ -1,6 +1,6 @@
 import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
@@ -13,6 +13,11 @@ export default function Register() {
   const [error, setError] = useState("");
   const register = useAuthStore((s) => s.register);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Destination to resume after registering (kept consistent with the login flow).
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const from = fromState && fromState.startsWith("/") && !fromState.startsWith("//") ? fromState : "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +27,7 @@ export default function Register() {
         useCartStore.getState().mergeGuestCart(),
         useWishlistStore.getState().load(),
       ]);
-      navigate("/");
+      navigate(from);
     } catch {
       setError("Registration failed. Try again.");
     }
@@ -117,7 +122,7 @@ export default function Register() {
               className="text-center text-sm text-gw-gray-500 mt-6"
             >
               Already have an account?{" "}
-              <Link to="/login" className="gw-link">Sign in</Link>
+              <Link to="/login" state={{ from }} className="gw-link">Sign in</Link>
             </motion.p>
           </motion.div>
         </motion.div>

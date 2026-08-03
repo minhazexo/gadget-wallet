@@ -5,6 +5,7 @@ import { Star, Truck, Shield, Wallet, Lock, Clock } from "lucide-react";
 import api from "../lib/api";
 import { useCartStore } from "../store/useCartStore";
 import { showToast } from "../store/useToastStore";
+import { useRequireAuth } from "../lib/useRequireAuth";
 import {
   heroContainer,
   heroItem,
@@ -432,10 +433,12 @@ function ProductCard({ product, showSale }: { product: Product; showSale?: boole
   const discount = product.discountPrice
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
+  const requireAuth = useRequireAuth();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!requireAuth()) return; // guests must sign in before adding to cart
     try {
       await useCartStore.getState().addItem(product.id);
       showToast(`${product.name} added to cart`);

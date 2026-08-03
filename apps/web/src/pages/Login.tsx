@@ -1,6 +1,6 @@
 import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
@@ -12,6 +12,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Destination to resume after signing in (set by the add-to-cart / buy-now
+  // guard). Only internal paths are allowed.
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const from = fromState && fromState.startsWith("/") && !fromState.startsWith("//") ? fromState : "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +31,7 @@ export default function Login() {
       if (currentUser?.role === "admin") {
         navigate("/admin");
       } else {
-        navigate("/");
+        navigate(from);
       }
     } catch {
       setError("Invalid email or password");
@@ -135,7 +141,7 @@ export default function Login() {
               className="text-center text-sm text-gw-gray-500 mt-6"
             >
               Don't have an account?{" "}
-              <Link to="/register" className="gw-link">Create one</Link>
+              <Link to="/register" state={{ from }} className="gw-link">Create one</Link>
             </motion.p>
           </motion.div>
         </motion.div>

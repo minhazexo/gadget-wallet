@@ -8,6 +8,7 @@ import { useCartStore } from "../store/useCartStore";
 import { useWishlistStore } from "../store/useWishlistStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { showToast } from "../store/useToastStore";
+import { useRequireAuth } from "../lib/useRequireAuth";
 import {
   staggerContainer,
   staggerItem,
@@ -40,6 +41,7 @@ export default function ProductDetails() {
   const addToCart = useCartStore((s) => s.addItem);
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const wishlistItems = useWishlistStore((s) => s.items);
+  const requireAuth = useRequireAuth();
 
   useEffect(() => {
     if (slug) {
@@ -80,6 +82,7 @@ export default function ProductDetails() {
   const isWishlisted = wishlistItems.some((i) => i.productId === product.id);
 
   const handleAddToCart = async () => {
+    if (!requireAuth()) return; // guests must sign in before adding to cart
     try {
       await addToCart(product.id, quantity);
       showToast("Added to cart");
@@ -89,10 +92,13 @@ export default function ProductDetails() {
   };
 
   const handleBuyNow = () => {
+    // Guests go to login first and land straight in checkout afterwards.
+    if (!requireAuth(`/checkout?buyNow=1&productId=${product.id}&qty=${quantity}`)) return;
     navigate(`/checkout?buyNow=1&productId=${product.id}&qty=${quantity}`);
   };
 
   const handleWishlist = async () => {
+    if (!requireAuth()) return; // wishlist is a signed-in feature
     const added = await toggleWishlist(product.id);
     if (added !== undefined) {
       showToast(added ? "Added to wishlist" : "Removed from wishlist", "info");

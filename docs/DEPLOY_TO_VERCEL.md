@@ -112,13 +112,17 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 ## 🏗️ Step 4 — Vercel Project Setup
 
 1. Push to GitHub, then **Import Project** at [vercel.com/new](https://vercel.com/new).
-2. Leave **Root Directory** as the repository root (default). The included
-   `vercel.json` handles everything.
+2. **Set the Root Directory to the repository root** — this is the most common
+   deployment mistake. Vercel's monorepo detector often auto-selects a
+   subdirectory like `apps/server` or `apps/web` during import.
 
-   > ⚠️ **Already imported the project before?** If an earlier deployment used
-   > `apps/web` as the Root Directory (as the old guide suggested), you must
-   > change it back to the repository root — otherwise the `api/[[route]].ts`
-   > function and the workspace-wide build will not be picked up.
+   In **Project → Settings → General → Root Directory**, set it to the repo
+   root (clear the field), and set **Framework Preset → Other**. The included
+   `vercel.json` then handles the build:
+
+   > ⚠️ **Symptoms of a wrong Root Directory:** build fails with
+   > `error: Script not found "db:push:vercel"` (build runs inside
+   > `apps/server` where root scripts don't exist), or the web app never builds.
 
    ```json
    {
@@ -224,6 +228,7 @@ data, the push fails loudly instead of silently truncating.
 | Symptom | Fix |
 |---------|-----|
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
+| `error: Script not found "db:push:vercel"` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
 | Build succeeds but `/api/*` returns 404 | Confirm `api/[[route]].ts` exists at the repo root and `framework` in `vercel.json` is `null`. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |

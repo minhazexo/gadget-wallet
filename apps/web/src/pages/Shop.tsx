@@ -6,6 +6,7 @@ import { Star, Grid3X3, List } from "lucide-react";
 import api from "../lib/api";
 import { useCartStore } from "../store/useCartStore";
 import { showToast } from "../store/useToastStore";
+import { useRequireAuth } from "../lib/useRequireAuth";
 import {
   staggerContainerFast,
   staggerContainer,
@@ -32,8 +33,10 @@ export default function Shop() {
   const [products, setProducts] = useState<Product[]>([]);
   const [view, setView] = useState<"grid" | "list">("grid");
   const addToCart = useCartStore((s) => s.addItem);
+  const requireAuth = useRequireAuth();
 
   const handleAddToCart = async (id: string, name: string) => {
+    if (!requireAuth()) return; // guests must sign in before adding to cart
     try {
       await addToCart(id);
       showToast(`${name} added to cart`);

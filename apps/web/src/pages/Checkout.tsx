@@ -1,6 +1,6 @@
 import { Container, Button, Input } from "@gadget-wallet/ui";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreditCard, Shield, Banknote, Smartphone, Zap } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -18,8 +18,10 @@ interface LineItem {
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const cartItems = useCartStore((s) => s.items);
 
   const [step, setStep] = useState(1);
@@ -32,6 +34,14 @@ export default function Checkout() {
   const isBuyNow = searchParams.get("buyNow") === "1";
   const productId = searchParams.get("productId");
   const qtyParam = parseInt(searchParams.get("qty") || "1", 10);
+
+  // Checkout is for signed-in customers only — send guests to login and bring
+  // them straight back here once they sign in.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login", { state: { from: location.pathname + location.search } });
+    }
+  }, [authLoading, user, navigate, location]);
 
   // Load buy-now product directly (bypasses cart)
   useEffect(() => {
@@ -90,7 +100,7 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!user) {
-      navigate("/login");
+      navigate("/login", { state: { from: location.pathname + location.search } });
       return;
     }
     if (!address.street || !address.city || !address.country) {

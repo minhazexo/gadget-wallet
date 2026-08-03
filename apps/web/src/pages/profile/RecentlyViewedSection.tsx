@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 import { useWishlistStore } from "../../store/useWishlistStore";
 import { showToast } from "../../store/useToastStore";
+import { useRequireAuth } from "../../lib/useRequireAuth";
 import { SectionHeader, EmptyState, money } from "./shared";
 import type { RecentlyViewedItem } from "./types";
 import api from "../../lib/api";
@@ -16,6 +17,7 @@ export function RecentlyViewedSection() {
   const addToCart = useCartStore((s) => s.addItem);
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,6 +36,7 @@ export function RecentlyViewedSection() {
   }, [load]);
 
   const handleAddToCart = async (item: RecentlyViewedItem) => {
+    if (!requireAuth()) return; // guests must sign in before adding to cart
     try {
       await addToCart(item.productId);
       showToast("Added to cart");
@@ -43,7 +46,13 @@ export function RecentlyViewedSection() {
   };
 
   const handleBuyNow = (item: RecentlyViewedItem) => {
+    if (!requireAuth(`/checkout?buyNow=1&productId=${item.productId}&qty=1`)) return;
     navigate(`/checkout?buyNow=1&productId=${item.productId}&qty=1`);
+  };
+
+  const handleToggleWishlist = (item: RecentlyViewedItem) => {
+    if (!requireAuth()) return; // wishlist is a signed-in feature
+    toggleWishlist(item.productId);
   };
 
   return (
@@ -83,7 +92,7 @@ export function RecentlyViewedSection() {
                   />
                 </a>
                 <button
-                  onClick={() => toggleWishlist(item.productId)}
+                  onClick={() => handleToggleWishlist(item)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-gray-300 hover:text-gw-red transition-colors"
                   aria-label="Add to wishlist"
                 >
