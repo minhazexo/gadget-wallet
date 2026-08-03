@@ -1,20 +1,22 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 import * as schema from "./schema.js";
 
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error(
-    "DATABASE_URL is not set. Add your Neon PostgreSQL connection string (prefer the pooled one, …-pooler… ?sslmode=require) to Vercel Environment Variables (Production + Preview).",
-  );
+  throw new Error("DATABASE_URL is not set");
 }
 
-const client = postgres(connectionString, {
+const client: Sql = postgres(connectionString, {
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
 });
 
-export const db = drizzle(client, { schema });
+export const db = drizzle({
+  client,
+  schema,
+});
+
 export { schema };
