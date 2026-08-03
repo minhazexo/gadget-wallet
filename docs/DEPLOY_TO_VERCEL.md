@@ -135,7 +135,7 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
        "api/[[route]].ts": { "maxDuration": 30 }
      },
      "rewrites": [
-       { "source": "/(.*)", "destination": "/index.html" }
+       { "source": "/((?!api/).*)", "destination": "/index.html" }
      ]
    }
    ```
@@ -231,6 +231,7 @@ data, the push fails loudly instead of silently truncating.
 | `error: Script not found "db:push:vercel"` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
 | Build succeeds but `/api/*` returns 404 | Confirm `api/[[route]].ts` exists at the repo root and `framework` in `vercel.json` is `null`. |
+| Site loads but **no products show** | The SPA rewrite `/(.*) → /index.html` is shadowing the API. Change it to `/((?!api/).*)` (excludes `/api/*`) and redeploy. Verify with `curl https://<project>.vercel.app/api/health` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |
 | `column does not exist` (500s) | The API is running against an older schema — redeploy (the build auto-pushes) or run `bun run db:push` manually. |
 | `too many connections` from Neon | Switch `DATABASE_URL` to the **pooled** connection string (`-pooler`). |
