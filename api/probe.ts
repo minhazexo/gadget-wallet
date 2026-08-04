@@ -1,37 +1,51 @@
-// TEMP diagnostic probe — remove after debugging the FUNCTION_INVOCATION_TIMEOUT.
-import postgres from "postgres";
+// TEMP diagnostic — isolates whether importing postgres / connecting to Neon hangs in the sandbox.
+const race = (p: Promise<unknown>, ms: number, label: string) =>
+  Promise.race([p.then(() => label + "-ok"), new Promise((r) => setTimeout(() => r(label + "-timeout"), ms))]);
 
-export default async function handler(req: Request) {
+export default async function handler() {
   const out: Record<string, unknown> = {
     ok: true,
     node: process.version,
-    platform: process.platform,
-    arch: process.arch,
     region: process.env.VERCEL_REGION || "?",
-    env: {
-      NODE_ENV: process.env.NODE_ENV,
-      DATABASE_URL: process.env.DATABASE_URL ? `set(len=${process.env.DATABASE_URL.length})` : "MISSING",
-      JWT_SECRET: process.env.JWT_SECRET ? `set(len=${process.env.JWT_SECRET.length})` : "MISSING",
-      SUPABASE_URL: process.env.SUPABASE_URL ? `set(len=${process.env.SUPABASE_URL.length})` : "MISSING",
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING",
-      APP_URL: process.env.APP_URL || "MISSING",
-    },
   };
 
+  // 1. Can we import postgres at runtime?
+  out.importPostgres = await race(import("postgres"), 10_000, "import-postgres");
+
+  // 2. DNS lookup of the Neon host
   try {
-    const sql = postgres(process.env.DATABASE_URL || "postgres://invalid", {
-      connect_timeout: 5,
+    const host = new URL(process.env.DATABASE_URL || "postgres://x").hostname;
+    out.dbHost = host;
+    out.dns = await race(
+      import("node:dns").then((d) => d.promises.lookup(host).then((r) => r.address)),
+      8_000,
+      "dns",
+    );
+  } catch (e) {
+    out.dns = "dns-error: " + String((e as Error).message).slice(0, 150);
+  }
+
+  // 3. Actual connect attempt with a hard race
+  try {
+    const sql = (await import("postgres")).default(process.env.DATABASE_URL || "postgres://invalid", {
+      connect_timeout: 4,
       max: 1,
     });
     const t0 = Date.now();
-    const res = await sql`select 1 as ok`;
-    out.db = { connected: true, ms: Date.now() - t0, result: res[0]?.ok };
-    await sql.end({ timeout: 2 });
+    const res = await race(sql`select 1 as ok`, 6_000, "connect");
+    out.connect = res;
+    out.connectMs = Date.now() - t0;
+    try {
+      await sql.end({ timeout: 2 });
+    } catch {
+      /* ignore */
+    }
   } catch (e) {
-    out.db = { connected: false, error: String((e as Error)?.message || e).slice(0, 300) };
+    out.connect = "connect-error: " + String((e as Error).message).slice(0, 200);
   }
 
   return new Response(JSON.stringify(out, null, 2), {
+    status: 200,
     headers: { "content-type": "application/json" },
   });
 }
