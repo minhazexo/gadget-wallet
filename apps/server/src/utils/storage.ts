@@ -22,13 +22,40 @@ if (!isProduction && !existsSync(UPLOADS_DIR)) {
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseKey
-    ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
-    : null;
+
+// .env.example ships placeholder values — a real key is a JWT/sb_secret that
+// never contains "your-", and a real project URL is never "xxxx". Treating
+// placeholders as "not configured" keeps dev mode on the local-disk fallback
+// and fails loudly in production instead of attempting (and failing) real
+// uploads with invalid credentials. Keep in sync with the placeholder list in
+// packages/db/src/loadEnv.ts.
+function isPlaceholderKey(key: string): boolean {
+  return /your-/.test(key) || key === "xxx";
+}
+
+function isPlaceholderUrl(url: string): boolean {
+  return /xxxx\.supabase\.co/.test(url);
+}
+
+const hasSupabaseCredentials =
+  !!supabaseUrl &&
+  !!supabaseKey &&
+  !isPlaceholderKey(supabaseKey) &&
+  !isPlaceholderUrl(supabaseUrl);
+
+const supabase: SupabaseClient | null = hasSupabaseCredentials
+  ? createClient(supabaseUrl!, supabaseKey!, { auth: { persistSession: false } })
+  : null;
 
 export function isSupabaseConfigured() {
   return supabase !== null;
+}
+
+if (!hasSupabaseCredentials && !isProduction) {
+  console.warn(
+    "[storage] Supabase Storage not configured (missing or placeholder SUPABASE_SERVICE_ROLE_KEY). " +
+      "Falling back to local-disk uploads for development.",
+  );
 }
 
 /**
@@ -79,7 +106,9 @@ export interface UploadedImage {
 export async function uploadImage(file: File, productId: string): Promise<UploadedImage> {
   if (!supabase) {
     if (isProduction) {
-      throw new Error("Supabase Storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+      throw new Error(
+        "Supabase Storage is not configured. Set a real SUPABASE_SERVICE_ROLE_KEY (server-side env var) before uploading images.",
+      );
     }
     // Dev fallback: write to local disk, mirroring the same folder layout.
     const fileName = sanitizeFileName(file.name);
@@ -101,7 +130,10 @@ export async function uploadImage(file: File, productId: string): Promise<Upload
     contentType: file.type,
     upsert: false,
   });
-  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+  if (error) {
+    console.error(`[storage] Supabase upload failed for ${storagePath}:`, error.message);
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
   return { url: data.publicUrl, path: storagePath };

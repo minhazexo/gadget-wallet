@@ -6,6 +6,7 @@
       "name": "gadget-wallet",
       "dependencies": {
         "drizzle-orm": "0.36.3",
+        "hono": "^4.5.0",
         "postgres": "^3.4.0",
       },
       "devDependencies": {

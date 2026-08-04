@@ -16,11 +16,14 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        // Use 127.0.0.1 (IPv4), not "localhost": on Windows, Node resolves
+        // localhost to ::1 (IPv6) first, and the API binds IPv4 only — which
+        // makes proxied requests hang and products fail to load.
+        target: "http://127.0.0.1:3000",
         changeOrigin: true,
       },
       "/uploads": {
-        target: "http://localhost:3000",
+        target: "http://127.0.0.1:3000",
         changeOrigin: true,
       },
     },

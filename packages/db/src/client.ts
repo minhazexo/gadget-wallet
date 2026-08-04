@@ -1,4 +1,9 @@
 import postgres from "postgres";
+import { loadEnvWithOverride } from "./loadEnv.js";
+
+// Ensure a stale/placeholder DATABASE_URL in the environment can never win
+// over the real one in the root .env file (Bun's --env-file doesn't override).
+loadEnvWithOverride();
 
 const connectionString = process.env.DATABASE_URL;
 

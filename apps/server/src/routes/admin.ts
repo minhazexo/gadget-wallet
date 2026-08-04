@@ -20,6 +20,13 @@ adminRoutes.use("*", authMiddleware, adminMiddleware);
 
 const MAX_IMAGES_PER_PRODUCT = 12;
 
+/** Postgres unique-violation error code — slug/SKU collisions land here. */
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string })?.code === "23505";
+}
+
+const DUPLICATE_PRODUCT_MESSAGE = "A product with this slug or SKU already exists";
+
 adminRoutes.get("/dashboard", async (c) => {
   const [totalProducts] = await db
     .select({ count: sql`count(*)` })
@@ -287,6 +294,8 @@ adminRoutes.post("/products", async (c) => {
   } catch (err) {
     // Transaction rolled back — remove any orphaned files from storage.
     await Promise.allSettled(uploadedPaths.map((p) => deleteImage(p)));
+    if (isUniqueViolation(err)) return error(c, 409, DUPLICATE_PRODUCT_MESSAGE);
+    console.error("[admin] Failed to create product:", err);
     return error(c, 500, err instanceof Error ? err.message : "Failed to create product");
   }
 });
@@ -294,17 +303,23 @@ adminRoutes.post("/products", async (c) => {
 adminRoutes.patch("/products/:id", zValidator("json", productSchema.partial()), async (c) => {
   const id = c.req.param("id");
   const body = c.req.valid("json");
-  const [product] = await db
-    .update(schema.products)
-    .set({
-      ...body,
-      discountPrice: body.discountPrice || null,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.products.id, id))
-    .returning();
-  if (!product) return error(c, 404, "Product not found");
-  return success(c, product, "Product updated");
+  try {
+    const [product] = await db
+      .update(schema.products)
+      .set({
+        ...body,
+        discountPrice: body.discountPrice || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.products.id, id))
+      .returning();
+    if (!product) return error(c, 404, "Product not found");
+    return success(c, product, "Product updated");
+  } catch (err) {
+    if (isUniqueViolation(err)) return error(c, 409, DUPLICATE_PRODUCT_MESSAGE);
+    console.error("[admin] Failed to update product:", err);
+    return error(c, 500, err instanceof Error ? err.message : "Failed to update product");
+  }
 });
 
 adminRoutes.delete("/products/:id", async (c) => {
