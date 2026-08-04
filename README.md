@@ -84,11 +84,11 @@ bun run dev
 | Script | Description |
 |--------|-------------|
 | `bun run dev` | Run web + API in parallel (dev mode) |
-| `bun run build` | Production build: web (`apps/web/dist`) + Node bundle (`apps/server/dist/app.cjs`) |
-| `bun run typecheck` | Typecheck web + server |
+| `bun run build` | Production build: `apps/web` (`tsc -b && vite build` → `apps/web/dist`) |
+| `bun run typecheck` | Typecheck web + server (`tsc --noEmit` in each) |
 | `bun run db:generate` | Generate Drizzle migrations from `packages/db/src/schema.ts` |
 | `bun run db:push` | Apply schema to the database (loads `.env`) |
-| `bun run db:push:vercel` | Same, but reads env from the environment — used by the Vercel build |
+| `bun run db:push:vercel` | Same, but reads env from the environment |
 | `bun run db:seed` | Seed admin user, categories, brands, products, banners |
 
 ## Features
@@ -106,16 +106,19 @@ bun run dev
 ## Deployment (Vercel)
 
 The whole app — storefront + API — deploys to **one Vercel project** from this
-repo. `vercel.json` handles the build; migrations run automatically on every
-deploy (`bun run db:push:vercel`), and the Hono API runs as a serverless
-function via `api/[[...route]].ts`.
+repo. `vercel.json` handles the build (`npm run build`), the storefront is
+served from `apps/web/dist`, and the Hono API runs as a serverless function via
+`api/[[...route]].ts`. Run migrations manually after deploying — or wire
+`bun run db:push:vercel` into your deploy pipeline — since they don't run as
+part of the Vercel build.
 
 ```bash
 # 1. Push the repo to GitHub
-# 2. Import it in Vercel (Root Directory = repo root)
+# 2. Import it in Vercel (Root Directory = repo root, Build Command = npm run build)
 # 3. Add env vars: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 #    JWT_SECRET, APP_URL  (scope DATABASE_URL to Production + Preview)
-# 4. Deploy 🚀
+# 4. Run migrations: bun run db:push:vercel
+# 5. Deploy 🚀
 ```
 
 Verify: `GET /api/health`, log in with the admin credentials, and create a

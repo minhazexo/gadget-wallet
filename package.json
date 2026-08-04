@@ -9,7 +9,9 @@
     "dev": "bun run --env-file=.env --parallel dev:web dev:server",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:server": "bun run --cwd apps/server dev",
-    "build": "npm run --prefix apps/web build",
+    "build": "bun run --cwd apps/web build && bun run --cwd apps/server build",
+    "build:web": "bun run --cwd apps/web build",
+    "build:server": "bun run --cwd apps/server build",
     "db:generate": "bun run --cwd packages/db generate",
     "db:push": "bun run --env-file=../../.env --cwd packages/db push",
     "db:push:vercel": "npm run --prefix packages/db push",
@@ -19,6 +21,7 @@
   },
   "dependencies": {
     "drizzle-orm": "0.36.3",
+    "hono": "^4.5.0",
     "postgres": "^3.4.0"
   },
   "devDependencies": {

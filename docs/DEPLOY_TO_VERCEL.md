@@ -111,11 +111,11 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 > ⚠️ `JWT_SECRET` must be the same value across every environment, or users'
 > tokens stop validating.
 
-> 🔄 **Migrations run automatically on every deploy** (the build starts with
-> `bun run db:push:vercel`), so `DATABASE_URL` must be available **during the
-> build** — not just at runtime. Set it for **Production *and* Preview**, because
-> preview deployments run the same build command; otherwise preview builds fail.
-> One shared database for all environments is fine since `db:push` is idempotent.
+> 🔄 **Migrations are applied manually** (not during the Vercel build), so the
+> build never fails on transient DB connectivity. After a schema change, run
+> `bun run db:push:vercel` against the production `DATABASE_URL`. `DATABASE_URL`
+> is still required at **runtime** for every environment. One shared database
+> across environments is fine since `db:push` is idempotent.
 
 ---
 
@@ -139,7 +139,7 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
      "$schema": "https://openapi.vercel.sh/vercel.json",
      "framework": null,
      "installCommand": "bun install",
-     "buildCommand": "bun run db:push:vercel && bun run build",
+     "buildCommand": "bun run build",
      "outputDirectory": "apps/web/dist",
      "functions": {
        "api/[[...route]].ts": { "maxDuration": 30 }
@@ -156,14 +156,21 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 
 ```
 bun install                    # installs all workspace deps at the root
-bun run db:push:vercel         # applies the current schema to DATABASE_URL
-                               #   (idempotent — no-op when already in sync)
-bun run build                  # 1) builds web  → apps/web/dist
+bun run build                  # 1) builds web    → apps/web/dist
                                # 2) bundles server → apps/server/dist/app.cjs
+                               #    (bun build --target=node --format=cjs — a
+                               #     single self-contained CommonJS file)
 Vercel packages api/[[...route]].ts → serverless function (traces dist/app.cjs)
 Static output apps/web/dist served as files; every other path rewrites to
 index.html; every /api/* request hits the Hono function.
 ```
+
+> **Migrations are not part of the build** (keeps deploys from failing when the
+> DB is briefly unreachable). Apply schema changes with `bun run db:push:vercel`
+> against the production `DATABASE_URL` before/after deploying. To wire it into
+> the build instead, use:
+> `"buildCommand": "bun run db:push:vercel && bun run build"` and make sure
+> `DATABASE_URL` is set for **Production *and* Preview**.
 
 ---
 
@@ -211,12 +218,24 @@ Vercel → **Settings → Domains** → add your domain → update DNS. Then upd
 `db:push` is the project's documented workflow (the DB was set up with
 `drizzle-kit push`, so journal-based `db:migrate` will conflict).
 
-**Automatic (default):** the `vercel.json` build command runs
-`bun run db:push:vercel` (`bun run --cwd packages/db push` — no `.env` file; it
-reads `DATABASE_URL` straight from the Vercel build environment) before building.
-Because `drizzle-kit push` is idempotent, a deploy with an unchanged schema is a
-no-op. Deliberately **no `--force` flag**: if a future schema change would drop
+**Manual (default):** the Vercel build (`bun run build`) only builds the app —
+it does **not** touch the database, so a deploy can never fail on transient DB
+connectivity. Apply schema changes yourself against the production database:
+
+```bash
+export DATABASE_URL="postgresql://…-pooler…?sslmode=require"
+bun run db:push:vercel   # or: bun run db:push  (loads local .env)
+```
+
+Because `drizzle-kit push` is idempotent, re-running it with an unchanged schema
+is a no-op. There is deliberately **no `--force` flag**: if a change would drop
 data, the push fails loudly instead of silently truncating.
+
+**Optional — run it in the build:** set
+`"buildCommand": "bun run db:push:vercel && bun run build"` in `vercel.json`.
+If you do, `DATABASE_URL` must be available **during the build** for every
+environment whose deploys should migrate (Production *and* Preview), because
+preview deployments run the same build command.
 
 **Notes**
 
@@ -242,6 +261,7 @@ data, the push fails loudly instead of silently truncating.
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
 | Build succeeds but `/api/*` returns 404 | The function file must be `api/[[...route]].ts` (**with ellipsis**) — plain `[[route]]` only matches one segment. Confirm it exists and `framework` in `vercel.json` is `null`. |
 | `/api/health` (and other `/api/*`) return **500 `FUNCTION_INVOCATION_FAILED`** | The function can't load the server bundle: the bundle must be **CommonJS** (`dist/app.cjs`, `--format=cjs`) because the handler compiles to CJS — requiring the ESM `app.js` throws `ERR_REQUIRE_ESM` on Node 18/20. Redeploy after `bun run build`. |
+| Storefront loads but **no products / all `/api/*` fail** (often `MODULE_NOT_FOUND` / `Cannot find module '.ts'` in function logs) | `api/[[...route]].ts` must import the **prebuilt** `../apps/server/dist/app.cjs`, **not** the raw source `../apps/server/src/app.js`. Importing the TS source makes Vercel trace `.ts` from workspace packages, which fails at runtime. Confirm the root `build` runs `bun run --cwd apps/server build` so `dist/app.cjs` exists. |
 | Site loads but **no products show** | The SPA rewrite `/(.*) → /index.html` is shadowing the API. Change it to `/((?!api/).*)` (excludes `/api/*`) and redeploy. Verify with `curl https://<project>.vercel.app/api/health` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |
 | `column does not exist` (500s) | The API is running against an older schema — redeploy (the build auto-pushes) or run `bun run db:push` manually. |
