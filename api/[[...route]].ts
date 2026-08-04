@@ -13,4 +13,8 @@ import { handle } from "hono/vercel";
 // bundle. A required ESM `.js` would throw ERR_REQUIRE_ESM on Vercel's Node.
 import { app } from "../apps/server/dist/app.cjs";
 
+// Pin the Node.js runtime explicitly (never an edge function) — the bundle
+// requires Node APIs (fs, net via postgres) that don't exist on the edge.
+export const runtime = "nodejs";
+
 export default handle(app);
