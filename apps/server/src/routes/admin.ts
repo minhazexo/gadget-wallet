@@ -294,14 +294,22 @@ adminRoutes.post("/products", async (c) => {
 adminRoutes.patch("/products/:id", zValidator("json", productSchema.partial()), async (c) => {
   const id = c.req.param("id");
   const body = c.req.valid("json");
+
+  // Only touch live products — without the deletedAt guard a PATCH would
+  // silently resurrect a soft-deleted product (its images are already gone
+  // from Supabase, so it would come back with broken image URLs).
   const [product] = await db
     .update(schema.products)
     .set({
       ...body,
-      discountPrice: body.discountPrice || null,
+      // `discountPrice` is optional: only null it out when the caller actually
+      // sent the field. Spreading `discountPrice: body.discountPrice || null`
+      // unconditionally wiped an existing discount on every partial update
+      // that didn't include it (e.g. a stock-only edit).
+      ...("discountPrice" in body ? { discountPrice: body.discountPrice || null } : {}),
       updatedAt: new Date(),
     })
-    .where(eq(schema.products.id, id))
+    .where(and(eq(schema.products.id, id), isNull(schema.products.deletedAt)))
     .returning();
   if (!product) return error(c, 404, "Product not found");
   return success(c, product, "Product updated");
@@ -394,6 +402,68 @@ adminRoutes.post("/products/:id/images", async (c) => {
     await Promise.allSettled(uploadedPaths.map((p) => deleteImage(p)));
     return error(c, err instanceof Error && err.message.includes("at most") ? 400 : 500, err instanceof Error ? err.message : "Failed to upload image");
   }
+});
+
+/**
+ * PATCH /products/:id/images/reorder — reorders the product's images.
+ * Only image ids belonging to this product are accepted, and the first image
+ * always becomes the primary thumbnail.
+ *
+ * MUST stay registered BEFORE `/products/:id/images/:imageId`: Hono matches
+ * routes in registration order, so if the parameterised route came first this
+ * request would bind `:imageId = "reorder"` and fail (the id column is a uuid,
+ * so the lookup errors out instead of falling through).
+ */
+adminRoutes.patch("/products/:id/images/reorder", async (c) => {
+  const productId = c.req.param("id");
+  const { imageIds } = await c.req.json().catch(() => ({}));
+
+  if (!Array.isArray(imageIds) || imageIds.length === 0) {
+    return error(c, 400, "imageIds must be a non-empty array");
+  }
+
+  const existing = await db
+    .select({ id: schema.productImages.id })
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, productId));
+
+  const existingIds = new Set(existing.map((e) => e.id));
+  if (
+    imageIds.length !== existing.length ||
+    imageIds.some((id: unknown) => typeof id !== "string" || !existingIds.has(id))
+  ) {
+    return error(c, 400, "imageIds must contain exactly this product's images");
+  }
+
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < imageIds.length; i++) {
+      await tx
+        .update(schema.productImages)
+        .set({ order: i })
+        .where(eq(schema.productImages.id, imageIds[i] as string));
+    }
+    // First image is the primary thumbnail.
+    await tx
+      .update(schema.productImages)
+      .set({ isPrimary: false })
+      .where(eq(schema.productImages.productId, productId));
+    await tx
+      .update(schema.productImages)
+      .set({ isPrimary: true })
+      .where(eq(schema.productImages.id, imageIds[0] as string));
+
+    const [first] = await tx
+      .select({ url: schema.productImages.url })
+      .from(schema.productImages)
+      .where(eq(schema.productImages.id, imageIds[0] as string))
+      .limit(1);
+    await tx
+      .update(schema.products)
+      .set({ thumbnailUrl: first?.url ?? null, updatedAt: new Date() })
+      .where(eq(schema.products.id, productId));
+  });
+
+  return success(c, null, "Images reordered");
 });
 
 /**
@@ -491,63 +561,6 @@ adminRoutes.delete("/products/:id/images/:imageId", async (c) => {
   }
 
   return success(c, null, "Image deleted");
-});
-
-/**
- * PATCH /products/:id/images/reorder — reorders the product's images.
- * Only image ids belonging to this product are accepted, and the first image
- * always becomes the primary thumbnail.
- */
-adminRoutes.patch("/products/:id/images/reorder", async (c) => {
-  const productId = c.req.param("id");
-  const { imageIds } = await c.req.json().catch(() => ({}));
-
-  if (!Array.isArray(imageIds) || imageIds.length === 0) {
-    return error(c, 400, "imageIds must be a non-empty array");
-  }
-
-  const existing = await db
-    .select({ id: schema.productImages.id })
-    .from(schema.productImages)
-    .where(eq(schema.productImages.productId, productId));
-
-  const existingIds = new Set(existing.map((e) => e.id));
-  if (
-    imageIds.length !== existing.length ||
-    imageIds.some((id: unknown) => typeof id !== "string" || !existingIds.has(id))
-  ) {
-    return error(c, 400, "imageIds must contain exactly this product's images");
-  }
-
-  await db.transaction(async (tx) => {
-    for (let i = 0; i < imageIds.length; i++) {
-      await tx
-        .update(schema.productImages)
-        .set({ order: i })
-        .where(eq(schema.productImages.id, imageIds[i] as string));
-    }
-    // First image is the primary thumbnail.
-    await tx
-      .update(schema.productImages)
-      .set({ isPrimary: false })
-      .where(eq(schema.productImages.productId, productId));
-    await tx
-      .update(schema.productImages)
-      .set({ isPrimary: true })
-      .where(eq(schema.productImages.id, imageIds[0] as string));
-
-    const [first] = await tx
-      .select({ url: schema.productImages.url })
-      .from(schema.productImages)
-      .where(eq(schema.productImages.id, imageIds[0] as string))
-      .limit(1);
-    await tx
-      .update(schema.products)
-      .set({ thumbnailUrl: first?.url ?? null, updatedAt: new Date() })
-      .where(eq(schema.products.id, productId));
-  });
-
-  return success(c, null, "Images reordered");
 });
 
 // ─── Users ────────────────────────────────────────────────────────

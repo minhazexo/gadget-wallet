@@ -2,7 +2,10 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [main]
+    # This repository's default branch is `master`. The workflow previously
+    # listened on `main` only, so production deploys never actually fired.
+    # Both are listed to match .github/workflows/ci.yml.
+    branches: [main, master]
 
 jobs:
   deploy:

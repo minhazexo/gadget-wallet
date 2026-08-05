@@ -27,3 +27,12 @@ jobs:
 
       - name: Build Web App
         run: bun run --cwd apps/web build
+
+      # The Vercel function (api/[[...route]].ts) imports the bundle this step
+      # produces (apps/server/dist/app.cjs). Without it here, a server-side
+      # break only surfaces as a runtime 500 after deploying.
+      - name: Build API bundle
+        run: bun run --cwd apps/server build
+
+      - name: Verify API bundle exists
+        run: test -s apps/server/dist/app.cjs

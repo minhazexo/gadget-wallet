@@ -1,6 +1,27 @@
 import postgres from "postgres";
 
+/**
+ * Standalone client factory for one-off scripts (backups, seeds, migrations)
+ * that need their own connection outside the shared `db` instance.
+ *
+ * The app itself must import `db` from `@gadget-wallet/db` (src/index.ts) —
+ * that is the single reusable connection. Nothing here is created at import
+ * time on purpose: a module-scope `postgres(...)` call would open a second
+ * pool in every serverless function that transitively imported this file,
+ * doubling connection usage against Neon's limit for no reason.
+ */
 const connectionString = process.env.DATABASE_URL;
+
+// Serverless-safe pool options — see packages/db/src/index.ts for the full
+// rationale. `max: 1` (per function instance) avoids exhausting Neon's
+// connection limit; `prepare: false` is required for the Neon pooled
+// (`-pooler`, PgBouncer transaction-mode) endpoint.
+const poolOptions = {
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  prepare: false,
+} as const;
 
 export function createPgClient() {
   if (!connectionString) {
@@ -9,17 +30,5 @@ export function createPgClient() {
     );
   }
 
-  return postgres(connectionString, {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
-  });
+  return postgres(connectionString, poolOptions);
 }
-
-export const client = connectionString
-  ? postgres(connectionString, {
-      max: 10,
-      idle_timeout: 20,
-      connect_timeout: 10,
-    })
-  : (null as any);

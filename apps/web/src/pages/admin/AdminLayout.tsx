@@ -21,7 +21,20 @@ export default function AdminLayout() {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  if (!isLoading && (!user || user.role !== "admin")) {
+  // Auth state is restored asynchronously (checkAuth → GET /auth/me). Until it
+  // resolves we must render neither the admin shell nor <Outlet/>: the child
+  // pages fire /api/admin/* requests on mount, so a non-admin visiting /admin
+  // would briefly trigger admin calls and see the dashboard chrome flash
+  // before the redirect below kicks in.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-gw-gray-500 animate-pulse">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "admin") {
     // Not signed in → login; signed in but not an admin → back to the store.
     return <Navigate to={user ? "/" : "/login"} replace />;
   }
