@@ -200,16 +200,18 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
      "buildCommand": "bun run build",
      "outputDirectory": "client/dist",
      "rewrites": [
-       // Route EVERY /api/* path to the single catch-all function — Vercel's
-       // own builder compiles api/[[...route]].js into a single-segment route,
-       // so without this rewrite multi-segment paths (featured, auth/login, …)
-       // return a platform 404 before reaching the function.
        { "source": "/api/:path*", "destination": "/api/[[...route]]" },
-       // SPA fallback — everything that is not an API call serves index.html
        { "source": "/((?!api/).*)", "destination": "/index.html" }
      ]
    }
    ```
+
+   > The **first rewrite** routes every `/api/*` path to the single catch-all
+   > function — without it, Vercel's builder compiles `api/[[...route]].js` into
+   > a single-segment route and multi-segment paths (`/api/products/featured`,
+   > `/api/auth/login`) return a platform 404 before reaching the function.
+   > The **second rewrite** is the SPA fallback (every non-API path serves
+   > `index.html`).
 
 3. Vercel will auto-detect `bun.lock` and run `bun install` (Bun workspaces).
 
