@@ -33,3 +33,4 @@ uploads/
 login details/
 
 .vercel
+.env*
