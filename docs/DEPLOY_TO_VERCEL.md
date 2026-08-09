@@ -28,7 +28,16 @@ gadget-wallet/                     ← Vercel Root Directory
 │   ├── brands/                    ← GET /api/brands, /:slug
 │   ├── auth/                      ← POST /register, /login, GET /me, POST /logout-all
 │   ├── profile/                   ← GET/PUT /api/profile, /password, /two-factor
-│   └── admin/                     ← /login, /dashboard, /orders, products CRUD + images
+│   ├── admin/                     ← /login, /dashboard, /orders, products CRUD + images
+│   ├── cart/                      ← add, update, remove, merge, get (user/session)
+│   ├── wishlist/                  ← list, add, remove, move-to-cart
+│   ├── orders/                    ← create, list, detail, cancel, return, per-user
+│   ├── reviews/                   ← create, update, delete, per-user
+│   ├── address/                   ← list/create, update/delete, set-default
+│   ├── payment-methods/           ← list/create, delete, set-default
+│   ├── notifications/             ← list, preferences, mark-all-read
+│   ├── recently-viewed/           ← list, record
+│   └── health.js                  ← GET /api/health
 ├── client/                        ← Vite + React static build → client/dist
 │   └── src/
 │       ├── pages/                 ← storefront + admin pages
@@ -54,6 +63,12 @@ JWT auth.
 > endpoint is its own small `.js` handler with no build step, so Vercel picks
 > them up directly from the `api/` folder (filesystem routing — `[id].js`
 > becomes `/api/products/:id`). Only the **frontend** needs a build step.
+>
+> **The API is native ESM.** The root `package.json` declares `"type": "module"`,
+> so Vercel runs the `api/` handlers as ESM directly — no ESM→CommonJS compile
+> step (that also silences the *"Node.js functions are compiled from ESM to
+> CommonJS"* build warning). Handlers `export default` a Node `(req, res)`
+> function.
 
 ---
 
@@ -116,9 +131,15 @@ Add these in Vercel → **Project → Settings → Environment Variables** (appl
 | `SUPABASE_URL` | `https://xxxx.supabase.co` | Supabase project URL (required for image uploads) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ…` | Supabase service role key (uploads) |
 | `JWT_SECRET` | `openssl rand -hex 32` output | JWT signing key — **required in production** |
-| `ADMIN_EMAIL` | `admin@example.com` | Guide-style admin login (`POST /api/admin/login`) |
-| `ADMIN_PASSWORD` | `strongpassword` | Guide-style admin login password |
+| `ADMIN_EMAIL` | `admin@example.com` | *Optional* — guide-style admin login (`POST /api/admin/login`) |
+| `ADMIN_PASSWORD` | `strongpassword` | *Optional* — guide-style admin login password |
 | `APP_URL` | `https://your-app.vercel.app` | Optional — CORS origin for cross-origin API calls only |
+
+> ℹ️ **`ADMIN_EMAIL` / `ADMIN_PASSWORD` are optional.** The app's own admin panel
+> signs in through `POST /api/auth/login` with a `users`-table account whose
+> `role = 'admin'` (seeded: `admin@gadgetwallet.com` / `admin123`). The env-var
+> pair only powers the alternative, guide-style `POST /api/admin/login` and can
+> be left unset.
 
 **Not needed:** `VITE_API_URL` — the frontend calls relative `/api` on the same
 domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automatic.
@@ -201,6 +222,7 @@ Static output client/dist served  # every non-/api path rewrites to index.html (
 1. First deploy will appear at `https://<project>.vercel.app`.
 2. Verify the API:
    ```
+   GET  https://<project>.vercel.app/api/health                → { success: true }
    GET  https://<project>.vercel.app/api/products              → { success, data, total, ... }
    GET  https://<project>.vercel.app/api/products/new-arrivals → { success, data }
    GET  https://<project>.vercel.app/api/products/<slug>       → { success, data: { ...images, specs } }
@@ -209,7 +231,12 @@ Static output client/dist served  # every non-/api path rewrites to index.html (
    POST https://<project>.vercel.app/api/auth/login            → { success, data: { user, token } }
    POST https://<project>.vercel.app/api/admin/login           → { success, data: { token } }  (ADMIN_EMAIL/ADMIN_PASSWORD)
    ```
-   Every endpoint returns JSON with `success: true/false` — **never** HTML.
+   Every endpoint returns JSON with `success: true/false` — **never** HTML. There is
+   also an offline smoke suite that exercises **36 checks across the whole API**
+   (products, auth, profile, cart, wishlist, orders, reviews, admin, and more):
+   ```bash
+   bun run --env-file=.env scripts/smoke-api.mjs   # → 36/36 checks passed
+   ```
 3. Verify the storefront loads and product cards show images (Supabase URLs).
 4. Test **client-side routing**: open `/shop` or `/profile` directly / refresh —
    should render the app (SPA rewrite), not a 404.
@@ -226,6 +253,23 @@ Vercel → **Settings → Domains** → add your domain → update DNS. Then upd
 
 ---
 
+## 🖥️ Local Development (before deploying)
+
+Run the full stack locally with Bun (web + API in parallel):
+
+```bash
+bun install        # one-time
+bun run dev        # → Vite web app on http://localhost:5183, API on :3000
+```
+
+The root `package.json` runs `dev:web` (`client`) and `dev:server` (`apps/server`)
+in parallel; `client/vite.config.ts` proxies `/api` → `http://localhost:3000`.
+The **local** API is the full Hono app under `apps/server` — it mirrors the
+`api/` functions' routes for development. `bun run build` produces the exact
+`client/dist` output Vercel serves.
+
+---
+
 ## 📡 API Reference (what `api/` implements)
 
 All responses use the shape `{ success: boolean, data?, message? }`; the
@@ -233,47 +277,68 @@ products list additionally returns `{ total, page, limit, totalPages }`.
 
 | Method & path | Auth | Notes |
 |---|---|---|
-| `GET /api/products` | — | Paginated (`page`, `limit`); filters `category`, `brand` (slug or id), `search` |
+| `GET /api/health` | — | Uptime/liveness probe → `{ success: true }` |
+| `GET /api/products` | — | Paginated (`page`, `limit`); filters `category`, `brand` (slug or id), `search`, `sale` |
 | `GET /api/products/featured` | — | Homepage hero grid (max 8) |
 | `GET /api/products/new-arrivals` | — | New arrivals (max 12) |
-| `GET /api/products/:slug-or-id` | — | Detail incl. `images` + `specs` |
+| `GET /api/products/:slug-or-id` · `/api/products/by-id/:id` | — | Detail incl. `images` + `specs` |
 | `GET /api/categories` · `/api/categories/:slug` | — | With live product counts |
 | `GET /api/brands` · `/api/brands/:slug` | — | |
 | `POST /api/auth/register` | — | `{ email, name, password }` |
 | `POST /api/auth/login` | — | `{ email, password }` → `{ user, token }` |
 | `GET /api/auth/me` | Bearer | Re-checks the user against the DB |
 | `POST /api/auth/logout-all` | Bearer | Bumps `token_version` |
-| `GET/PUT /api/profile` | Bearer | Update `name`, `phone`, `avatar` |
+| `GET /api/profile` · `PUT /api/profile` | Bearer | Get/update `name`, `phone`, `avatar` |
 | `PUT /api/profile/password` | Bearer | `{ currentPassword, newPassword }` |
 | `PUT /api/profile/two-factor` | Bearer | `{ enabled }` |
-| `POST /api/admin/login` | — | Env-based (ADMIN_EMAIL/ADMIN_PASSWORD) |
+| `POST /api/admin/login` | — | Env-based (ADMIN_EMAIL/ADMIN_PASSWORD), *optional* |
 | `GET /api/admin/dashboard` | Admin | Stat cards |
 | `GET /api/admin/orders` | Admin | Latest 20 orders |
-| `GET/POST /api/admin/products` | Admin | Create accepts **multipart/form-data** (fields + image files) **or** JSON; fields: `name, slug, shortDescription, fullDescription, price, sku, brandId, categoryId` (+ optional `stock, discountPrice, isFeatured, isNewArrival, isBestSeller, thumbnailUrl`/`image_url`) |
-| `GET/PATCH/DELETE /api/admin/products/:id` | Admin | PATCH is a partial update; DELETE soft-deletes + removes Supabase images |
+| `GET /api/admin/products` · `POST /api/admin/products` | Admin | Create accepts **multipart/form-data** (fields + image files) **or** JSON; fields: `name, slug, shortDescription, fullDescription, price, sku, brandId, categoryId` (+ optional `stock, discountPrice, isFeatured, isNewArrival, isBestSeller, thumbnailUrl`/`image_url`) |
+| `GET /api/admin/products/:id` · `PATCH` · `DELETE` | Admin | PATCH is a partial update; DELETE soft-deletes + removes Supabase images |
 | `POST /api/admin/products/:id/images` | Admin | Multipart upload (max 12 images/product, JPG/PNG/WEBP ≤ 5 MB) |
 | `PATCH /api/admin/products/:id/images/reorder` | Admin | `{ imageIds: [...] }` |
-| `PATCH/DELETE /api/admin/products/:id/images/:imageId` | Admin | Update alt / set primary / delete |
+| `PATCH /api/admin/products/:id/images/:imageId` · `DELETE` | Admin | Update alt / set primary / delete |
+| `POST /api/cart/add` | —* | `{ productId, quantity, userId?|sessionId? }` |
+| `PATCH /api/cart/update` | —* | `{ productId, quantity, userId?|sessionId? }` |
+| `DELETE /api/cart/remove` | —* | `{ productId, userId?|sessionId? }` |
+| `POST /api/cart/merge` | —* | Merge guest cart on login `{ sessionId, userId }` |
+| `GET /api/cart/:sessionId` · `/api/cart/user/:userId` · `/api/cart/summary/:userId` | —* | Read cart for guest / user |
+| `GET /api/wishlist` | Bearer | Current user's wishlist (JWT) |
+| `POST /api/wishlist/add` | Bearer | `{ productId }` |
+| `DELETE /api/wishlist/remove` | Bearer | `{ productId }` |
+| `POST /api/wishlist/move-to-cart` | Bearer | `{ productId }` |
+| `GET /api/orders` · `POST /api/orders` | Bearer | List / create order |
+| `GET /api/orders/:id` | Bearer | Current user's order (enriched) |
+| `POST /api/orders/:id/cancel` | Bearer | Cancel order |
+| `POST /api/orders/:id/return` | Bearer | Request return |
+| `GET /api/orders/user/:userId` | Bearer | Per-user order history |
+| `POST /api/reviews` | Bearer | `{ productId, rating, title, comment }` |
+| `PUT /api/reviews/:id` · `DELETE /api/reviews/:id` | Bearer | Update / delete own review |
+| `GET /api/reviews/user` | Bearer | Current user's reviews |
+| `GET /api/address` · `POST /api/address` | Bearer | List / create address |
+| `PUT /api/address/:id` · `DELETE /api/address/:id` | Bearer | Update / delete address |
+| `POST /api/address/:id/default` | Bearer | Set default address |
+| `GET /api/payment-methods` · `POST /api/payment-methods` | Bearer | List / create payment method |
+| `DELETE /api/payment-methods/:id` | Bearer | Delete payment method |
+| `POST /api/payment-methods/:id/default` | Bearer | Set default payment method |
+| `GET /api/notifications` | Bearer | Current user's notifications |
+| `GET /api/notifications/preferences` · `PUT` | Bearer | Read / update notification preferences |
+| `POST /api/notifications/read-all` | Bearer | Mark all as read |
+| `GET /api/recently-viewed` · `POST /api/recently-viewed` | Bearer | List / record recently viewed |
 
 Admin access = a Bearer JWT whose payload `role` is `"admin"`, obtainable from
 either `POST /api/admin/login` or `POST /api/auth/login` with a users-table admin.
 
-### ⚠️ Known limitation — endpoints NOT deployed
+> \* Cart endpoints work for **guests or signed-in users** — pass `sessionId`
+> (guest cart) or `userId` (user cart). Everything else marked **Bearer** needs
+> a `Authorization: Bearer <token>` header.
 
-The guide's scope covers product display + admin, so the following API areas
-**only exist in the local Hono app** (`apps/server`, `bun run dev`) and **404 on
-Vercel**:
-
-- Cart (`/api/cart/*`), wishlist (`/api/wishlist/*`)
-- Orders for customers (`POST /api/orders`, order history) — admin order
-  listing is deployed
-- Reviews, coupons, addresses (`/api/address`), payment methods, notifications,
-  recently-viewed, `GET /api/health`
-
-The frontend stores swallow load errors, so the site still boots and product
-display + admin work — but add-to-cart, checkout, and the affected profile
-sections will show errors on the deployed site until those endpoints are ported
-to `api/` functions.
+> ✅ **No known limitations — the full API is deployed.** Cart, wishlist,
+> orders, reviews, addresses, payment methods, notifications, recently-viewed,
+> and health are all implemented as `api/` functions and included in the 36-check
+> smoke suite (`scripts/smoke-api.mjs`). The local Hono app under `apps/server`
+> remains for development only; nothing the storefront calls 404s on Vercel.
 
 ---
 
@@ -338,7 +403,7 @@ preview deployments run the same build command.
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
 | `error: Script not found "build"` / `db:push:vercel` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
-| `/api/...` returns **404** | The request hit a path with no matching file under `api/` (e.g. cart/wishlist endpoints are intentionally not deployed — see the known-limitation note). For implemented routes, confirm the file exists and `framework` in `vercel.json` is `null`. |
+| `/api/...` returns **404** | The request hit a path with no matching file under `api/` (all storefront routes are deployed — see the API reference). Confirm the file exists and `framework` in `vercel.json` is `null`. |
 | `/api/...` returns **500** | A runtime error in the handler. Check **Function Logs** in Vercel — common causes: missing `DATABASE_URL`, a SQL column mismatch (run `db:push:vercel`), or a missing Supabase env var. |
 | Site loads but **no products show** | The SPA rewrite is shadowing the API. It must be `/((?!api/).*)` (excludes `/api/*`). Verify with `curl https://<project>.vercel.app/api/products` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/((?!api/).*) → /index.html` must be present in `vercel.json`. |
