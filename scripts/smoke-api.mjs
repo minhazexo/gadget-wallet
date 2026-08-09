@@ -35,32 +35,32 @@ function check(name, cond, extra) {
   console.log(`${cond ? "PASS" : "FAIL"}  ${name}${extra ? ` — ${extra}` : ""}`);
 }
 
-const { default: health } = await import("../api/health.js");
-const { default: userLogin } = await import("../api/auth/login.js");
-const { default: adminLogin } = await import("../api/admin/login.js");
-const { default: adminProducts } = await import("../api/admin/products.js");
-const { default: adminOrders } = await import("../api/admin/orders.js");
-const { default: adminDashboard } = await import("../api/admin/dashboard.js");
-const { default: productsList } = await import("../api/products/index.js");
-const { default: productsFeatured } = await import("../api/products/featured.js");
-const { default: productsNewArrivals } = await import("../api/products/new-arrivals.js");
-const { default: productsById } = await import("../api/products/by-id/[id].js");
-const { default: productDetail } = await import("../api/products/[id].js");
-const { default: categoriesList } = await import("../api/categories/index.js");
-const { default: brandsList } = await import("../api/brands/index.js");
-const { default: cartSession } = await import("../api/cart/[sessionId].js");
-const { default: cartUser } = await import("../api/cart/user/[userId].js");
-const { default: cartSummary } = await import("../api/cart/summary/[userId].js");
-const { default: wishlistList } = await import("../api/wishlist/index.js");
-const { default: addressList } = await import("../api/address/index.js");
-const { default: orderList } = await import("../api/orders/index.js");
-const { default: orderUser } = await import("../api/orders/user/[userId].js");
-const { default: notificationsList } = await import("../api/notifications/index.js");
-const { default: notificationsPrefs } = await import("../api/notifications/preferences.js");
-const { default: paymentMethodsList } = await import("../api/payment-methods/index.js");
-const { default: recentlyViewedList } = await import("../api/recently-viewed/index.js");
-const { default: reviewsUser } = await import("../api/reviews/user.js");
-const { default: profileGet } = await import("../api/profile/index.js");
+const { default: health } = await import("../api-handlers/health.js");
+const { default: userLogin } = await import("../api-handlers/auth/login.js");
+const { default: adminLogin } = await import("../api-handlers/admin/login.js");
+const { default: adminProducts } = await import("../api-handlers/admin/products.js");
+const { default: adminOrders } = await import("../api-handlers/admin/orders.js");
+const { default: adminDashboard } = await import("../api-handlers/admin/dashboard.js");
+const { default: productsList } = await import("../api-handlers/products/index.js");
+const { default: productsFeatured } = await import("../api-handlers/products/featured.js");
+const { default: productsNewArrivals } = await import("../api-handlers/products/new-arrivals.js");
+const { default: productsById } = await import("../api-handlers/products/by-id/[id].js");
+const { default: productDetail } = await import("../api-handlers/products/[id].js");
+const { default: categoriesList } = await import("../api-handlers/categories/index.js");
+const { default: brandsList } = await import("../api-handlers/brands/index.js");
+const { default: cartSession } = await import("../api-handlers/cart/[sessionId].js");
+const { default: cartUser } = await import("../api-handlers/cart/user/[userId].js");
+const { default: cartSummary } = await import("../api-handlers/cart/summary/[userId].js");
+const { default: wishlistList } = await import("../api-handlers/wishlist/index.js");
+const { default: addressList } = await import("../api-handlers/address/index.js");
+const { default: orderList } = await import("../api-handlers/orders/index.js");
+const { default: orderUser } = await import("../api-handlers/orders/user/[userId].js");
+const { default: notificationsList } = await import("../api-handlers/notifications/index.js");
+const { default: notificationsPrefs } = await import("../api-handlers/notifications/preferences.js");
+const { default: paymentMethodsList } = await import("../api-handlers/payment-methods/index.js");
+const { default: recentlyViewedList } = await import("../api-handlers/recently-viewed/index.js");
+const { default: reviewsUser } = await import("../api-handlers/reviews/user.js");
+const { default: profileGet } = await import("../api-handlers/profile/index.js");
 
 // --- health ---
 let res = makeRes();

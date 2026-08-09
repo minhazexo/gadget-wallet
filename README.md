@@ -21,22 +21,19 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 ```
 gadget-wallet/
 ├── api/                        # Vercel serverless functions (Node.js, native ESM)
-│   ├── products/               # GET /api/products, /featured, /new-arrivals, /:slug-or-id
-│   ├── categories/             # GET /api/categories, /:slug
-│   ├── brands/                 # GET /api/brands, /:slug
-│   ├── auth/                   # POST /register, /login, GET /me, POST /logout-all
-│   ├── profile/                # GET/PUT /api/profile, /password, /two-factor
-│   ├── admin/                  # /login, /dashboard, /orders, products CRUD + images
-│   ├── cart/                   # add, update, remove, merge, get (user/session)
-│   ├── wishlist/               # list, add, remove, move-to-cart
-│   ├── orders/                 # create, list, detail, cancel, return, per-user
-│   ├── reviews/                # create, update, delete, per-user
-│   ├── address/                # list/create, update/delete, set-default
-│   ├── payment-methods/        # list/create, delete, set-default
-│   ├── notifications/          # list, preferences, mark-all-read
-│   ├── recently-viewed/        # list, record
-│   ├── health.js               # GET /api/health
-│   └── _lib/                   # neon db client, supabase storage, JWT helpers
+│   └── [...route].js           # ONE catch-all function — dispatches every /api/*
+│                               #   request to the matching api-handlers/ route
+├── api-handlers/               # All 54 route handlers (kept OUTSIDE api/ so
+│   ├── _lib/                   #   Vercel deploys exactly 1 function — under the
+│   │   └── …                   #   Hobby plan's 12-function limit)
+│   ├── _routes.js              #   path→handler route table (products, auth,
+│   ├── products/               #   cart, wishlist, orders, admin, reviews,
+│   ├── categories/             #   address, payment-methods, notifications,
+│   ├── brands/                 #   recently-viewed, health …)
+│   ├── auth/
+│   ├── profile/
+│   ├── admin/
+│   └── …
 ├── client/                     # React + Vite frontend
 │   └── src/
 │       ├── pages/              # Storefront + admin pages
@@ -123,14 +120,16 @@ bun run dev
 
 The whole app — storefront + API — deploys to **one Vercel project** from this
 repo. `vercel.json` handles the build (`bun run build`), the storefront is
-served from `client/dist`, and the API runs as plain Node.js serverless
-functions in `api/` (products, categories, brands, auth, profile, admin, cart,
-wishlist, orders, reviews, address, payment-methods, notifications,
-recently-viewed, health). The root `package.json` declares `"type": "module"`,
-so the `api/` handlers run as native ESM. The Hono app under `apps/server` is
-kept for local development only. Run migrations manually after deploying — or
-wire `bun run db:push:vercel` into your deploy pipeline — since they don't run
-as part of the Vercel build.
+served from `client/dist`, and the API runs as a **single catch-all serverless
+function** (`api/[...route].js`) that dispatches every `/api/*` request to the
+matching handler in `api-handlers/` (products, categories, brands, auth,
+profile, admin, cart, wishlist, orders, reviews, address, payment-methods,
+notifications, recently-viewed, health — 54 routes, 1 deployed function, so it
+stays under the Hobby plan's 12-function limit). The root `package.json`
+declares `"type": "module"`, so the dispatcher runs as native ESM. The Hono
+app under `apps/server` is kept for local development only. Run migrations
+manually after deploying — or wire `bun run db:push:vercel` into your deploy
+pipeline — since they don't run as part of the Vercel build.
 
 ```bash
 # 1. Push the repo to GitHub

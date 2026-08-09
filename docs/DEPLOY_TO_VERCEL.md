@@ -16,28 +16,28 @@ origin — no CORS, no separate API domain, no `VITE_API_URL` needed.
 ```
 gadget-wallet/                     ← Vercel Root Directory
 ├── api/                           ← Vercel serverless functions (auto-detected)
-│   ├── _lib/                      ← shared helpers
-│   │   ├── db.js                  ← neon() client (DATABASE_URL)
-│   │   ├── supabase.js            ← Supabase client + image upload/delete
-│   │   ├── auth.js                ← JWT sign/verify, requireAdmin/requireAuth
-│   │   ├── respond.js             ← { success, data } response helpers
-│   │   ├── products.js            ← shared product SELECT column aliases
-│   │   └── multipart.js           ← busboy multipart parser (admin uploads)
-│   ├── products/                  ← GET /api/products, /featured, /new-arrivals, /:slug-or-id
-│   ├── categories/                ← GET /api/categories, /:slug
-│   ├── brands/                    ← GET /api/brands, /:slug
-│   ├── auth/                      ← POST /register, /login, GET /me, POST /logout-all
-│   ├── profile/                   ← GET/PUT /api/profile, /password, /two-factor
-│   ├── admin/                     ← /login, /dashboard, /orders, products CRUD + images
-│   ├── cart/                      ← add, update, remove, merge, get (user/session)
-│   ├── wishlist/                  ← list, add, remove, move-to-cart
-│   ├── orders/                    ← create, list, detail, cancel, return, per-user
-│   ├── reviews/                   ← create, update, delete, per-user
-│   ├── address/                   ← list/create, update/delete, set-default
-│   ├── payment-methods/           ← list/create, delete, set-default
-│   ├── notifications/             ← list, preferences, mark-all-read
-│   ├── recently-viewed/           ← list, record
-│   └── health.js                  ← GET /api/health
+│   └── [...route].js              ← THE single catch-all function. Every /api/*
+│                                     request lands here; it matches the path
+│                                     against the route table and dispatches to
+│                                     the right handler in api-handlers/.
+├── api-handlers/                  ← All 54 route handlers. Kept OUTSIDE api/
+│   ├── _lib/                      ←   on purpose so Vercel deploys exactly
+│   │   ├── db.js                  ←   ONE function (the catch-all) — well under
+│   │   ├── supabase.js            ←   the Hobby plan's 12-function limit.
+│   │   ├── auth.js                ←
+│   │   ├── respond.js             ←
+│   │   ├── products.js            ←
+│   │   ├── multipart.js           ←
+│   │   └── users.js / orders.js   ←
+│   ├── _routes.js                 ← path→handler route table (all 54 routes,
+│   ├── products/                  ←   most-specific-first ordering)
+│   ├── categories/                ←
+│   ├── brands/                    ←
+│   ├── auth/                      ←
+│   ├── profile/                   ←
+│   ├── admin/                     ←
+│   ├── cart/ · wishlist/ · orders/ · reviews/ · address/ · payment-methods/
+│   │   notifications/ · recently-viewed/ · health.js
 ├── client/                        ← Vite + React static build → client/dist
 │   └── src/
 │       ├── pages/                 ← storefront + admin pages
@@ -57,18 +57,21 @@ gadget-wallet/                     ← Vercel Root Directory
 `bcryptjs`, `busboy`) · Neon PostgreSQL (data) · Supabase Storage (images) ·
 JWT auth.
 
-> **Why no `dist/app.cjs` bundle anymore?** The previous setup compiled the
-> whole Hono app into a single CommonJS file and served it through a catch-all
-> `api/[[...route]].ts`. The new layout follows the guide instead: each
-> endpoint is its own small `.js` handler with no build step, so Vercel picks
-> them up directly from the `api/` folder (filesystem routing — `[id].js`
-> becomes `/api/products/:id`). Only the **frontend** needs a build step.
+> **Why exactly one function?** Vercel's Hobby plan caps a deployment at **12
+> serverless functions**. The full API has 54 routes, so deploying each as its
+> own file would exceed that cap and the build fails with *"Serverless Function
+> size / Function count limit"*. Instead the repo ships a **single catch-all
+> function** — `api/[...route].js` — that parses the URL and dispatches to the
+> matching handler under `api-handlers/` (kept outside `api/` so it isn't
+> deployed as separate functions). Handlers were written for Vercel's filesystem
+> routing, so the dispatcher reproduces that contract: it merges path params and
+> query params into `req.query` (`[id].js` → `req.query.id`) and parses JSON
+> bodies into `req.body`.
 >
 > **The API is native ESM.** The root `package.json` declares `"type": "module"`,
-> so Vercel runs the `api/` handlers as ESM directly — no ESM→CommonJS compile
-> step (that also silences the *"Node.js functions are compiled from ESM to
-> CommonJS"* build warning). Handlers `export default` a Node `(req, res)`
-> function.
+> so Vercel runs the dispatcher as ESM directly — no ESM→CommonJS compile step
+> (that also silences the *"Node.js functions are compiled from ESM to CommonJS"*
+> build warning). Only the **frontend** needs a build step.
 
 ---
 
@@ -201,17 +204,18 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 bun install                       # installs all workspace deps at the root
 bun run build                     # builds the frontend → client/dist
                                   #   (bun run --cwd client build → tsc -b && vite build)
-api/**/*.js are auto-detected     # each file becomes a Node serverless function
+api/[...route].js auto-detected  # ONE Node serverless function (the catch-all)
+api-handlers/ is NOT deployed     # 54 route handlers, imported by the dispatcher
 Static output client/dist served  # every non-/api path rewrites to index.html (SPA)
-/api/* requests hit the functions # no build step for the API
+/api/* requests hit the function  # dispatcher routes them to the right handler
 ```
 
-> **Optional — longer admin timeouts.** Default serverless function duration on
-> the Hobby plan is 10 s, which can be tight for multi-image uploads. Add a
-> `functions` block to `vercel.json` to raise it for admin handlers:
+> **Optional — longer timeouts.** Default serverless function duration on the
+> Hobby plan is 10 s, which can be tight for multi-image uploads. Add a
+> `functions` block to `vercel.json` to raise it for the catch-all:
 > ```json
 > "functions": {
->   "api/admin/**/*.js": { "maxDuration": 30 }
+>   "api/[...route].js": { "maxDuration": 30 }
 > }
 > ```
 
@@ -403,7 +407,7 @@ preview deployments run the same build command.
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
 | `error: Script not found "build"` / `db:push:vercel` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
-| `/api/...` returns **404** | The request hit a path with no matching file under `api/` (all storefront routes are deployed — see the API reference). Confirm the file exists and `framework` in `vercel.json` is `null`. |
+| `/api/...` returns **404** | The dispatcher (`api/[...route].js`) found no matching route in `api-handlers/_routes.js`. All storefront routes are present — see the API reference. Confirm `framework` in `vercel.json` is `null` and the route table has the path. |
 | `/api/...` returns **500** | A runtime error in the handler. Check **Function Logs** in Vercel — common causes: missing `DATABASE_URL`, a SQL column mismatch (run `db:push:vercel`), or a missing Supabase env var. |
 | Site loads but **no products show** | The SPA rewrite is shadowing the API. It must be `/((?!api/).*)` (excludes `/api/*`). Verify with `curl https://<project>.vercel.app/api/products` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/((?!api/).*) → /index.html` must be present in `vercel.json`. |
@@ -412,7 +416,7 @@ preview deployments run the same build command.
 | Images fail to upload / 404 | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set? `products` bucket **public**? |
 | Admin login fails | Guide-style: are `ADMIN_EMAIL`/`ADMIN_PASSWORD` set? App-style: is the account's `users.role = 'admin'`? |
 | JWT auth fails after deploy | `JWT_SECRET` missing or different between environments — and it is now **enforced** (500s/401s if unset or placeholder in production). |
-| Function times out (admin uploads) | Add the `functions.maxDuration` block for `api/admin/**/*.js` (see Step 4) — 10 s default can be tight for multi-image uploads. |
+| Function times out (admin uploads) | Add the `functions.maxDuration` block for `api/[...route].js` (see Step 4) — 10 s default can be tight for multi-image uploads. |
 
 ---
 

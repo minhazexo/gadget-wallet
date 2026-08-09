@@ -1,7 +1,7 @@
-import sql from "../_lib/db.js";
-import { requireAdmin } from "../_lib/auth.js";
-import { ok, fail } from "../_lib/respond.js";
-import { deleteImage } from "../_lib/supabase.js";
+import sql from "../../_lib/db.js";
+import { requireAdmin } from "../../_lib/auth.js";
+import { ok, fail } from "../../_lib/respond.js";
+import { deleteImage } from "../../_lib/supabase.js";
 import { PRODUCT_SELECT, PRODUCT_FROM, IMAGE_SELECT, SPEC_SELECT } from "../../_lib/products.js";
 
 const DUPLICATE_MESSAGE = "A product with this slug or SKU already exists";
