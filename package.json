@@ -1,6 +1,7 @@
 {
   "name": "gadget-wallet",
   "private": true,
+  "type": "module",
   "workspaces": [
     "client",
     "apps/*",

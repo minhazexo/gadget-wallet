@@ -2,5 +2,6 @@
   "name": "@gadget-wallet/eslint-config",
   "version": "0.0.0",
   "private": true,
+  "type": "commonjs",
   "main": "index.js"
 }

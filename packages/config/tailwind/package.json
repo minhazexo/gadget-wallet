@@ -2,5 +2,6 @@
   "name": "@gadget-wallet/tailwind-config",
   "version": "0.0.0",
   "private": true,
+  "type": "commonjs",
   "main": "tailwind.config.js"
 }
