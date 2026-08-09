@@ -24,10 +24,8 @@ import { UPLOADS_DIR } from "./utils/storage.js";
 /**
  * The full Gadget Wallet Hono application.
  *
- * Runtime-agnostic:
- * - Local development  → `index.ts` boots it with `Bun.serve`
- * - Vercel             → `../../api/[[...route]].ts` serves it via `app.fetch`
- * - Standalone Node    → any HTTP server that calls `app.fetch`
+ * Local development only. Vercel production serves the plain Node handlers
+ * under api/ instead (see docs/gadget-wallet-vercel-update-guide.md).
  */
 export const app = new Hono();
 

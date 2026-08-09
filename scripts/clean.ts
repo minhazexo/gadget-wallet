@@ -2,7 +2,7 @@ import { rmSync, existsSync } from "fs";
 import { join } from "path";
 
 const targets = [
-  "apps/web/dist",
+  "client/dist",
   "apps/server/dist",
   "packages/db/dist",
   "packages/ui/dist",

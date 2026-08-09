@@ -1,6 +1,11 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres, { type Sql } from "postgres";
 import * as schema from "./schema.js";
+import { loadEnvWithOverride } from "./loadEnv.js";
+
+// Ensure a stale/placeholder DATABASE_URL in the environment can never win
+// over the real one in the root .env file (Bun's --env-file doesn't override).
+loadEnvWithOverride();
 
 const connectionString = process.env.DATABASE_URL;
 

@@ -3,12 +3,7 @@
   "framework": null,
   "installCommand": "bun install",
   "buildCommand": "bun run build",
-  "outputDirectory": "apps/web/dist",
-  "functions": {
-    "api/[[...route]].ts": {
-      "maxDuration": 30
-    }
-  },
+  "outputDirectory": "client/dist",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

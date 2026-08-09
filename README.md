@@ -7,7 +7,7 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
-- **Backend**: Hono (runs on Bun locally, Node.js on Vercel)
+- **Backend**: Plain Node.js serverless functions on Vercel; the Hono API under `apps/server` is kept for local development
 - **Database**: Neon PostgreSQL + Drizzle ORM
 - **Image Storage**: Supabase Storage (public `products` bucket; local disk fallback in dev)
 - **Styling**: Tailwind CSS + Framer Motion
@@ -20,13 +20,19 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 
 ```
 gadget-wallet/
-├── api/
-│   └── [[...route]].ts         # Vercel serverless entry (serves the Hono app)
+├── api/                        # Vercel serverless functions (Node.js)
+│   ├── products/               # GET /api/products, /featured, /new-arrivals, /:slug
+│   ├── categories/             # GET /api/categories
+│   ├── brands/                 # GET /api/brands
+│   ├── auth/                   # POST /api/auth/register, /login, GET /me
+│   ├── profile/                # GET/PUT /api/profile, /password, /two-factor
+│   ├── admin/                  # POST /admin/login, /dashboard, /orders, products CRUD + images
+│   └── _lib/                   # neon db client, supabase storage, JWT helpers
+├── client/                     # React + Vite frontend
+│   └── src/
+│       ├── pages/              # Storefront + admin pages
+│       └── store/              # Zustand stores (auth, cart, wishlist, toast)
 ├── apps/
-│   ├── web/                    # React + Vite frontend
-│   │   └── src/
-│   │       ├── pages/          # Storefront + admin pages
-│   │       └── store/          # Zustand stores (auth, cart, wishlist, toast)
 │   └── server/
 │       └── src/
 │           ├── app.ts          # The whole Hono app (runtime-agnostic)
@@ -67,7 +73,7 @@ cp .env.example .env
 bun run db:push
 bun run db:seed
 
-# 4. Start development (web on :5173 + API on :3000)
+# 4. Start development (web on :5183 + API on :3000)
 bun run dev
 ```
 
@@ -84,7 +90,7 @@ bun run dev
 | Script | Description |
 |--------|-------------|
 | `bun run dev` | Run web + API in parallel (dev mode) |
-| `bun run build` | Production build: `apps/web` (`tsc -b && vite build` → `apps/web/dist`) |
+| `bun run build` | Production build: `client` (`tsc -b && vite build` → `client/dist`) |
 | `bun run typecheck` | Typecheck web + server (`tsc --noEmit` in each) |
 | `bun run db:generate` | Generate Drizzle migrations from `packages/db/src/schema.ts` |
 | `bun run db:push` | Apply schema to the database (loads `.env`) |
@@ -106,11 +112,12 @@ bun run dev
 ## Deployment (Vercel)
 
 The whole app — storefront + API — deploys to **one Vercel project** from this
-repo. `vercel.json` handles the build (`npm run build`), the storefront is
-served from `apps/web/dist`, and the Hono API runs as a serverless function via
-`api/[[...route]].ts`. Run migrations manually after deploying — or wire
-`bun run db:push:vercel` into your deploy pipeline — since they don't run as
-part of the Vercel build.
+repo. `vercel.json` handles the build (`bun run build`), the storefront is
+served from `client/dist`, and the API runs as plain Node.js serverless
+functions in `api/` (products, categories, brands, auth, profile, admin). The
+Hono app under `apps/server` is kept for local development only. Run migrations
+manually after deploying — or wire `bun run db:push:vercel` into your deploy
+pipeline — since they don't run as part of the Vercel build.
 
 ```bash
 # 1. Push the repo to GitHub
@@ -121,7 +128,7 @@ part of the Vercel build.
 # 5. Deploy 🚀
 ```
 
-Verify: `GET /api/health`, log in with the admin credentials, and create a
+Verify: `GET /api/products`, log in with the admin credentials, and create a
 product with an image upload.
 
 > 📖 Full step-by-step guide, env var table, troubleshooting, and Neon pooling

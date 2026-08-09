@@ -5,9 +5,8 @@ build
 .env.local
 .env.*.local
 apps/server/uploads
+uploads
 
 # NOTE: intentionally NOT ignoring a bare `dist`.
-# A bare `dist` pattern also matches apps/server/dist, which is where the
-# serverless bundle (app.cjs) is written during the build. Excluding it can
-# drop the bundle from the function's file trace, so /api/* returns a
-# platform-level 404. Build output is regenerated on Vercel regardless.
+# `client/dist` is the frontend build output and is produced by `bun run build`
+# on Vercel itself. Keep it out of git.

@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gw-bg: 248 250 252;
+  --gw-border: 229 231 235;
+  --gw-text: 17 24 39;
+}
+
+.dark {
+  --gw-bg: 15 23 42;
+  --gw-border: 30 41 59;
+  --gw-text: 243 244 246;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    color: rgb(var(--gw-text));
+    background-color: rgb(var(--gw-bg));
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::selection {
+    background-color: rgba(225, 29, 46, 0.15);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--gw-border));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+}
+
+/*
+ * ─────────────────────────────────────────────────────────────
+ *  Gadget Wallet component layer
+ *  Every class below is UNIQUE and owns exactly one UI pattern.
+ *  Any class used in src/** /*.tsx with a `gw-` prefix that is
+ *  not a Tailwind theme token (see tailwind.config.ts) must be
+ *  defined here.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+@layer components {
+  /* ── Layout: page section ── */
+  .gw-section {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+
+  /* ── Layout: section header row ── */
+  .gw-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  /* ── Layout: section header title (replaces bare h2) ── */
+  /* 32px per the visual guide's section-title scale. */
+  .gw-section-title {
+    @apply text-2xl md:text-[32px] font-bold;
+  }
+
+  /* ── Layout: section header "view all" link (replaces bare a) ── */
+  .gw-section-link {
+    @apply text-gw-red font-semibold text-sm md:text-[15px] whitespace-nowrap hover:text-gw-red-hover;
+  }
+
+  /* ── Page header: standard page title ── */
+  .gw-page-title {
+    @apply text-2xl md:text-3xl font-bold text-gw-black dark:text-white mb-6 md:mb-8;
+  }
+
+  /* ── Page header: title typography only (spacing handled by parent) ── */
+  .gw-title {
+    @apply text-2xl md:text-3xl font-bold text-gw-black dark:text-white;
+  }
+
+  /* ── Page header: large centered hero title ── */
+  .gw-page-title-lg {
+    @apply text-4xl font-bold text-gw-black mb-4;
+  }
+
+  /* ── Page header: medium title ── */
+  .gw-page-title-md {
+    @apply text-3xl font-bold text-gw-black mb-4;
+  }
+
+  /* ── Page header: subtitle ── */
+  .gw-page-subtitle {
+    @apply text-gw-gray-500 mb-10;
+  }
+
+  /* ── Page header: large subtitle ── */
+  .gw-page-subtitle-lg {
+    @apply text-gw-gray-500 text-lg leading-relaxed;
+  }
+
+  /* ── Card: standard product-radius panel (dark-aware) ── */
+  .gw-panel {
+    @apply bg-white dark:bg-gray-900 rounded-product border border-gw-border dark:border-gray-700;
+  }
+
+  /* ── Card: category-radius panel (dark-aware) ── */
+  .gw-panel-category {
+    @apply bg-white dark:bg-gray-900 rounded-category border border-gw-border dark:border-gray-700;
+  }
+
+  /* ── Card: light panel, always white (auth / admin flows) ── */
+  .gw-panel-light {
+    @apply bg-white border border-gw-border rounded-product;
+  }
+
+  /* ── Product card: grid tile ── */
+  /* Border #eef2f7 per the visual guide (softer than the default border). */
+  .gw-product-card {
+    @apply bg-white rounded-product border border-[#eef2f7] overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300;
+  }
+
+  /* ── Product card: horizontal row ── */
+  .gw-product-card-row {
+    @apply flex bg-white rounded-product border border-[#eef2f7] overflow-hidden hover:shadow-gw-md transition-all duration-300;
+  }
+
+  /* ── Empty state ── */
+  .gw-empty {
+    @apply text-center py-24 bg-white dark:bg-gray-900 rounded-product border border-gw-border dark:border-gray-700;
+  }
+
+  /* ── Empty state: compact ── */
+  .gw-empty-compact {
+    @apply text-center py-20 bg-white dark:bg-gray-900 rounded-product border border-gw-border dark:border-gray-700;
+  }
+
+  /* ── Typography: body text ── */
+  .gw-text-body {
+    @apply text-gw-black dark:text-white;
+  }
+
+  /* ── Typography: muted text ── */
+  .gw-muted {
+    @apply text-gw-gray-500 dark:text-gray-400;
+  }
+
+  /* ── Typography: small muted text ── */
+  .gw-muted-sm {
+    @apply text-sm text-gw-gray-500 dark:text-gray-400;
+  }
+
+  /* ── Typography: extra-small muted text ── */
+  .gw-muted-xs {
+    @apply text-xs text-gw-gray-500 dark:text-gray-400;
+  }
+
+  /* ── Typography: heading (semibold body color) ── */
+  .gw-heading {
+    @apply font-semibold text-gw-black dark:text-white;
+  }
+
+  /* ── Typography: small heading ── */
+  .gw-heading-sm {
+    @apply text-sm font-semibold text-gw-black dark:text-white;
+  }
+
+  /* ── Typography: medium responsive heading ── */
+  .gw-heading-md {
+    @apply text-sm md:text-base font-semibold text-gw-black dark:text-white;
+  }
+
+  /* ── Typography: large heading ── */
+  .gw-heading-lg {
+    @apply text-lg font-semibold text-gw-black dark:text-white;
+  }
+
+  /* ── Link: inline brand link ── */
+  .gw-link {
+    @apply text-gw-red hover:text-gw-red-hover font-medium;
+  }
+
+  /* ── Link: small inline brand link ── */
+  .gw-link-sm {
+    @apply text-sm text-gw-red hover:text-gw-red-hover;
+  }
+
+  /* ── Form: auth flow wrapper ── */
+  .gw-auth-wrap {
+    @apply max-w-md mx-auto;
+  }
+
+  /* ── Form: auth card title ── */
+  .gw-auth-title {
+    @apply text-2xl font-bold text-gw-black mb-2 text-center;
+  }
+
+  /* ── Form: auth card subtitle ── */
+  .gw-auth-subtitle {
+    @apply text-gw-gray-500 text-center mb-8;
+  }
+
+  /* ── Form: bare input / textarea ── */
+  .gw-form-input {
+    @apply w-full px-4 py-2.5 bg-white border border-gw-border rounded-btn text-gw-black placeholder:text-gw-gray-300 focus:outline-none focus:ring-2 focus:ring-gw-red/20 focus:border-gw-red;
+  }
+
+  /* ── Badge: numbered step indicator ── */
+  .gw-step-badge {
+    @apply w-8 h-8 rounded-full bg-gw-red text-white flex items-center justify-center text-sm font-bold shrink-0;
+  }
+
+  /* ── Badge: generic status pill (pair with color utilities) ── */
+  .gw-status-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  /* ── Badge: compact status pill (pair with color utilities) ── */
+  .gw-status-badge--compact {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs;
+  }
+
+  @media (min-width: 768px) {
+    .gw-section {
+      padding-top: 96px;
+      padding-bottom: 96px;
+    }
+
+    .gw-section-header {
+      margin-bottom: 40px;
+    }
+  }
+}

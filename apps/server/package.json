@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run --env-file=../../.env --watch src/index.ts",
+    "dev": "cd ../.. && bun run --env-file=.env --watch apps/server/src/index.ts",
     "build": "bun build src/app.ts --outfile dist/app.cjs --target=node --format=cjs",
     "start": "node dist/app.cjs",
     "typecheck": "tsc --noEmit"

@@ -1,50 +1,59 @@
 # 🚀 Gadget Wallet — Vercel Deployment Guide
 
-This project is deployed to Vercel as a **single monolith project**: the React
-storefront (static files) and the Hono API (serverless function) live on the same
-domain, so the frontend can call `/api/...` relative to its own origin — no CORS,
-no separate API domain, no `VITE_API_URL` needed.
+This project deploys to Vercel as a **single monolith project**: the React
+storefront (static files) and the API (plain Node.js serverless functions) live
+on the same domain, so the frontend calls `/api/...` relative to its own
+origin — no CORS, no separate API domain, no `VITE_API_URL` needed.
+
+> 📖 This guide reflects the **guide-style layout** introduced by
+> `docs/gadget-wallet-vercel-update-guide.md`: the frontend lives in `client/`,
+> and the API is a set of small, dependency-light functions under `api/` that
+> query Neon directly with raw SQL. The old Hono app under `apps/server` is
+> kept **for local development only** — it is not deployed.
 
 ## Architecture
 
 ```
 gadget-wallet/                     ← Vercel Root Directory
-├── api/
-│   └── [[...route]].ts            ← Vercel serverless entry (catch-all, auto-detected)
+├── api/                           ← Vercel serverless functions (auto-detected)
+│   ├── _lib/                      ← shared helpers
+│   │   ├── db.js                  ← neon() client (DATABASE_URL)
+│   │   ├── supabase.js            ← Supabase client + image upload/delete
+│   │   ├── auth.js                ← JWT sign/verify, requireAdmin/requireAuth
+│   │   ├── respond.js             ← { success, data } response helpers
+│   │   ├── products.js            ← shared product SELECT column aliases
+│   │   └── multipart.js           ← busboy multipart parser (admin uploads)
+│   ├── products/                  ← GET /api/products, /featured, /new-arrivals, /:slug-or-id
+│   ├── categories/                ← GET /api/categories, /:slug
+│   ├── brands/                    ← GET /api/brands, /:slug
+│   ├── auth/                      ← POST /register, /login, GET /me, POST /logout-all
+│   ├── profile/                   ← GET/PUT /api/profile, /password, /two-factor
+│   └── admin/                     ← /login, /dashboard, /orders, products CRUD + images
+├── client/                        ← Vite + React static build → client/dist
+│   └── src/
+│       ├── pages/                 ← storefront + admin pages
+│       └── store/                 ← Zustand stores (auth, cart, wishlist, toast)
 ├── apps/
-│   ├── web/                       ← Vite + React static build → apps/web/dist
-│   └── server/
-│       ├── src/
-│       │   ├── app.ts             ← the whole Hono app (runtime-agnostic)
-│       │   ├── index.ts           ← Bun.serve wrapper (local dev only)
-│       │   └── routes/            ← auth, products, admin, …
-│       └── dist/app.cjs           ← pre-bundled app (bun build --target=node, CJS)
+│   └── server/                    ← FULL Hono API — LOCAL DEV ONLY, not deployed
 ├── packages/
-│   ├── db/                        ← Drizzle + PostgreSQL schema (Neon)
+│   ├── db/                        ← Drizzle schema + migrations + seed (Neon)
 │   ├── ui/                        ← shared React components
 │   └── types/                     ← shared TypeScript types
-├── vercel.json                    ← build + function config
+├── vercel.json                    ← build + SPA rewrite config
 └── package.json                   ← Bun workspaces root
 ```
 
-**Stack:** React 18 + Vite + TailwindCSS · Hono (Bun/Node) · Drizzle ORM ·
-Neon PostgreSQL (data) · Supabase Storage (images) · JWT auth.
+**Stack:** React 18 + Vite + TailwindCSS · Plain Node.js serverless functions
+(`@neondatabase/serverless`, `@supabase/supabase-js`, `jsonwebtoken`,
+`bcryptjs`, `busboy`) · Neon PostgreSQL (data) · Supabase Storage (images) ·
+JWT auth.
 
-> **Why `dist/app.cjs`?** Vercel's function builder is unreliable at bundling raw
-> TypeScript from workspace packages (`@gadget-wallet/db` resolves to `.ts`
-> source). The root `build` script therefore bundles the server into one
-> self-contained Node-compatible file, and `api/[[...route]].ts` is a thin wrapper
-> that calls `app.fetch(request)`.
->
-> **Two deployment-critical details:**
-> 1. The file is named `[[...route]].ts` (**with the ellipsis**) — plain `[[route]]`
->    only matches a single optional segment, so nested paths like
->    `/api/products/featured` 404 at the platform level.
-> 2. The bundle is **CommonJS** (`.cjs`). Vercel compiles this handler to CJS
->    (root `package.json` has no `"type": "module"`), so it `require()`s the
->    bundle — requiring an ESM `.js` file would throw `ERR_REQUIRE_ESM` on
->    Vercel's Node 18/20 and every `/api/*` call would return 500
->    (`FUNCTION_INVOCATION_FAILED`).
+> **Why no `dist/app.cjs` bundle anymore?** The previous setup compiled the
+> whole Hono app into a single CommonJS file and served it through a catch-all
+> `api/[[...route]].ts`. The new layout follows the guide instead: each
+> endpoint is its own small `.js` handler with no build step, so Vercel picks
+> them up directly from the `api/` folder (filesystem routing — `[id].js`
+> becomes `/api/products/:id`). Only the **frontend** needs a build step.
 
 ---
 
@@ -71,24 +80,28 @@ Neon PostgreSQL (data) · Supabase Storage (images) · JWT auth.
    bun run db:seed     # admin user, categories, brands, 12 products, hero, banners
    ```
 3. **For production on Vercel, use Neon's pooled connection string.** In the Neon
-   dashboard, copy the *Pooled connection* (host ends in `-pooler`, port `5432` or
-   `6543`). It multiplexes connections through PgBouncer, which matters when many
-   serverless function instances open sockets at once (free tier ≈ 10 connections).
+   dashboard, copy the *Pooled connection* (host ends in `-pooler`). It multiplexes
+   connections through PgBouncer, which matters when many serverless function
+   instances open sockets at once (free tier ≈ 10 connections).
 
-> Seed credentials: `admin@gadgetwallet.com` / `admin123`
+> Seed credentials: `admin@gadgetwallet.com` / `admin123` (a `users`-table admin,
+> logs in via `POST /api/auth/login`).
 
 ---
 
 ## 🖼️ Step 2 — Image Storage (Supabase Storage)
 
-The server already uploads images to Supabase in production (local disk is a dev-only
-fallback). Setup is one-time:
+Product images upload to Supabase Storage in production. Setup is one-time:
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. **Storage → New bucket** → name: `products` → enable **Public bucket**.
 3. Copy from **Project Settings → API**:
    - Project URL (e.g. `https://xxxx.supabase.co`)
    - `service_role` secret (**server-only** — never expose it in the frontend)
+
+Images are stored at `products/{productId}/{file}` inside the bucket; the public
+URL is saved in the `product_images.url` column and mirrored to
+`products.thumbnail_url`.
 
 ---
 
@@ -99,23 +112,34 @@ Add these in Vercel → **Project → Settings → Environment Variables** (appl
 
 | Variable | Example | Purpose |
 |----------|---------|---------|
-| `DATABASE_URL` | `postgresql://…-pooler…?sslmode=require` | Neon **pooled** connection string |
-| `SUPABASE_URL` | `https://xxxx.supabase.co` | Supabase project URL |
+| `DATABASE_URL` | `postgresql://…-pooler…?sslmode=require` | Neon **pooled** connection string (required) |
+| `SUPABASE_URL` | `https://xxxx.supabase.co` | Supabase project URL (required for image uploads) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ…` | Supabase service role key (uploads) |
-| `JWT_SECRET` | `openssl rand -hex 32` output | JWT signing key (long random string) |
-| `APP_URL` | `https://your-app.vercel.app` | CORS origin for cross-origin API calls |
+| `JWT_SECRET` | `openssl rand -hex 32` output | JWT signing key — **required in production** |
+| `ADMIN_EMAIL` | `admin@example.com` | Guide-style admin login (`POST /api/admin/login`) |
+| `ADMIN_PASSWORD` | `strongpassword` | Guide-style admin login password |
+| `APP_URL` | `https://your-app.vercel.app` | Optional — CORS origin for cross-origin API calls only |
 
 **Not needed:** `VITE_API_URL` — the frontend calls relative `/api` on the same
 domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automatic.
 
-> ⚠️ `JWT_SECRET` must be the same value across every environment, or users'
-> tokens stop validating.
+> ⚠️ **`JWT_SECRET` is enforced in production.** If it is missing or left at the
+> `.env.example` placeholder (`your-…`), the API fails loudly instead of silently
+> signing tokens with a public default secret. Set a real value (e.g. the output
+> of `openssl rand -hex 32`) and keep it identical across every environment or
+> issued tokens stop validating.
+
+> 💡 **Two admin sign-in paths** (both produce a JWT with `role: "admin"`):
+> 1. **Guide-style (env vars):** `POST /api/admin/login` with
+>    `{ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }`.
+> 2. **Users-table admin (default app flow):** `POST /api/auth/login` with the
+>    seeded admin credentials (`admin@gadgetwallet.com` / `admin123`), or any
+>    account whose `users.role = 'admin'`. The admin panel itself uses this flow.
 
 > 🔄 **Migrations are applied manually** (not during the Vercel build), so the
 > build never fails on transient DB connectivity. After a schema change, run
-> `bun run db:push:vercel` against the production `DATABASE_URL`. `DATABASE_URL`
-> is still required at **runtime** for every environment. One shared database
-> across environments is fine since `db:push` is idempotent.
+> `bun run db:push:vercel` against the production `DATABASE_URL` (see
+> [Migrations on Deploy](#-migrations-on-deploy)).
 
 ---
 
@@ -124,15 +148,16 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 1. Push to GitHub, then **Import Project** at [vercel.com/new](https://vercel.com/new).
 2. **Set the Root Directory to the repository root** — this is the most common
    deployment mistake. Vercel's monorepo detector often auto-selects a
-   subdirectory like `apps/server` or `apps/web` during import.
+   subdirectory like `client` or `apps/server` during import.
 
    In **Project → Settings → General → Root Directory**, set it to the repo
    root (clear the field), and set **Framework Preset → Other**. The included
    `vercel.json` then handles the build:
 
    > ⚠️ **Symptoms of a wrong Root Directory:** build fails with
-   > `error: Script not found "db:push:vercel"` (build runs inside
-   > `apps/server` where root scripts don't exist), or the web app never builds.
+   > `error: Script not found "build"` or `db:push:vercel` (the build runs
+   > inside a subdirectory where root scripts don't exist), or the web app
+   > never builds.
 
    ```json
    {
@@ -140,10 +165,7 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
      "framework": null,
      "installCommand": "bun install",
      "buildCommand": "bun run build",
-     "outputDirectory": "apps/web/dist",
-     "functions": {
-       "api/[[...route]].ts": { "maxDuration": 30 }
-     },
+     "outputDirectory": "client/dist",
      "rewrites": [
        { "source": "/((?!api/).*)", "destination": "/index.html" }
      ]
@@ -155,22 +177,22 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 ### What happens during a deploy
 
 ```
-bun install                    # installs all workspace deps at the root
-bun run build                  # 1) builds web    → apps/web/dist
-                               # 2) bundles server → apps/server/dist/app.cjs
-                               #    (bun build --target=node --format=cjs — a
-                               #     single self-contained CommonJS file)
-Vercel packages api/[[...route]].ts → serverless function (traces dist/app.cjs)
-Static output apps/web/dist served as files; every other path rewrites to
-index.html; every /api/* request hits the Hono function.
+bun install                       # installs all workspace deps at the root
+bun run build                     # builds the frontend → client/dist
+                                  #   (bun run --cwd client build → tsc -b && vite build)
+api/**/*.js are auto-detected     # each file becomes a Node serverless function
+Static output client/dist served  # every non-/api path rewrites to index.html (SPA)
+/api/* requests hit the functions # no build step for the API
 ```
 
-> **Migrations are not part of the build** (keeps deploys from failing when the
-> DB is briefly unreachable). Apply schema changes with `bun run db:push:vercel`
-> against the production `DATABASE_URL` before/after deploying. To wire it into
-> the build instead, use:
-> `"buildCommand": "bun run db:push:vercel && bun run build"` and make sure
-> `DATABASE_URL` is set for **Production *and* Preview**.
+> **Optional — longer admin timeouts.** Default serverless function duration on
+> the Hobby plan is 10 s, which can be tight for multi-image uploads. Add a
+> `functions` block to `vercel.json` to raise it for admin handlers:
+> ```json
+> "functions": {
+>   "api/admin/**/*.js": { "maxDuration": 30 }
+> }
+> ```
 
 ---
 
@@ -179,16 +201,21 @@ index.html; every /api/* request hits the Hono function.
 1. First deploy will appear at `https://<project>.vercel.app`.
 2. Verify the API:
    ```
-   GET  https://<project>.vercel.app/api/health      → {"success":true,…}
-   GET  https://<project>.vercel.app/api/products    → product list
-   POST https://<project>.vercel.app/api/auth/login  → token (admin@gadgetwallet.com / admin123)
+   GET  https://<project>.vercel.app/api/products              → { success, data, total, ... }
+   GET  https://<project>.vercel.app/api/products/new-arrivals → { success, data }
+   GET  https://<project>.vercel.app/api/products/<slug>       → { success, data: { ...images, specs } }
+   GET  https://<project>.vercel.app/api/categories            → { success, data }
+   GET  https://<project>.vercel.app/api/brands                → { success, data }
+   POST https://<project>.vercel.app/api/auth/login            → { success, data: { user, token } }
+   POST https://<project>.vercel.app/api/admin/login           → { success, data: { token } }  (ADMIN_EMAIL/ADMIN_PASSWORD)
    ```
+   Every endpoint returns JSON with `success: true/false` — **never** HTML.
 3. Verify the storefront loads and product cards show images (Supabase URLs).
 4. Test **client-side routing**: open `/shop` or `/profile` directly / refresh —
    should render the app (SPA rewrite), not a 404.
 5. Test an **admin upload**: log in as admin → `/admin/products/new` → create a
-   product with an image. Confirm the image appears in the storefront (it lives in
-   Supabase, not the serverless filesystem).
+   product with an image. Confirm the image appears in the storefront (it lives
+   in Supabase, not the serverless filesystem).
 
 ---
 
@@ -199,17 +226,68 @@ Vercel → **Settings → Domains** → add your domain → update DNS. Then upd
 
 ---
 
+## 📡 API Reference (what `api/` implements)
+
+All responses use the shape `{ success: boolean, data?, message? }`; the
+products list additionally returns `{ total, page, limit, totalPages }`.
+
+| Method & path | Auth | Notes |
+|---|---|---|
+| `GET /api/products` | — | Paginated (`page`, `limit`); filters `category`, `brand` (slug or id), `search` |
+| `GET /api/products/featured` | — | Homepage hero grid (max 8) |
+| `GET /api/products/new-arrivals` | — | New arrivals (max 12) |
+| `GET /api/products/:slug-or-id` | — | Detail incl. `images` + `specs` |
+| `GET /api/categories` · `/api/categories/:slug` | — | With live product counts |
+| `GET /api/brands` · `/api/brands/:slug` | — | |
+| `POST /api/auth/register` | — | `{ email, name, password }` |
+| `POST /api/auth/login` | — | `{ email, password }` → `{ user, token }` |
+| `GET /api/auth/me` | Bearer | Re-checks the user against the DB |
+| `POST /api/auth/logout-all` | Bearer | Bumps `token_version` |
+| `GET/PUT /api/profile` | Bearer | Update `name`, `phone`, `avatar` |
+| `PUT /api/profile/password` | Bearer | `{ currentPassword, newPassword }` |
+| `PUT /api/profile/two-factor` | Bearer | `{ enabled }` |
+| `POST /api/admin/login` | — | Env-based (ADMIN_EMAIL/ADMIN_PASSWORD) |
+| `GET /api/admin/dashboard` | Admin | Stat cards |
+| `GET /api/admin/orders` | Admin | Latest 20 orders |
+| `GET/POST /api/admin/products` | Admin | Create accepts **multipart/form-data** (fields + image files) **or** JSON; fields: `name, slug, shortDescription, fullDescription, price, sku, brandId, categoryId` (+ optional `stock, discountPrice, isFeatured, isNewArrival, isBestSeller, thumbnailUrl`/`image_url`) |
+| `GET/PATCH/DELETE /api/admin/products/:id` | Admin | PATCH is a partial update; DELETE soft-deletes + removes Supabase images |
+| `POST /api/admin/products/:id/images` | Admin | Multipart upload (max 12 images/product, JPG/PNG/WEBP ≤ 5 MB) |
+| `PATCH /api/admin/products/:id/images/reorder` | Admin | `{ imageIds: [...] }` |
+| `PATCH/DELETE /api/admin/products/:id/images/:imageId` | Admin | Update alt / set primary / delete |
+
+Admin access = a Bearer JWT whose payload `role` is `"admin"`, obtainable from
+either `POST /api/admin/login` or `POST /api/auth/login` with a users-table admin.
+
+### ⚠️ Known limitation — endpoints NOT deployed
+
+The guide's scope covers product display + admin, so the following API areas
+**only exist in the local Hono app** (`apps/server`, `bun run dev`) and **404 on
+Vercel**:
+
+- Cart (`/api/cart/*`), wishlist (`/api/wishlist/*`)
+- Orders for customers (`POST /api/orders`, order history) — admin order
+  listing is deployed
+- Reviews, coupons, addresses (`/api/address`), payment methods, notifications,
+  recently-viewed, `GET /api/health`
+
+The frontend stores swallow load errors, so the site still boots and product
+display + admin work — but add-to-cart, checkout, and the affected profile
+sections will show errors on the deployed site until those endpoints are ported
+to `api/` functions.
+
+---
+
 ## ⚡ Performance & Production Notes
 
-- **Code splitting** is configured in `apps/web/vite.config.ts` — vendor libraries
+- **Code splitting** is configured in `client/vite.config.ts` — vendor libraries
   (React, Framer Motion, state, icons) are split into separately-cached chunks.
 - Lazy image loading, `once: true` scroll animations, and Tailwind purging are
   already in place.
 - **Vercel Web Analytics** and **Speed Insights** are enabled
-  (`@vercel/analytics` + `@vercel/speed-insights` in `main.tsx`) — visitor /
-  page-view counts under Vercel → **Analytics**, and real-user performance (LCP,
-  CLS, INP) under Vercel → **Speed Insights** after the first production
-  deployment. Both are no-ops on localhost.
+  (`@vercel/analytics` + `@vercel/speed-insights` in `client/src/main.tsx`) —
+  visitor/page-view counts under Vercel → **Analytics**, and real-user
+  performance (LCP, CLS, INP) under Vercel → **Speed Insights**. Both are no-ops
+  on localhost.
 
 ---
 
@@ -218,9 +296,10 @@ Vercel → **Settings → Domains** → add your domain → update DNS. Then upd
 `db:push` is the project's documented workflow (the DB was set up with
 `drizzle-kit push`, so journal-based `db:migrate` will conflict).
 
-**Manual (default):** the Vercel build (`bun run build`) only builds the app —
-it does **not** touch the database, so a deploy can never fail on transient DB
-connectivity. Apply schema changes yourself against the production database:
+**Manual (default):** the Vercel build (`bun run build`) only builds the
+frontend — it does **not** touch the database, so a deploy can never fail on
+transient DB connectivity. Apply schema changes yourself against the production
+database:
 
 ```bash
 export DATABASE_URL="postgresql://…-pooler…?sslmode=require"
@@ -257,27 +336,28 @@ preview deployments run the same build command.
 | Symptom | Fix |
 |---------|-----|
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
-| `error: Script not found "db:push:vercel"` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
+| `error: Script not found "build"` / `db:push:vercel` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
-| Build succeeds but `/api/*` returns 404 | The function file must be `api/[[...route]].ts` (**with ellipsis**) — plain `[[route]]` only matches one segment. Confirm it exists and `framework` in `vercel.json` is `null`. |
-| `/api/health` (and other `/api/*`) return **500 `FUNCTION_INVOCATION_FAILED`** | The function can't load the server bundle: the bundle must be **CommonJS** (`dist/app.cjs`, `--format=cjs`) because the handler compiles to CJS — requiring the ESM `app.js` throws `ERR_REQUIRE_ESM` on Node 18/20. Redeploy after `bun run build`. |
-| Storefront loads but **no products / all `/api/*` fail** (often `MODULE_NOT_FOUND` / `Cannot find module '.ts'` in function logs) | `api/[[...route]].ts` must import the **prebuilt** `../apps/server/dist/app.cjs`, **not** the raw source `../apps/server/src/app.js`. Importing the TS source makes Vercel trace `.ts` from workspace packages, which fails at runtime. Confirm the root `build` runs `bun run --cwd apps/server build` so `dist/app.cjs` exists. |
-| Site loads but **no products show** | The SPA rewrite `/(.*) → /index.html` is shadowing the API. Change it to `/((?!api/).*)` (excludes `/api/*`) and redeploy. Verify with `curl https://<project>.vercel.app/api/health` — it must return JSON, not HTML. |
-| 404 on page refresh / direct URLs | The SPA rewrite `/(.*) → /index.html` must be present in `vercel.json`. |
-| `column does not exist` (500s) | The API is running against an older schema — redeploy (the build auto-pushes) or run `bun run db:push` manually. |
+| `/api/...` returns **404** | The request hit a path with no matching file under `api/` (e.g. cart/wishlist endpoints are intentionally not deployed — see the known-limitation note). For implemented routes, confirm the file exists and `framework` in `vercel.json` is `null`. |
+| `/api/...` returns **500** | A runtime error in the handler. Check **Function Logs** in Vercel — common causes: missing `DATABASE_URL`, a SQL column mismatch (run `db:push:vercel`), or a missing Supabase env var. |
+| Site loads but **no products show** | The SPA rewrite is shadowing the API. It must be `/((?!api/).*)` (excludes `/api/*`). Verify with `curl https://<project>.vercel.app/api/products` — it must return JSON, not HTML. |
+| 404 on page refresh / direct URLs | The SPA rewrite `/((?!api/).*) → /index.html` must be present in `vercel.json`. |
+| `column does not exist` (500s) | The DB is behind the schema the API expects — run `bun run db:push:vercel` against the production `DATABASE_URL`, or `bun run db:push` locally. |
 | `too many connections` from Neon | Switch `DATABASE_URL` to the **pooled** connection string (`-pooler`). |
 | Images fail to upload / 404 | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set? `products` bucket **public**? |
-| CORS errors calling the API | Same-origin `/api` needs no CORS; if calling cross-origin, set `APP_URL` to the exact origin. |
-| JWT auth fails after deploy | `JWT_SECRET` missing or different between environments. |
-| Function times out | Admin image operations can exceed 10 s — `maxDuration` is already 30 s; raise it in `vercel.json` if needed. |
+| Admin login fails | Guide-style: are `ADMIN_EMAIL`/`ADMIN_PASSWORD` set? App-style: is the account's `users.role = 'admin'`? |
+| JWT auth fails after deploy | `JWT_SECRET` missing or different between environments — and it is now **enforced** (500s/401s if unset or placeholder in production). |
+| Function times out (admin uploads) | Add the `functions.maxDuration` block for `api/admin/**/*.js` (see Step 4) — 10 s default can be tight for multi-image uploads. |
 
 ---
 
 ## 📚 Useful Links
 
-- [Hono + Vercel](https://hono.dev/docs/getting-started/vercel)
 - [Vercel Serverless Functions](https://vercel.com/docs/functions)
+- [Vercel File-system Routing (`[id].js`)](https://vercel.com/docs/functions/file-system-routing)
 - [Vercel Monorepos](https://vercel.com/docs/monorepos)
+- [Neon Serverless Driver](https://neon.tech/docs/serverless/serverless-driver)
 - [Neon Connection Pooling](https://neon.tech/docs/connect/connection-pooling)
 - [Supabase Storage](https://supabase.com/docs/guides/storage)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview)
+- Original guide: `docs/gadget-wallet-vercel-update-guide.md`

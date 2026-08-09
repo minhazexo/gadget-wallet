@@ -3,6 +3,6 @@
   "compilerOptions": {
     "baseUrl": "."
   },
-  "include": ["api/**/*", "apps/**/*", "packages/**/*"],
+  "include": ["api/**/*", "client/**/*", "apps/**/*", "packages/**/*"],
   "exclude": ["apps/server/src/index.ts"]
 }

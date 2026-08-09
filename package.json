@@ -2,26 +2,32 @@
   "name": "gadget-wallet",
   "private": true,
   "workspaces": [
+    "client",
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev": "bun run --env-file=.env --parallel dev:web dev:server",
-    "dev:web": "bun run --cwd apps/web dev",
-    "dev:server": "bun run --cwd apps/server dev",
-    "build": "bun run --cwd apps/web build && bun run --cwd apps/server build",
-    "build:web": "bun run --cwd apps/web build",
+    "dev:web": "bun run --cwd client dev",
+    "dev:server": "bun run --env-file=.env --watch apps/server/src/index.ts",
+    "build": "bun run --cwd client build",
+    "build:web": "bun run --cwd client build",
     "build:server": "bun run --cwd apps/server build",
     "db:generate": "bun run --cwd packages/db generate",
     "db:push": "bun run --env-file=../../.env --cwd packages/db push",
     "db:push:vercel": "bun run --cwd packages/db push",
     "db:seed": "bun run --env-file=../../.env --cwd packages/db seed",
-    "lint": "bun run --cwd apps/web lint",
-    "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/server typecheck"
+    "lint": "bun run --cwd client lint",
+    "typecheck": "bun run --cwd client typecheck && bun run --cwd apps/server typecheck"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "@supabase/supabase-js": "^2.111.0",
+    "bcryptjs": "^2.4.3",
+    "busboy": "^1.6.0",
     "drizzle-orm": "0.36.3",
     "hono": "^4.5.0",
+    "jsonwebtoken": "^9.0.0",
     "postgres": "^3.4.0"
   },
   "devDependencies": {

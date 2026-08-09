@@ -93,8 +93,11 @@ async function seed() {
       stock: 50,
       rating: 4.8,
       reviewCount: 1245,
+      // Flagship items are Featured only — the New Arrivals section is reserved
+      // for the genuinely new releases (ROG Zephyrus, Galaxy Watch 6, Bose QC
+      // Ultra, Logitech Superlight) so the two homepage sets never overlap.
       isFeatured: true,
-      isNewArrival: true,
+      isNewArrival: false,
       isBestSeller: true,
     },
     {
@@ -110,8 +113,9 @@ async function seed() {
       stock: 45,
       rating: 4.7,
       reviewCount: 982,
+      // Flagship item — Featured only, never New Arrivals.
       isFeatured: true,
-      isNewArrival: true,
+      isNewArrival: false,
       isBestSeller: true,
     },
     // Laptops
@@ -263,7 +267,9 @@ async function seed() {
       stock: 35,
       rating: 4.9,
       reviewCount: 321,
-      isFeatured: true,
+      // Newest product in the catalog (M4 chip) — anchors the New Arrivals row
+      // so both homepage sets stay balanced (~5-6 each) without overlapping.
+      isFeatured: false,
       isNewArrival: true,
       isBestSeller: false,
     },

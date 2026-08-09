@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db, schema } from "@gadget-wallet/db";
-import { eq, like, and, desc, sql, isNull } from "drizzle-orm";
+import { eq, and, desc, sql, isNull, isNotNull, ilike } from "drizzle-orm";
 import { success, error, paginated } from "../utils/response.js";
 
 export const productRoutes = new Hono();
@@ -13,6 +13,8 @@ productRoutes.get("/", async (c) => {
   const search = c.req.query("search");
   const sort = c.req.query("sort") || "created_at";
   const order = c.req.query("order") || "desc";
+  // ?sale=1 → only products with an active discount (homepage Flash Sale section).
+  const sale = c.req.query("sale");
 
   // Resolve category slug -> id so /category/:slug works
   let categoryId = category;
@@ -39,7 +41,10 @@ productRoutes.get("/", async (c) => {
   const conditions = [isNull(schema.products.deletedAt)];
   if (categoryId) conditions.push(eq(schema.products.categoryId, categoryId));
   if (brandId) conditions.push(eq(schema.products.brandId, brandId));
-  if (search) conditions.push(like(schema.products.name, `%${search}%`));
+  // ilike (case-insensitive) so lowercase queries like "iphone" still match —
+  // must stay in sync with the Vercel api/products/index.js (ILIKE).
+  if (search) conditions.push(ilike(schema.products.name, `%${search}%`));
+  if (sale) conditions.push(isNotNull(schema.products.discountPrice));
 
   const orderBy = desc(schema.products.createdAt);
   const offset = (page - 1) * limit;

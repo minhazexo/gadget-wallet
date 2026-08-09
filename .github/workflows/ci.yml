@@ -26,13 +26,9 @@ jobs:
         run: bun run typecheck
 
       - name: Build Web App
-        run: bun run --cwd apps/web build
+        run: bun run --cwd client build
 
-      # The Vercel function (api/[[...route]].ts) imports the bundle this step
-      # produces (apps/server/dist/app.cjs). Without it here, a server-side
-      # break only surfaces as a runtime 500 after deploying.
-      - name: Build API bundle
+      # The Vercel functions in api/ are plain Node.js handlers with no build
+      # step. The Hono app under apps/server stays for local development only.
+      - name: Build API bundle (local dev server)
         run: bun run --cwd apps/server build
-
-      - name: Verify API bundle exists
-        run: test -s apps/server/dist/app.cjs
