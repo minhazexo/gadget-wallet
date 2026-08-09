@@ -25,6 +25,12 @@ export default requireAuth(async (req, res) => {
       return fail(res, 400, "Invalid image. Allowed types: JPG, PNG, WEBP (max 5MB).");
     }
 
+    // Capture the OLD avatar BEFORE the DB update — it is what we may delete.
+    // (Deleting after the update would re-read the NEW url and delete the
+    // freshly uploaded file, which is exactly why avatars never persisted.)
+    const [before] = await sql.unsafe("SELECT avatar FROM users WHERE id = $1", [req.user.id]);
+    const oldAvatar = before?.avatar;
+
     // products/avatars/{userId}/{file} — distinct from product images.
     const { url } = await uploadImage(file.buffer, `avatars/${req.user.id}`, file.filename, file.mimetype);
 
@@ -38,9 +44,9 @@ export default requireAuth(async (req, res) => {
     // deleteImage() would otherwise remove any object under the products
     // bucket — a user whose avatar was set to a product image URL via
     // PUT /api/profile could wipe that image by uploading a new photo.
-    const [current] = await sql.unsafe("SELECT avatar FROM users WHERE id = $1", [req.user.id]);
-    if (current?.avatar && current.avatar.includes("/products/avatars/")) {
-      await deleteImage(current.avatar).catch(() => {});
+    // Never delete the file we just uploaded (oldAvatar !== url guard).
+    if (oldAvatar && oldAvatar !== url && oldAvatar.includes("/products/avatars/")) {
+      await deleteImage(oldAvatar).catch(() => {});
     }
 
     return ok(res, rows[0], "Avatar updated successfully");

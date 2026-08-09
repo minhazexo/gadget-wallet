@@ -89,6 +89,16 @@ profileRoutes.post("/avatar", async (c) => {
       return error(c, 400, "Invalid image. Allowed types: JPG, PNG, WEBP (max 5MB).");
     }
 
+    // Capture the OLD avatar BEFORE the DB update — it is what we may delete.
+    // (Deleting after the update would re-read the NEW url and delete the
+    // freshly uploaded file, which is exactly why avatars never persisted.)
+    const [before] = await db
+      .select({ avatar: schema.users.avatar })
+      .from(schema.users)
+      .where(eq(schema.users.id, user.id))
+      .limit(1);
+    const oldAvatar = before?.avatar;
+
     // products/avatars/{userId}/{file} — distinct from product images.
     const { url } = await uploadImage(file, `avatars/${user.id}`);
 
@@ -112,14 +122,10 @@ profileRoutes.post("/avatar", async (c) => {
     // Free the old avatar, but ONLY when it is one of ours (products/avatars/…)
     // — deleteImage() would otherwise remove any owned storage path, and a
     // user whose avatar was set to a product image URL via PUT /api/profile
-    // could wipe that image by uploading a new photo.
-    const [current] = await db
-      .select({ avatar: schema.users.avatar })
-      .from(schema.users)
-      .where(eq(schema.users.id, user.id))
-      .limit(1);
-    if (current?.avatar && current.avatar.includes("/products/avatars/")) {
-      await deleteImage(current.avatar).catch(() => {});
+    // could wipe that image by uploading a new photo. Never delete the file we
+    // just uploaded (oldAvatar !== url guard).
+    if (oldAvatar && oldAvatar !== url && oldAvatar.includes("/products/avatars/")) {
+      await deleteImage(oldAvatar).catch(() => {});
     }
 
     return success(c, updated, "Avatar updated successfully");
