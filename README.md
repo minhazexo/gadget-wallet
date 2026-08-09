@@ -20,13 +20,22 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 
 ```
 gadget-wallet/
-├── api/                        # Vercel serverless functions (Node.js)
-│   ├── products/               # GET /api/products, /featured, /new-arrivals, /:slug
-│   ├── categories/             # GET /api/categories
-│   ├── brands/                 # GET /api/brands
-│   ├── auth/                   # POST /api/auth/register, /login, GET /me
+├── api/                        # Vercel serverless functions (Node.js, native ESM)
+│   ├── products/               # GET /api/products, /featured, /new-arrivals, /:slug-or-id
+│   ├── categories/             # GET /api/categories, /:slug
+│   ├── brands/                 # GET /api/brands, /:slug
+│   ├── auth/                   # POST /register, /login, GET /me, POST /logout-all
 │   ├── profile/                # GET/PUT /api/profile, /password, /two-factor
-│   ├── admin/                  # POST /admin/login, /dashboard, /orders, products CRUD + images
+│   ├── admin/                  # /login, /dashboard, /orders, products CRUD + images
+│   ├── cart/                   # add, update, remove, merge, get (user/session)
+│   ├── wishlist/               # list, add, remove, move-to-cart
+│   ├── orders/                 # create, list, detail, cancel, return, per-user
+│   ├── reviews/                # create, update, delete, per-user
+│   ├── address/                # list/create, update/delete, set-default
+│   ├── payment-methods/        # list/create, delete, set-default
+│   ├── notifications/          # list, preferences, mark-all-read
+│   ├── recently-viewed/        # list, record
+│   ├── health.js               # GET /api/health
 │   └── _lib/                   # neon db client, supabase storage, JWT helpers
 ├── client/                     # React + Vite frontend
 │   └── src/
@@ -35,7 +44,7 @@ gadget-wallet/
 ├── apps/
 │   └── server/
 │       └── src/
-│           ├── app.ts          # The whole Hono app (runtime-agnostic)
+│           ├── app.ts          # The whole Hono app (runtime-agnostic, dev only)
 │           ├── index.ts        # Bun.serve wrapper (local dev only)
 │           ├── routes/         # auth, products, admin, orders, …
 │           └── utils/          # storage (Supabase), response helpers
@@ -45,8 +54,8 @@ gadget-wallet/
 │   └── types/                  # Shared TypeScript types
 ├── docs/
 │   └── DEPLOY_TO_VERCEL.md     # Full deployment guide
-├── vercel.json                 # Vercel build + function config
-└── package.json                # Bun workspaces root
+├── vercel.json                 # Vercel build + SPA rewrite config
+└── package.json                # Bun workspaces root ("type": "module")
 ```
 
 ## Getting Started
@@ -96,13 +105,14 @@ bun run dev
 | `bun run db:push` | Apply schema to the database (loads `.env`) |
 | `bun run db:push:vercel` | Same, but reads env from the environment |
 | `bun run db:seed` | Seed admin user, categories, brands, products, banners |
+| `bun run --env-file=.env scripts/smoke-api.mjs` | Smoke-test the whole API (36 checks: products, auth, cart, wishlist, orders, admin, …) |
 
 ## Features
 
 - Cinematic hero section with video background
 - 20+ public pages (Home, Shop, Product Details, Cart, Checkout, …) + full admin dashboard
 - Product management with **multi-image uploads to Supabase** (drag & drop, cover selection, reordering)
-- Shopping cart (guest + persistent), wishlist, coupon system, order management, reviews
+- Shopping cart (guest + persistent), wishlist, order management, reviews
 - User profile: addresses, payment methods, notifications, recently viewed, security
 - **Show/hide password toggles** on login, register, and security forms
 - Fully responsive — storefront **and** admin (mobile navigation included)
@@ -114,22 +124,31 @@ bun run dev
 The whole app — storefront + API — deploys to **one Vercel project** from this
 repo. `vercel.json` handles the build (`bun run build`), the storefront is
 served from `client/dist`, and the API runs as plain Node.js serverless
-functions in `api/` (products, categories, brands, auth, profile, admin). The
-Hono app under `apps/server` is kept for local development only. Run migrations
-manually after deploying — or wire `bun run db:push:vercel` into your deploy
-pipeline — since they don't run as part of the Vercel build.
+functions in `api/` (products, categories, brands, auth, profile, admin, cart,
+wishlist, orders, reviews, address, payment-methods, notifications,
+recently-viewed, health). The root `package.json` declares `"type": "module"`,
+so the `api/` handlers run as native ESM. The Hono app under `apps/server` is
+kept for local development only. Run migrations manually after deploying — or
+wire `bun run db:push:vercel` into your deploy pipeline — since they don't run
+as part of the Vercel build.
 
 ```bash
 # 1. Push the repo to GitHub
-# 2. Import it in Vercel (Root Directory = repo root, Build Command = npm run build)
-# 3. Add env vars: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-#    JWT_SECRET, APP_URL  (scope DATABASE_URL to Production + Preview)
+# 2. Import it in Vercel (Root Directory = repo root, Framework Preset = Other;
+#    vercel.json sets buildCommand = bun run build, outputDirectory = client/dist)
+# 3. Add env vars: DATABASE_URL (pooled, scope to Production + Preview),
+#    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, JWT_SECRET, APP_URL
 # 4. Run migrations: bun run db:push:vercel
 # 5. Deploy 🚀
 ```
 
-Verify: `GET /api/products`, log in with the admin credentials, and create a
-product with an image upload.
+Verify: `GET /api/health`, `GET /api/products`, log in with the admin
+credentials, and create a product with an image upload. Or run the whole API
+smoke suite locally:
+
+```bash
+bun run --env-file=.env scripts/smoke-api.mjs   # → 36/36 checks passed
+```
 
 > 📖 Full step-by-step guide, env var table, troubleshooting, and Neon pooling
 > tips: **`docs/DEPLOY_TO_VERCEL.md`**.
