@@ -77,6 +77,7 @@ export default function App() {
         cartCount={cartCount}
         wishlistCount={wishlistItems.length}
         userName={user?.name}
+        userAvatar={user?.avatar}
         categories={categories}
         onLogout={() => {
           logout();

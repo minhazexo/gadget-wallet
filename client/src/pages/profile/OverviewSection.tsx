@@ -2,11 +2,11 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { User, Mail, Phone, Calendar, Shield, MapPin, Pencil, Camera, Loader2, Package, Heart, Star, BadgeCheck } from "lucide-react";
-import { Button, Input } from "@gadget-wallet/ui";
+import { Button, Input, Avatar } from "@gadget-wallet/ui";
 import api from "../../lib/api";
 import { useAuthStore } from "../../store/useAuthStore";
 import { showToast } from "../../store/useToastStore";
-import { SectionHeader, Modal, formatDate, initials } from "./shared";
+import { SectionHeader, Modal, formatDate } from "./shared";
 
 interface OverviewProps {
   stats: { orders: number; wishlist: number; reviews: number };
@@ -106,13 +106,12 @@ export function OverviewSection({ stats, defaultAddress, onNavigate }: OverviewP
         <div className="lg:col-span-2 gw-panel p-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
             <div className="relative shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gw-red/10 flex items-center justify-center text-3xl font-extrabold text-gw-red overflow-hidden">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  initials(user.name)
-                )}
-              </div>
+              <Avatar
+                src={user.avatar}
+                name={user.name}
+                alt={user.name}
+                className="w-24 h-24 text-3xl ring-2 ring-primary/10"
+              />
               <input
                 ref={fileInputRef}
                 type="file"

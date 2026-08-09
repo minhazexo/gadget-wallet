@@ -3,6 +3,7 @@ export { Button } from "./button";
 export { Card, CardContent, CardHeader, CardFooter } from "./card";
 export { Container } from "./container";
 export { Badge } from "./badge";
+export { Avatar } from "./avatar";
 export { Input } from "./input";
 export { Skeleton } from "./skeleton";
 export { Toast } from "./toast";

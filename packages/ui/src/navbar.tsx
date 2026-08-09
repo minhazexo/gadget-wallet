@@ -1,4 +1,5 @@
 import { cn } from "./utils";
+import { Avatar } from "./avatar";
 import { useEffect, useState, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -58,6 +59,8 @@ interface NavbarProps {
   cartCount?: number;
   wishlistCount?: number;
   userName?: string;
+  /** Logged-in user's avatar URL — shown in place of the account icon. */
+  userAvatar?: string | null;
   categories?: HeaderCategory[];
   onLogout?: () => void;
 }
@@ -67,6 +70,7 @@ export function Navbar({
   cartCount = 0,
   wishlistCount = 0,
   userName = "",
+  userAvatar = null,
   categories,
   onLogout,
 }: NavbarProps) {
@@ -228,7 +232,16 @@ export function Navbar({
                     className="flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors py-1"
                     aria-label="Account"
                   >
-                    <User size={22} />
+                    {userAvatar ? (
+                      <Avatar
+                        src={userAvatar}
+                        name={userName}
+                        alt="Account avatar"
+                        className="w-[22px] h-[22px] text-[11px] ring-1 ring-gray-200"
+                      />
+                    ) : (
+                      <User size={22} />
+                    )}
                     <span>Account</span>
                   </button>
                   <AnimatePresence>
@@ -240,11 +253,19 @@ export function Navbar({
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 top-full w-52 bg-white border border-gray-200 rounded-xl shadow-gw-lg overflow-hidden z-50"
                       >
-                        <div className="px-4 py-3 border-b border-gray-200">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
-                            {userName || "My Account"}
-                          </p>
-                          <p className="text-xs text-gray-500">Welcome back</p>
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
+                          <Avatar
+                            src={userAvatar}
+                            name={userName}
+                            alt="Account avatar"
+                            className="w-9 h-9 text-sm"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {userName || "My Account"}
+                            </p>
+                            <p className="text-xs text-gray-500">Welcome back</p>
+                          </div>
                         </div>
                         <a
                           href="/profile"
@@ -466,10 +487,13 @@ export function Navbar({
                   >
                     {isLoggedIn ? (
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2 px-1 py-1.5">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                            {userName ? userName.charAt(0).toUpperCase() : "U"}
-                          </div>
+                        <div className="flex items-center gap-2.5 px-1 py-1.5">
+                          <Avatar
+                            src={userAvatar}
+                            name={userName}
+                            alt="Account avatar"
+                            className="w-8 h-8 text-sm"
+                          />
                           <p className="text-sm font-semibold text-gray-900 truncate">{userName || "My Account"}</p>
                         </div>
                         <a

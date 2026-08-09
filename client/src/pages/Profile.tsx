@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Heart, MapPin, CreditCard,
   Shield, Bell, Star, History, Headphones, Sun, Moon, LogOut,
 } from "lucide-react";
-import { Container } from "@gadget-wallet/ui";
+import { Container, Avatar } from "@gadget-wallet/ui";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
 import api from "../lib/api";
@@ -21,7 +21,6 @@ import { NotificationsSection } from "./profile/NotificationsSection";
 import { ReviewsSection } from "./profile/ReviewsSection";
 import { RecentlyViewedSection } from "./profile/RecentlyViewedSection";
 import { SupportSection } from "./profile/SupportSection";
-import { initials } from "./profile/shared";
 import { cn } from "@gadget-wallet/ui";
 
 type TabKey =
@@ -143,13 +142,12 @@ export default function Profile() {
             {/* User card */}
             <div className="gw-panel-category p-5 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gw-red/10 flex items-center justify-center text-lg font-extrabold text-gw-red overflow-hidden shrink-0">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
-                  ) : (
-                    initials(user?.name || "U")
-                  )}
-                </div>
+                <Avatar
+                  src={user?.avatar}
+                  name={user?.name}
+                  alt={user?.name}
+                  className="w-12 h-12 text-lg"
+                />
                 <div className="min-w-0">
                   <p className="font-bold text-gw-black dark:text-white truncate">{user?.name}</p>
                   <p className="gw-muted-xs truncate">{user?.email}</p>
