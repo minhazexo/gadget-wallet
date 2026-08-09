@@ -2,6 +2,7 @@ import { create } from "zustand";
 import api from "../lib/api";
 import { showToast } from "./useToastStore";
 import { useAuthStore } from "./useAuthStore";
+import { useCartStore } from "./useCartStore";
 
 export interface WishlistItem {
   id: string;
@@ -66,7 +67,6 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
     await api.post("/wishlist/move-to-cart", { productId });
     set({ items: get().items.filter((i) => i.productId !== productId) });
     showToast("Moved to cart");
-    const { useCartStore } = await import("./useCartStore");
     await useCartStore.getState().load();
   },
 }));

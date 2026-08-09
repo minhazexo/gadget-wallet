@@ -6,6 +6,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { showToast } from "../../store/useToastStore";
 import { useCartStore } from "../../store/useCartStore";
 import { useNavigate } from "react-router-dom";
+import api from "../../lib/api";
 import { SectionHeader, Toggle } from "./shared";
 import { cn } from "@gadget-wallet/ui";
 
@@ -60,7 +61,6 @@ export function SecuritySection() {
 
   const toggle2FA = async (enabled: boolean) => {
     try {
-      const { default: api } = await import("../../lib/api");
       const res = await api.put("/profile/two-factor", { enabled });
       updateUser(res.data.data);
       showToast(enabled ? "Two-factor authentication enabled" : "Two-factor authentication disabled", "info");
