@@ -159,8 +159,11 @@ export function extractStoragePath(pathOrUrl: string): string | null {
 
   if (!rel) return null;
 
-  // Only allow paths under products/<uuid>/<file> (or legacy flat products/<file>)
+  // Only allow paths under products/<uuid>/<file> (product images),
+  // products/avatars/<userId>/<file> (profile photos), or legacy flat
+  // products/<file>.
   if (/^products\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
+  if (/^products\/avatars\/[^/]+\/[^/]+$/.test(rel)) return rel;
   if (/^products\/[^/]+\.[a-zA-Z0-9]+$/.test(rel)) return rel;
   return null;
 }

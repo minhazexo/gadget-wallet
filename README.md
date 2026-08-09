@@ -24,7 +24,7 @@ gadget-wallet/
 │   └── [[...route]].js         # ONE catch-all function — dispatches every /api/*
 │                               #   request to the matching api-handlers/ route
 │                               #   (vercel.json rewrites /api/:path* → here)
-├── api-handlers/               # All 54 route handlers (kept OUTSIDE api/ so
+├── api-handlers/               # All 55 route handlers (kept OUTSIDE api/ so
 │   ├── _lib/                   #   Vercel deploys exactly 1 function — under the
 │   │   └── …                   #   Hobby plan's 12-function limit)
 │   ├── _routes.js              #   path→handler route table (products, auth,
@@ -125,7 +125,7 @@ served from `client/dist`, and the API runs as a **single catch-all serverless
 function** (`api/[[...route]].js`) that dispatches every `/api/*` request to the
 matching handler in `api-handlers/` (products, categories, brands, auth,
 profile, admin, cart, wishlist, orders, reviews, address, payment-methods,
-notifications, recently-viewed, health — 54 routes, 1 deployed function, so it
+notifications, recently-viewed, health — 55 routes, 1 deployed function, so it
 stays under the Hobby plan's 12-function limit).
 
 > ⚠️ **Why the `/api/:path*` rewrite?** Vercel's builder compiles catch-all

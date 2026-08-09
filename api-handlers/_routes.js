@@ -26,6 +26,7 @@ import authMe from "./auth/me.js";
 import authLogoutAll from "./auth/logout-all.js";
 
 import profileIndex from "./profile/index.js";
+import profileAvatar from "./profile/avatar.js";
 import profilePassword from "./profile/password.js";
 import profileTwoFactor from "./profile/two-factor.js";
 
@@ -100,6 +101,7 @@ export const routes = [
 
   // profile
   { pattern: ["profile"], handler: profileIndex },
+  { pattern: ["profile", "avatar"], handler: profileAvatar },
   { pattern: ["profile", "password"], handler: profilePassword },
   { pattern: ["profile", "two-factor"], handler: profileTwoFactor },
 

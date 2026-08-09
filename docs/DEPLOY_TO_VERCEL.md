@@ -20,7 +20,7 @@ gadget-wallet/                     ← Vercel Root Directory
 │                                     request lands here; it matches the path
 │                                     against the route table and dispatches to
 │                                     the right handler in api-handlers/.
-├── api-handlers/                  ← All 54 route handlers. Kept OUTSIDE api/
+├── api-handlers/                  ← All 55 route handlers. Kept OUTSIDE api/
 │   ├── _lib/                      ←   on purpose so Vercel deploys exactly
 │   │   ├── db.js                  ←   ONE function (the catch-all) — well under
 │   │   ├── supabase.js            ←   the Hobby plan's 12-function limit.
@@ -29,7 +29,7 @@ gadget-wallet/                     ← Vercel Root Directory
 │   │   ├── products.js            ←
 │   │   ├── multipart.js           ←
 │   │   └── users.js / orders.js   ←
-│   ├── _routes.js                 ← path→handler route table (all 54 routes,
+│   ├── _routes.js                 ← path→handler route table (all 55 routes,
 │   ├── products/                  ←   most-specific-first ordering)
 │   ├── categories/                ←
 │   ├── brands/                    ←
@@ -58,7 +58,7 @@ gadget-wallet/                     ← Vercel Root Directory
 JWT auth.
 
 > **Why exactly one function?** Vercel's Hobby plan caps a deployment at **12
-> serverless functions**. The full API has 54 routes, so deploying each as its
+> serverless functions**. The full API has 55 routes, so deploying each as its
 > own file would exceed that cap and the build fails with *"Serverless Function
 > size / Function count limit"*. Instead the repo ships a **single catch-all
 > function** — `api/[...route].js` — that parses the URL and dispatches to the
@@ -223,7 +223,7 @@ bun run build                     # builds the frontend → client/dist
                                   #   (bun run --cwd client build → tsc -b && vite build)
 api/[[...route]].js auto-detected # ONE Node serverless function (the catch-all)
 /api/:path* rewritten → the function # vercel.json routes ALL /api/* paths here
-api-handlers/ is NOT deployed     # 54 route handlers, imported by the dispatcher
+api-handlers/ is NOT deployed     # 55 route handlers, imported by the dispatcher
 Static output client/dist served  # every non-/api path rewrites to index.html (SPA)
 /api/* requests hit the function  # dispatcher routes them to the right handler
 ```
@@ -311,6 +311,7 @@ products list additionally returns `{ total, page, limit, totalPages }`.
 | `GET /api/auth/me` | Bearer | Re-checks the user against the DB |
 | `POST /api/auth/logout-all` | Bearer | Bumps `token_version` |
 | `GET /api/profile` · `PUT /api/profile` | Bearer | Get/update `name`, `phone`, `avatar` |
+| `POST /api/profile/avatar` | Bearer | Multipart upload of a profile photo (JPG/PNG/WEBP ≤ 5 MB) → updates `avatar` |
 | `PUT /api/profile/password` | Bearer | `{ currentPassword, newPassword }` |
 | `PUT /api/profile/two-factor` | Bearer | `{ enabled }` |
 | `POST /api/admin/login` | — | Env-based (ADMIN_EMAIL/ADMIN_PASSWORD), *optional* |

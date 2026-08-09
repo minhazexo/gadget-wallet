@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { User, Mail, Phone, Calendar, Shield, MapPin, Pencil, Camera, Package, Heart, Star, BadgeCheck } from "lucide-react";
+import { User, Mail, Phone, Calendar, Shield, MapPin, Pencil, Camera, Loader2, Package, Heart, Star, BadgeCheck } from "lucide-react";
 import { Button, Input } from "@gadget-wallet/ui";
 import api from "../../lib/api";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -20,23 +20,52 @@ export function OverviewSection({ stats, defaultAddress, onNavigate }: OverviewP
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [avatar, setAvatar] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editOpen && user) {
       setName(user.name || "");
       setPhone(user.phone || "");
-      setAvatar(user.avatar || "");
     }
   }, [editOpen, user]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so selecting the same file again still fires onChange.
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      showToast("Please choose a JPG, PNG or WEBP image", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be 5 MB or smaller", "error");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await api.post("/profile/avatar", form);
+      updateUser({ avatar: data.data?.avatar || null });
+      showToast("Profile photo updated");
+    } catch {
+      showToast("Failed to upload photo", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!user) return null;
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data } = await api.put("/profile", { name, phone, avatar: avatar || null });
+      const { data } = await api.put("/profile", { name, phone });
       updateUser(data.data);
       setEditOpen(false);
       showToast("Profile updated successfully");
@@ -84,12 +113,21 @@ export function OverviewSection({ stats, defaultAddress, onNavigate }: OverviewP
                   initials(user.name)
                 )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
               <button
-                onClick={() => setEditOpen(true)}
-                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gw-red text-white flex items-center justify-center shadow-gw-md hover:bg-gw-red-hover transition-colors"
-                aria-label="Edit avatar"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gw-red text-white flex items-center justify-center shadow-gw-md hover:bg-gw-red-hover transition-colors disabled:opacity-70"
+                aria-label="Change profile photo"
+                title="Change profile photo"
               >
-                <Camera className="w-4 h-4" />
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
               </button>
             </div>
             <div className="text-center sm:text-left flex-1">
@@ -193,7 +231,9 @@ export function OverviewSection({ stats, defaultAddress, onNavigate }: OverviewP
         <div className="space-y-4">
           <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
           <Input label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
-          <Input label="Avatar URL" value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://..." />
+          <p className="text-xs gw-muted">
+            Profile photo: click the camera icon on your avatar to upload a new image.
+          </p>
           <div className="flex gap-3 pt-2">
             <Button variant="primary" isLoading={saving} onClick={handleSave} className="flex-1">
               Save Changes

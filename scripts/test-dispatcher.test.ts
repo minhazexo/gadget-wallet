@@ -20,6 +20,7 @@ const staticPaths = [
   "cart/remove",
   "cart/merge",
   "wishlist/move-to-cart",
+  "profile/avatar",
   "reviews/user",
   "notifications/preferences",
   "notifications/read-all",
