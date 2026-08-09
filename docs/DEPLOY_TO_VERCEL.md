@@ -16,7 +16,7 @@ origin — no CORS, no separate API domain, no `VITE_API_URL` needed.
 ```
 gadget-wallet/                     ← Vercel Root Directory
 ├── api/                           ← Vercel serverless functions (auto-detected)
-│   └── [...route].js              ← THE single catch-all function. Every /api/*
+│   └── [[...route]].js          ← THE single catch-all function. Every /api/*
 │                                     request lands here; it matches the path
 │                                     against the route table and dispatches to
 │                                     the right handler in api-handlers/.
@@ -67,6 +67,15 @@ JWT auth.
 > routing, so the dispatcher reproduces that contract: it merges path params and
 > query params into `req.query` (`[id].js` → `req.query.id`) and parses JSON
 > bodies into `req.body`.
+>
+> ⚠️ **Why the `/api/:path*` rewrite in `vercel.json`?** Vercel's builder
+> compiles catch-all files in the `api/` directory into **single-segment**
+> routes (`^/api/([^/]+)$`), so `/api/products/featured` or `/api/auth/login`
+> would return a platform-level `NOT_FOUND` without ever reaching the function.
+> The included `vercel.json` fixes this with an explicit rewrite
+> `{ "source": "/api/:path*", "destination": "/api/[[...route]]" }`, which
+> generates a true multi-segment route. Rewrites preserve the original `req.url`,
+> so the dispatcher still parses the full path.
 >
 > **The API is native ESM.** The root `package.json` declares `"type": "module"`,
 > so Vercel runs the dispatcher as ESM directly — no ESM→CommonJS compile step
@@ -191,6 +200,12 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
      "buildCommand": "bun run build",
      "outputDirectory": "client/dist",
      "rewrites": [
+       // Route EVERY /api/* path to the single catch-all function — Vercel's
+       // own builder compiles api/[[...route]].js into a single-segment route,
+       // so without this rewrite multi-segment paths (featured, auth/login, …)
+       // return a platform 404 before reaching the function.
+       { "source": "/api/:path*", "destination": "/api/[[...route]]" },
+       // SPA fallback — everything that is not an API call serves index.html
        { "source": "/((?!api/).*)", "destination": "/index.html" }
      ]
    }
@@ -204,7 +219,8 @@ domain. `PORT` is set by Vercel automatically. `NODE_ENV=production` is automati
 bun install                       # installs all workspace deps at the root
 bun run build                     # builds the frontend → client/dist
                                   #   (bun run --cwd client build → tsc -b && vite build)
-api/[...route].js auto-detected  # ONE Node serverless function (the catch-all)
+api/[[...route]].js auto-detected # ONE Node serverless function (the catch-all)
+/api/:path* rewritten → the function # vercel.json routes ALL /api/* paths here
 api-handlers/ is NOT deployed     # 54 route handlers, imported by the dispatcher
 Static output client/dist served  # every non-/api path rewrites to index.html (SPA)
 /api/* requests hit the function  # dispatcher routes them to the right handler
@@ -215,7 +231,7 @@ Static output client/dist served  # every non-/api path rewrites to index.html (
 > `functions` block to `vercel.json` to raise it for the catch-all:
 > ```json
 > "functions": {
->   "api/[...route].js": { "maxDuration": 30 }
+>   "api/[[...route]].js": { "maxDuration": 30 }
 > }
 > ```
 
@@ -407,7 +423,8 @@ preview deployments run the same build command.
 | `Cannot find module '@gadget-wallet/…'` during build | Ensure root `bun install` ran (Vercel uses `bun.lock`). Check Install Command isn't overridden to npm. |
 | `error: Script not found "build"` / `db:push:vercel` | **Root Directory is set to a subdirectory.** Go to Project → Settings → General → Root Directory → repo root, Framework Preset → Other, then redeploy. |
 | Build fails at `db:push:vercel` / `Cannot reach database` | `DATABASE_URL` is missing from the **build** environment — scope it to Production + Preview in Vercel → Settings → Environment Variables. |
-| `/api/...` returns **404** | The dispatcher (`api/[...route].js`) found no matching route in `api-handlers/_routes.js`. All storefront routes are present — see the API reference. Confirm `framework` in `vercel.json` is `null` and the route table has the path. |
+| `/api/...` returns **404** (JSON `{ success: false, message: "Not found" }`) | The dispatcher (`api/[[...route]].js`) found no matching route in `api-handlers/_routes.js`. All storefront routes are present — see the API reference. Confirm `framework` in `vercel.json` is `null` and the route table has the path. |
+| `/api/...` returns **platform 404** (`NOT_FOUND`, plain text) for multi-segment paths | The `/api/:path*` rewrite is missing from `vercel.json` — without it Vercel compiles the catch-all into a single-segment route and 404s everything with 2+ segments (`/api/products/featured`, `/api/auth/login`). Add `{ "source": "/api/:path*", "destination": "/api/[[...route]]" }` to `rewrites` and redeploy. |
 | `/api/...` returns **500** | A runtime error in the handler. Check **Function Logs** in Vercel — common causes: missing `DATABASE_URL`, a SQL column mismatch (run `db:push:vercel`), or a missing Supabase env var. |
 | Site loads but **no products show** | The SPA rewrite is shadowing the API. It must be `/((?!api/).*)` (excludes `/api/*`). Verify with `curl https://<project>.vercel.app/api/products` — it must return JSON, not HTML. |
 | 404 on page refresh / direct URLs | The SPA rewrite `/((?!api/).*) → /index.html` must be present in `vercel.json`. |
@@ -416,7 +433,7 @@ preview deployments run the same build command.
 | Images fail to upload / 404 | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set? `products` bucket **public**? |
 | Admin login fails | Guide-style: are `ADMIN_EMAIL`/`ADMIN_PASSWORD` set? App-style: is the account's `users.role = 'admin'`? |
 | JWT auth fails after deploy | `JWT_SECRET` missing or different between environments — and it is now **enforced** (500s/401s if unset or placeholder in production). |
-| Function times out (admin uploads) | Add the `functions.maxDuration` block for `api/[...route].js` (see Step 4) — 10 s default can be tight for multi-image uploads. |
+| Function times out (admin uploads) | Add the `functions.maxDuration` block for `api/[[...route]].js` (see Step 4) — 10 s default can be tight for multi-image uploads. |
 
 ---
 

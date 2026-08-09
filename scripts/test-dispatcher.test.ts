@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { matchRoute, parsePath } from "../api/[...route].js";
+import { matchRoute, parsePath } from "../api/[[...route]].js";
 import { routes } from "../api-handlers/_routes.js";
 
 function find(route) {

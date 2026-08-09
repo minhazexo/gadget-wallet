@@ -5,6 +5,13 @@
  * api-handlers/ (kept OUTSIDE the api/ directory so Vercel deploys exactly
  * ONE function — staying under the Hobby plan's 12-function limit).
  *
+ * NOTE: Vercel's builder compiles api/[...route].js into a SINGLE-segment
+ * route (^/api/([^/]+)$) — multi-segment paths like /api/products/featured
+ * never reach the function. vercel.json therefore adds an explicit rewrite
+ * (`/api/:path*` → `/api/[[...route]]`) which generates a true multi-segment
+ * match. Rewrites preserve the original req.url, so this dispatcher still
+ * sees the full path and routes correctly.
+ *
  * The handlers were written for Vercel's filesystem routing, where dynamic
  * segments arrive as req.query (e.g. api/products/[id].js → req.query.id).
  * This dispatcher reproduces that contract: it parses the URL, matches the

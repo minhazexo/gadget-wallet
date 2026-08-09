@@ -21,8 +21,9 @@ domain, with a Neon PostgreSQL database and Supabase Storage for product images.
 ```
 gadget-wallet/
 ├── api/                        # Vercel serverless functions (Node.js, native ESM)
-│   └── [...route].js           # ONE catch-all function — dispatches every /api/*
+│   └── [[...route]].js         # ONE catch-all function — dispatches every /api/*
 │                               #   request to the matching api-handlers/ route
+│                               #   (vercel.json rewrites /api/:path* → here)
 ├── api-handlers/               # All 54 route handlers (kept OUTSIDE api/ so
 │   ├── _lib/                   #   Vercel deploys exactly 1 function — under the
 │   │   └── …                   #   Hobby plan's 12-function limit)
@@ -51,7 +52,7 @@ gadget-wallet/
 │   └── types/                  # Shared TypeScript types
 ├── docs/
 │   └── DEPLOY_TO_VERCEL.md     # Full deployment guide
-├── vercel.json                 # Vercel build + SPA rewrite config
+├── vercel.json                 # Vercel build + SPA/API rewrite config
 └── package.json                # Bun workspaces root ("type": "module")
 ```
 
@@ -121,11 +122,20 @@ bun run dev
 The whole app — storefront + API — deploys to **one Vercel project** from this
 repo. `vercel.json` handles the build (`bun run build`), the storefront is
 served from `client/dist`, and the API runs as a **single catch-all serverless
-function** (`api/[...route].js`) that dispatches every `/api/*` request to the
+function** (`api/[[...route]].js`) that dispatches every `/api/*` request to the
 matching handler in `api-handlers/` (products, categories, brands, auth,
 profile, admin, cart, wishlist, orders, reviews, address, payment-methods,
 notifications, recently-viewed, health — 54 routes, 1 deployed function, so it
-stays under the Hobby plan's 12-function limit). The root `package.json`
+stays under the Hobby plan's 12-function limit).
+
+> ⚠️ **Why the `/api/:path*` rewrite?** Vercel's builder compiles catch-all
+> files in the `api/` directory (`[...route].js`) into **single-segment** routes
+> (`^/api/([^/]+)$`), so multi-segment paths like `/api/products/featured` or
+> `/api/auth/login` would hit a platform 404 and never reach the function.
+> `vercel.json` therefore adds an explicit rewrite
+> `{ "source": "/api/:path*", "destination": "/api/[[...route]]" }`, which
+> generates a true multi-segment route. Rewrites preserve the original `req.url`,
+> so the dispatcher still sees the full path. The root `package.json`
 declares `"type": "module"`, so the dispatcher runs as native ESM. The Hono
 app under `apps/server` is kept for local development only. Run migrations
 manually after deploying — or wire `bun run db:push:vercel` into your deploy
