@@ -39,3 +39,20 @@ icons and logo/
 # Reference screenshots dropped into client/public (not used by the app)
 client/public/ChatGPT Image Aug 11, 2026, 02_30_54 AM.png
 client/public/image_f13cde9c.png
+
+# ── Not needed for Vercel hosting ──
+# Product data (images, prices, specs) lives in Neon + Supabase, so the local
+# mirrors and one-off dev tools are not part of the deployed app.
+
+# Dev/ops scripts: image fetch/upload, DB migrate/seed, smoke tests. CI only
+# runs typecheck + build (none include scripts/); vercel.json builds client/dist.
+scripts/
+
+# Local product-photo mirrors used only by scripts (the app serves Supabase URLs).
+assets/
+
+# Pre-migration database snapshot (data already migrated into Neon).
+backups/
+
+# Local AI skill files (graphify/neon-postgres) — dev-only.
+.kilo/

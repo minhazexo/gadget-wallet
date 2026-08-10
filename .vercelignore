@@ -6,6 +6,12 @@ build
 .env.*.local
 apps/server/uploads
 uploads
+scripts
+assets
+backups
+.kilo
+login details
+icons and logo
 
 # NOTE: intentionally NOT ignoring a bare `dist`.
 # `client/dist` is the frontend build output and is produced by `bun run build`
