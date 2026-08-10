@@ -14,7 +14,13 @@ export const PRODUCT_SELECT = `
   p.is_featured AS "isFeatured", p.is_new_arrival AS "isNewArrival",
   p.is_best_seller AS "isBestSeller",
   p.created_at AS "createdAt", p.updated_at AS "updatedAt",
-  b.name AS "brandName", c.name AS "categoryName"
+  b.name AS "brandName", c.name AS "categoryName",
+  COALESCE(
+    (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'alt', pi.alt)
+                     ORDER BY pi."order")
+     FROM product_images pi WHERE pi.product_id = p.id),
+    '[]'::json
+  ) AS images
 `;
 
 export const PRODUCT_FROM = `

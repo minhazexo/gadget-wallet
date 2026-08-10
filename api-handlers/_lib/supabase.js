@@ -64,6 +64,22 @@ export async function uploadCategoryImage(buffer, categoryId, filename, contentT
 }
 
 /**
+ * Uploads a buffer into the public "products" bucket at
+ * products/brands/{brandId}/{file} — brand logo images.
+ * Returns { url, path }.
+ */
+export async function uploadBrandImage(buffer, brandId, filename, contentType) {
+  if (!supabase) throw new Error("Supabase Storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  const storagePath = `${BUCKET}/brands/${brandId}/${sanitizeFileName(filename)}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, { contentType, upsert: false });
+  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  return { url: data.publicUrl, path: storagePath };
+}
+
+/**
  * Buckets that store product media. `product-images` holds the migrated
  * Bangladesh catalog (one file per product, keyed by category folder);
  * `products` holds admin/uploads images as before.

@@ -6,33 +6,33 @@ import { staggerContainer, staggerItem } from "../../lib/animations";
 import api from "../../lib/api";
 import { showToast } from "../../store/useToastStore";
 
-interface Category {
+interface Brand {
   id: string;
   name: string;
   slug: string;
+  logo: string | null;
   description: string | null;
-  image: string | null;
   count: number;
 }
 
-export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function AdminBrands() {
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Category | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Brand | null>(null);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", description: "" });
+  const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get("/admin/categories");
-      setCategories(data.data || []);
+      const { data } = await api.get("/admin/brands");
+      setBrands(data.data || []);
     } catch {
-      showToast("Failed to load categories", "error");
+      showToast("Failed to load brands", "error");
     } finally {
       setLoading(false);
     }
@@ -42,32 +42,32 @@ export default function AdminCategories() {
     load();
   }, []);
 
-  const handleUpload = async (cat: Category, file?: File | null) => {
+  const handleUpload = async (brand: Brand, file?: File | null) => {
     if (!file) return;
     const fd = new FormData();
     fd.append("image", file);
-    setUploadingId(cat.id);
+    setUploadingId(brand.id);
     try {
-      await api.post(`/admin/categories/${cat.id}/image`, fd);
-      showToast(`${cat.name} photo updated`);
+      await api.post(`/admin/brands/${brand.id}/image`, fd);
+      showToast(`${brand.name} logo updated`);
       await load();
     } catch (err: any) {
-      showToast(err?.response?.data?.error || "Photo upload failed", "error");
+      showToast(err?.response?.data?.error || "Logo upload failed", "error");
     } finally {
       setUploadingId(null);
-      const input = fileRefs.current[cat.id];
+      const input = fileRefs.current[brand.id];
       if (input) input.value = "";
     }
   };
 
-  const handleRemovePhoto = async (cat: Category) => {
-    if (!confirm(`Remove the photo for "${cat.name}"?`)) return;
+  const handleRemoveLogo = async (brand: Brand) => {
+    if (!confirm(`Remove the logo for "${brand.name}"?`)) return;
     try {
-      await api.delete(`/admin/categories/${cat.id}/image`);
-      showToast("Photo removed", "info");
+      await api.delete(`/admin/brands/${brand.id}/image`);
+      showToast("Logo removed", "info");
       await load();
     } catch (err: any) {
-      showToast(err?.response?.data?.error || "Failed to remove photo", "error");
+      showToast(err?.response?.data?.error || "Failed to remove logo", "error");
     }
   };
 
@@ -75,48 +75,48 @@ export default function AdminCategories() {
     if (!editing) return;
     setSaving(true);
     try {
-      await api.patch(`/admin/categories/${editing.id}`, {
+      await api.patch(`/admin/brands/${editing.id}`, {
         name: editing.name,
         description: editing.description || "",
       });
-      showToast("Category updated");
+      showToast("Brand updated");
       setEditing(null);
       await load();
     } catch (err: any) {
-      showToast(err?.response?.data?.error || "Failed to update category", "error");
+      showToast(err?.response?.data?.error || "Failed to update brand", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const createCategory = async () => {
+  const createBrand = async () => {
     if (!draft.name.trim()) return;
     setSaving(true);
     try {
-      await api.post("/admin/categories", {
+      await api.post("/admin/brands", {
         name: draft.name,
         description: draft.description || "",
       });
-      showToast("Category created");
+      showToast("Brand created");
       setCreating(false);
       setDraft({ name: "", description: "" });
       await load();
     } catch (err: any) {
-      showToast(err?.response?.data?.error || "Failed to create category", "error");
+      showToast(err?.response?.data?.error || "Failed to create brand", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteCategory = async (cat: Category) => {
-    if (!confirm(`Delete category "${cat.name}"? This cannot be undone.`)) return;
-    setDeletingId(cat.id);
+  const deleteBrand = async (brand: Brand) => {
+    if (!confirm(`Delete brand "${brand.name}"? This cannot be undone.`)) return;
+    setDeletingId(brand.id);
     try {
-      await api.delete(`/admin/categories/${cat.id}`);
-      showToast("Category deleted");
+      await api.delete(`/admin/brands/${brand.id}`);
+      showToast("Brand deleted");
       await load();
     } catch (err: any) {
-      showToast(err?.response?.data?.error || "Failed to delete category", "error");
+      showToast(err?.response?.data?.error || "Failed to delete brand", "error");
     } finally {
       setDeletingId(null);
     }
@@ -127,16 +127,16 @@ export default function AdminCategories() {
       <Container>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gw-black">Manage Categories</h2>
-            <p className="text-sm text-gw-gray-500 mt-1">{categories.length} categories</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gw-black">Manage Brands</h2>
+            <p className="text-sm text-gw-gray-500 mt-1">{brands.length} brands</p>
           </div>
           <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus className="w-4 h-4 mr-1.5" /> Add Category
+            <Plus className="w-4 h-4 mr-1.5" /> Add Brand
           </Button>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-gw-gray-500 animate-pulse">Loading categories…</div>
+          <div className="text-center py-16 text-gw-gray-500 animate-pulse">Loading brands…</div>
         ) : (
           <motion.div
             variants={staggerContainer}
@@ -144,32 +144,32 @@ export default function AdminCategories() {
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {categories.map((cat) => {
-              const uploading = uploadingId === cat.id;
+            {brands.map((brand) => {
+              const uploading = uploadingId === brand.id;
               return (
                 <motion.div
-                  key={cat.id}
+                  key={brand.id}
                   variants={staggerItem}
                   layout
                   className="gw-panel overflow-hidden flex flex-col"
                 >
-                  {/* Photo */}
+                  {/* Logo */}
                   <div className="relative aspect-[4/3] bg-white">
-                    {cat.image ? (
+                    {brand.logo ? (
                       <img
-                        src={cat.image}
-                        alt={cat.name}
-                        className="w-full h-full object-contain p-4"
+                        src={brand.logo}
+                        alt={brand.name}
+                        className="w-full h-full object-contain p-6"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gw-gray-300">
                         <ImagePlus className="w-10 h-10" />
-                        <span className="text-xs font-medium">No photo yet</span>
+                        <span className="text-xs font-medium">No logo yet</span>
                       </div>
                     )}
                     <Badge className="absolute top-3 left-3 bg-gw-black text-white">
                       <Package className="w-3 h-3 mr-1" />
-                      {cat.count} products
+                      {brand.count} products
                     </Badge>
                     {uploading && (
                       <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-sm font-semibold text-gw-red animate-pulse">
@@ -181,20 +181,20 @@ export default function AdminCategories() {
                   {/* Details */}
                   <div className="p-5 flex flex-col gap-3 flex-1">
                     <div>
-                      <h3 className="font-bold text-gw-black text-lg">{cat.name}</h3>
-                      <p className="text-xs text-gw-gray-400 font-mono">/{cat.slug}</p>
+                      <h3 className="font-bold text-gw-black text-lg">{brand.name}</h3>
+                      <p className="text-xs text-gw-gray-400 font-mono">/{brand.slug}</p>
                     </div>
-                    {cat.description && (
-                      <p className="text-sm text-gw-gray-500 leading-relaxed line-clamp-2">{cat.description}</p>
+                    {brand.description && (
+                      <p className="text-sm text-gw-gray-500 leading-relaxed line-clamp-2">{brand.description}</p>
                     )}
 
                     {/* Hidden file input per card */}
                     <input
-                      ref={(el) => { fileRefs.current[cat.id] = el; }}
+                      ref={(el) => { fileRefs.current[brand.id] = el; }}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       className="hidden"
-                      onChange={(e) => handleUpload(cat, e.target.files?.[0])}
+                      onChange={(e) => handleUpload(brand, e.target.files?.[0])}
                     />
 
                     <div className="mt-auto pt-1 flex flex-wrap gap-2">
@@ -202,7 +202,7 @@ export default function AdminCategories() {
                         variant="dark"
                         size="sm"
                         className="flex-1 min-w-[110px]"
-                        onClick={() => setEditing({ ...cat })}
+                        onClick={() => setEditing({ ...brand })}
                       >
                         <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
                       </Button>
@@ -211,18 +211,18 @@ export default function AdminCategories() {
                         size="sm"
                         className="flex-1 min-w-[110px]"
                         disabled={uploading}
-                        onClick={() => fileRefs.current[cat.id]?.click()}
+                        onClick={() => fileRefs.current[brand.id]?.click()}
                       >
                         <ImagePlus className="w-3.5 h-3.5 mr-1.5" />
-                        {cat.image ? "Replace" : "Add Photo"}
+                        {brand.logo ? "Replace" : "Add Logo"}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-gw-red hover:text-gw-red disabled:opacity-30"
-                        disabled={!cat.image || uploading}
-                        onClick={() => handleRemovePhoto(cat)}
-                        aria-label={`Remove ${cat.name} photo`}
+                        disabled={!brand.logo || uploading}
+                        onClick={() => handleRemoveLogo(brand)}
+                        aria-label={`Remove ${brand.name} logo`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -231,11 +231,11 @@ export default function AdminCategories() {
                       variant="ghost"
                       size="sm"
                       className="text-gw-gray-400 hover:text-gw-red justify-start px-0"
-                      isLoading={deletingId === cat.id}
-                      disabled={deletingId === cat.id}
-                      onClick={() => deleteCategory(cat)}
+                      isLoading={deletingId === brand.id}
+                      disabled={deletingId === brand.id}
+                      onClick={() => deleteBrand(brand)}
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete category
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete brand
                     </Button>
                   </div>
                 </motion.div>
@@ -264,7 +264,7 @@ export default function AdminCategories() {
               className="gw-panel w-full max-w-md max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gw-border sticky top-0 bg-white z-10">
-                <h4 className="font-bold text-gw-black">Add Category</h4>
+                <h4 className="font-bold text-gw-black">Add Brand</h4>
                 <button onClick={() => !saving && setCreating(false)} className="text-gw-gray-300 hover:text-gw-red transition-colors">
                   <X className="w-5 h-5" />
                 </button>
@@ -274,7 +274,7 @@ export default function AdminCategories() {
                   label="Name *"
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="e.g. Charger, Headphone, Smart Band"
+                  placeholder="e.g. Xiaomi, Anker, Baseus"
                 />
                 <div>
                   <label className="block text-xs font-medium text-gw-gray-500 mb-1.5">Description</label>
@@ -283,15 +283,15 @@ export default function AdminCategories() {
                     onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                     rows={3}
                     className="w-full rounded-xl border border-gw-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gw-red/40 focus:border-gw-red"
-                    placeholder="Short description shown on the storefront"
+                    placeholder="Short brand description (optional)"
                   />
                 </div>
                 <p className="text-xs text-gw-gray-400">
                   A URL-friendly slug is generated automatically from the name.
                 </p>
                 <div className="flex gap-3 pt-1">
-                  <Button variant="primary" className="flex-1" isLoading={saving} disabled={!draft.name.trim()} onClick={createCategory}>
-                    Create Category
+                  <Button variant="primary" className="flex-1" isLoading={saving} disabled={!draft.name.trim()} onClick={createBrand}>
+                    Create Brand
                   </Button>
                   <Button variant="ghost" className="flex-1" disabled={saving} onClick={() => setCreating(false)}>
                     Cancel
@@ -322,7 +322,7 @@ export default function AdminCategories() {
               className="gw-panel w-full max-w-md max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gw-border sticky top-0 bg-white z-10">
-                <h4 className="font-bold text-gw-black">Edit Category</h4>
+                <h4 className="font-bold text-gw-black">Edit Brand</h4>
                 <button onClick={() => !saving && setEditing(null)} className="text-gw-gray-300 hover:text-gw-red transition-colors">
                   <X className="w-5 h-5" />
                 </button>

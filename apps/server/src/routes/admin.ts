@@ -7,6 +7,7 @@ import { success, error } from "../utils/response.js";
 import {
   uploadImage,
   uploadCategoryImage,
+  uploadBrandImage,
   deleteImage,
   isAllowedImage,
   type UploadedImage,
@@ -683,6 +684,202 @@ adminRoutes.delete("/categories/:id/image", async (c) => {
     .where(eq(schema.categories.id, id))
     .returning();
   return success(c, updated, "Category photo removed");
+});
+
+// ─── Brands ───────────────────────────────────────────────────────
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+adminRoutes.get("/brands", async (c) => {
+  const rows = await db
+    .select({
+      id: schema.brands.id,
+      name: schema.brands.name,
+      slug: schema.brands.slug,
+      logo: schema.brands.logo,
+      description: schema.brands.description,
+      createdAt: schema.brands.createdAt,
+      count: sql`count(${schema.products.id})::int`,
+    })
+    .from(schema.brands)
+    .leftJoin(
+      schema.products,
+      and(eq(schema.products.brandId, schema.brands.id), isNull(schema.products.deletedAt)),
+    )
+    .groupBy(schema.brands.id)
+    .orderBy(schema.brands.name);
+  return success(c, rows);
+});
+
+/** POST /brands — create a brand (name required; slug auto-generated & unique). */
+adminRoutes.post("/brands", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const name = String(body.name ?? "").trim();
+  if (!name) return error(c, 400, "Brand name is required");
+
+  const baseSlug = slugify(name);
+  if (!baseSlug) return error(c, 400, "Brand name must contain letters or numbers");
+
+  let slug = baseSlug;
+  for (let suffix = 2; ; suffix++) {
+    const existing = await db.select({ id: schema.brands.id }).from(schema.brands).where(eq(schema.brands.slug, slug)).limit(1);
+    if (existing.length === 0) break;
+    slug = `${baseSlug}-${suffix}`;
+  }
+
+  const [brand] = await db
+    .insert(schema.brands)
+    .values({ name, slug, description: body.description ? String(body.description).trim() : null })
+    .returning();
+  return success(c, brand, "Brand created");
+});
+
+/** PATCH /brands/:id — name/description only (slug is read-only). */
+adminRoutes.patch("/brands/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+
+  const updates: Record<string, unknown> = {};
+  if (typeof body.name === "string" && body.name.trim()) updates.name = body.name.trim();
+  if (typeof body.description === "string") updates.description = body.description.trim() || null;
+  if (Object.keys(updates).length === 0) return error(c, 400, "Nothing to update");
+
+  const [brand] = await db
+    .update(schema.brands)
+    .set(updates)
+    .where(eq(schema.brands.id, id))
+    .returning();
+  if (!brand) return error(c, 404, "Brand not found");
+  return success(c, brand, "Brand updated");
+});
+
+/** DELETE /brands/:id — blocked while products reference the brand. */
+adminRoutes.delete("/brands/:id", async (c) => {
+  const id = c.req.param("id");
+  const [brand] = await db.select().from(schema.brands).where(eq(schema.brands.id, id)).limit(1);
+  if (!brand) return error(c, 404, "Brand not found");
+
+  const [countRow] = await db
+    .select({ count: sql`count(*)` })
+    .from(schema.products)
+    .where(and(eq(schema.products.brandId, id), isNull(schema.products.deletedAt)));
+  if (Number(countRow?.count ?? 0) > 0) {
+    return error(c, 409, `Cannot delete — ${countRow.count} product(s) still use this brand. Reassign them first.`);
+  }
+
+  if (brand.logo) await deleteImage(brand.logo).catch(() => {});
+  await db.delete(schema.brands).where(eq(schema.brands.id, id));
+  return success(c, null, "Brand deleted");
+});
+
+/** POST /brands/:id/image — multipart "image" file; replaces the old logo. */
+adminRoutes.post("/brands/:id/image", async (c) => {
+  const id = c.req.param("id");
+  const [brand] = await db
+    .select({ id: schema.brands.id, logo: schema.brands.logo })
+    .from(schema.brands)
+    .where(eq(schema.brands.id, id))
+    .limit(1);
+  if (!brand) return error(c, 404, "Brand not found");
+
+  const body = await c.req.parseBody({ all: true });
+  const raw = body["image"];
+  if (Array.isArray(raw) && raw.filter((f) => f instanceof File).length > 1) {
+    return error(c, 400, "A brand can have exactly one logo — send a single image file");
+  }
+  const file = Array.isArray(raw) ? raw.find((f) => f instanceof File) : raw;
+  if (!(file instanceof File) || file.size === 0) return error(c, 400, "No image file provided");
+  if (!isAllowedImage(file)) {
+    return error(c, 400, "Invalid image. Allowed types: JPG, JPEG, PNG, WEBP (max 5MB).");
+  }
+
+  const uploaded = await uploadBrandImage(file, id);
+  try {
+    await db
+      .update(schema.brands)
+      .set({ logo: uploaded.url })
+      .where(eq(schema.brands.id, id));
+  } catch (err) {
+    await deleteImage(uploaded.path).catch(() => {});
+    throw err;
+  }
+
+  const previous = brand.logo;
+  if (previous) await deleteImage(previous).catch(() => {});
+
+  return success(c, { ...brand, logo: uploaded.url, imagePath: uploaded.path }, "Brand logo updated");
+});
+
+/** DELETE /brands/:id/image — removes the logo from storage + DB. */
+adminRoutes.delete("/brands/:id/image", async (c) => {
+  const id = c.req.param("id");
+  const [brand] = await db
+    .select({ id: schema.brands.id, logo: schema.brands.logo })
+    .from(schema.brands)
+    .where(eq(schema.brands.id, id))
+    .limit(1);
+  if (!brand) return error(c, 404, "Brand not found");
+
+  if (brand.logo) await deleteImage(brand.logo);
+  const [updated] = await db
+    .update(schema.brands)
+    .set({ logo: null })
+    .where(eq(schema.brands.id, id))
+    .returning();
+  return success(c, updated, "Brand logo removed");
+});
+
+/** POST /categories — create a category (name required; slug auto & unique). */
+adminRoutes.post("/categories", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const name = String(body.name ?? "").trim();
+  if (!name) return error(c, 400, "Category name is required");
+
+  const baseSlug = slugify(name);
+  if (!baseSlug) return error(c, 400, "Category name must contain letters or numbers");
+
+  let slug = baseSlug;
+  for (let suffix = 2; ; suffix++) {
+    const existing = await db
+      .select({ id: schema.categories.id })
+      .from(schema.categories)
+      .where(eq(schema.categories.slug, slug))
+      .limit(1);
+    if (existing.length === 0) break;
+    slug = `${baseSlug}-${suffix}`;
+  }
+
+  const [category] = await db
+    .insert(schema.categories)
+    .values({ name, slug, description: body.description ? String(body.description).trim() : null })
+    .returning();
+  return success(c, category, "Category created");
+});
+
+/** DELETE /categories/:id — blocked while products reference the category. */
+adminRoutes.delete("/categories/:id", async (c) => {
+  const id = c.req.param("id");
+  const [category] = await db.select().from(schema.categories).where(eq(schema.categories.id, id)).limit(1);
+  if (!category) return error(c, 404, "Category not found");
+
+  const [countRow] = await db
+    .select({ count: sql`count(*)` })
+    .from(schema.products)
+    .where(and(eq(schema.products.categoryId, id), isNull(schema.products.deletedAt)));
+  if (Number(countRow?.count ?? 0) > 0) {
+    return error(c, 409, `Cannot delete — ${countRow.count} product(s) still use this category. Reassign them first.`);
+  }
+
+  if (category.image) await deleteImage(category.image).catch(() => {});
+  await db.delete(schema.categories).where(eq(schema.categories.id, id));
+  return success(c, null, "Category deleted");
 });
 
 // ─── Users ────────────────────────────────────────────────────────

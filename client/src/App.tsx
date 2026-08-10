@@ -35,6 +35,7 @@ import AdminProductForm from "./pages/admin/AdminProductForm";
 import AdminProductDetail from "./pages/admin/AdminProductDetail";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminBrands from "./pages/admin/AdminBrands";
 
 export default function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="products/:id" element={<PageTransition><AdminProductDetail /></PageTransition>} />
               <Route path="products/:id/edit" element={<PageTransition><AdminProductForm /></PageTransition>} />
               <Route path="categories" element={<PageTransition><AdminCategories /></PageTransition>} />
+              <Route path="brands" element={<PageTransition><AdminBrands /></PageTransition>} />
               <Route path="orders" element={<PageTransition><AdminOrders /></PageTransition>} />
             </Route>
             <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

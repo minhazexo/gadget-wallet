@@ -97,6 +97,50 @@ export function buildCategoryStoragePath(categoryId: string, fileName: string): 
   return `${BUCKET}/categories/${categoryId}/${fileName}`;
 }
 
+/** Brand logo images live at products/brands/{brandId}/{fileName}. */
+export function buildBrandStoragePath(brandId: string, fileName: string): string {
+  return `${BUCKET}/brands/${brandId}/${fileName}`;
+}
+
+/**
+ * Uploads a brand logo to Supabase Storage (or local disk in dev) under the
+ * brands namespace. Mirrors uploadImage().
+ */
+export async function uploadBrandImage(file: File, brandId: string): Promise<UploadedImage> {
+  if (!supabase) {
+    if (isProduction) {
+      throw new Error(
+        "Supabase Storage is not configured. Set a real SUPABASE_SERVICE_ROLE_KEY (server-side env var) before uploading images.",
+      );
+    }
+    const fileName = sanitizeFileName(file.name);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const dir = join(UPLOADS_DIR, "products", "brands", brandId);
+    mkdirSync(dir, { recursive: true });
+    await writeFile(join(dir, fileName), buffer);
+    return {
+      url: `/uploads/products/brands/${brandId}/${fileName}`,
+      path: buildBrandStoragePath(brandId, fileName),
+    };
+  }
+
+  const fileName = sanitizeFileName(file.name);
+  const storagePath = buildBrandStoragePath(brandId, fileName);
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabase.storage.from(BUCKET).upload(storagePath, buffer, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) {
+    console.error(`[storage] Supabase upload failed for ${storagePath}:`, error.message);
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  return { url: data.publicUrl, path: storagePath };
+}
+
 /**
  * Uploads a category cover photo to Supabase Storage (or local disk in dev)
  * under the categories namespace. Mirrors uploadImage().
@@ -205,10 +249,12 @@ export function extractStoragePath(pathOrUrl: string): string | null {
 
   // Only allow paths under products/<uuid>/<file> (product images),
   // products/categories/<uuid>/<file> (category covers),
+  // products/brands/<uuid>/<file> (brand logos),
   // products/avatars/<userId>/<file> (profile photos), or legacy flat
   // products/<file>.
   if (/^products\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
   if (/^products\/categories\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
+  if (/^products\/brands\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
   if (/^products\/avatars\/[^/]+\/[^/]+$/.test(rel)) return rel;
   if (/^products\/[^/]+\.[a-zA-Z0-9]+$/.test(rel)) return rel;
   return null;

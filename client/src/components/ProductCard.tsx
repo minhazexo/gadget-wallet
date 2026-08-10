@@ -58,16 +58,27 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
             -{discount}%
           </span>
         )}
-        <img
-          src={
-            product.thumbnailUrl ||
-            product.images?.[0]?.url ||
-            `https://picsum.photos/seed/${product.slug}/400/400`
-          }
-          alt={product.name}
-          className="w-full aspect-square object-contain transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-        />
+        <div className="relative w-full aspect-square">
+          <img
+            src={
+              product.thumbnailUrl ||
+              product.images?.[0]?.url ||
+              `https://picsum.photos/seed/${product.slug}/400/400`
+            }
+            alt={product.name}
+            className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105 group-hover:opacity-0"
+            loading="lazy"
+          />
+          {product.images && product.images.length > 1 && (
+            <img
+              src={product.images[1].url}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 w-full h-full object-contain opacity-0 scale-105 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100"
+              loading="lazy"
+            />
+          )}
+        </div>
       </div>
       <div className="px-3 md:px-4 pb-3 md:pb-4">
         <h3 className="text-[15px] font-semibold text-gw-black leading-snug line-clamp-2 min-h-[2.75rem] md:min-h-[3rem]">

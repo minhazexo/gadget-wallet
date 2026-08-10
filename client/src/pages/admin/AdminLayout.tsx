@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, FolderOpen, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, FolderOpen, BadgePercent, LogOut, Menu, X } from "lucide-react";
 import { Link, Outlet, useLocation, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,7 @@ const sidebarLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
+  { label: "Brands", href: "/admin/brands", icon: BadgePercent },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
 ];
 

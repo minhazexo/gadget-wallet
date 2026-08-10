@@ -42,6 +42,10 @@ const { default: adminProducts } = await import("../api-handlers/admin/products.
 const { default: adminOrders } = await import("../api-handlers/admin/orders.js");
 const { default: adminDashboard } = await import("../api-handlers/admin/dashboard.js");
 const { default: adminCategories } = await import("../api-handlers/admin/categories.js");
+const { default: adminBrands } = await import("../api-handlers/admin/brands.js");
+const { default: adminBrandDetail } = await import("../api-handlers/admin/brands/[id].js");
+const { default: adminBrandImage } = await import("../api-handlers/admin/brands/[id]/image.js");
+const { default: adminCategoryDetail } = await import("../api-handlers/admin/categories/[id].js");
 const { default: productsList } = await import("../api-handlers/products/index.js");
 const { default: productsFeatured } = await import("../api-handlers/products/featured.js");
 const { default: productsNewArrivals } = await import("../api-handlers/products/new-arrivals.js");
@@ -108,6 +112,9 @@ for (const [name, handler] of [
   ["admin/orders", adminOrders],
   ["admin/dashboard", adminDashboard],
   ["admin/categories", adminCategories],
+  ["admin/brands", adminBrands],
+  ["admin/brands/:id", adminBrandDetail],
+  ["admin/brands/:id/image", adminBrandImage],
 ]) {
   res = makeRes();
   await handler(req("GET", {}), res);
@@ -123,6 +130,35 @@ check("admin/products with token -> 200", res.statusCode === 200, `status=${res.
 res = makeRes();
 await adminCategories({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, res);
 check("admin/categories with token -> 200 + counts", res.statusCode === 200 && Array.isArray(res.body?.data) && res.body?.data?.every((c) => typeof c.count === "number"), `status=${res.statusCode}, rows=${res.body?.data?.length}`);
+
+// --- admin/brands WITH token (uses DB) ---
+res = makeRes();
+await adminBrands({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, res);
+check("admin/brands with token -> 200 + counts", res.statusCode === 200 && Array.isArray(res.body?.data) && res.body?.data?.every((b) => typeof b.count === "number"), `status=${res.statusCode}, rows=${res.body?.data?.length}`);
+
+// brand delete guard: deleting a brand that has products -> 409
+const brandWithProducts = (await (async () => {
+  const r = makeRes();
+  await adminBrands({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, r);
+  return (r.body?.data || []).find((b) => b.count > 0);
+})());
+if (brandWithProducts) {
+  res = makeRes();
+  await adminBrandDetail({ ...req("DELETE", { id: brandWithProducts.id }), headers: { authorization: `Bearer ${adminToken}` } }, res);
+  check("admin/brands/:id DELETE in-use brand -> 409", res.statusCode === 409, `status=${res.statusCode}, brand=${brandWithProducts.name}`);
+}
+
+// category delete guard: deleting a category that has products -> 409
+const categoryWithProducts = (await (async () => {
+  const r = makeRes();
+  await adminCategories({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, r);
+  return (r.body?.data || []).find((c) => c.count > 0);
+})());
+if (categoryWithProducts) {
+  res = makeRes();
+  await adminCategoryDetail({ ...req("DELETE", { id: categoryWithProducts.id }), headers: { authorization: `Bearer ${adminToken}` } }, res);
+  check("admin/categories/:id DELETE in-use category -> 409", res.statusCode === 409, `status=${res.statusCode}, category=${categoryWithProducts.name}`);
+}
 
 // --- public product endpoints (real DB, read-only) ---
 res = makeRes();

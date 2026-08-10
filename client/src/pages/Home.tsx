@@ -36,16 +36,12 @@ interface Category {
 }
 
 
-const brands = [
-  { name: "Xiaomi", slug: "xiaomi", img: "https://picsum.photos/seed/xiaomi/128" },
-  { name: "Realme", slug: "realme", img: "https://picsum.photos/seed/realme/128" },
-  { name: "Baseus", slug: "baseus", img: "https://picsum.photos/seed/baseus/128" },
-  { name: "Anker", slug: "anker", img: "https://picsum.photos/seed/anker/128" },
-  { name: "Samsung", slug: "samsung", img: "https://picsum.photos/seed/samsung/128" },
-  { name: "UGREEN", slug: "ugreen", img: "https://picsum.photos/seed/ugreen/128" },
-  { name: "QCY", slug: "qcy", img: "https://picsum.photos/seed/qcy/128" },
-  { name: "Haylou", slug: "haylou", img: "https://picsum.photos/seed/haylou/128" },
-];
+interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+}
 
 const reviews = [
   { name: "Alex M.", text: "Absolutely love my new MacBook! The delivery was incredibly fast and the packaging was premium.", rating: 5 },
@@ -59,6 +55,7 @@ export default function Home() {
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [onSale, setOnSale] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
   useEffect(() => {
     // Each section fetches independently so one failing endpoint can never
@@ -72,6 +69,9 @@ export default function Home() {
     // Popular Categories comes from the DB so admin-managed category photos
     // (and any future category) show up here automatically.
     api.get("/categories").then((c) => setCategories(c.data.data || [])).catch(() => {});
+    // Top Brands comes from the DB so admin-managed brand logos (and any
+    // future brand) show up here automatically.
+    api.get("/brands").then((b) => setBrands(b.data.data || [])).catch(() => {});
   }, []);
 
   return (
@@ -309,22 +309,28 @@ export default function Home() {
             viewport={{ once: true, amount: 0.1 }}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-5"
           >
-            {brands.map((brand) => (
+            {brands.slice(0, 12).map((brand) => (
               <motion.a
-                key={brand.slug}
+                key={brand.id}
                 variants={staggerItem}
                 href={`/shop?brand=${brand.slug}`}
                 whileHover={{ y: -5, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-gw-bg border border-gw-border rounded-card p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
+                className="bg-white border border-gw-border rounded-card p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gw-border p-3 flex items-center justify-center group-hover:border-gw-red/30 transition-colors">
-                  <img
-                    src={brand.img}
-                    alt={brand.name}
-                    className="w-full h-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
-                    loading="lazy"
-                  />
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gw-border p-2.5 flex items-center justify-center overflow-hidden group-hover:border-gw-red/30 transition-colors">
+                  {brand.logo ? (
+                    <img
+                      src={brand.logo}
+                      alt={`${brand.name} logo`}
+                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-lg md:text-xl font-extrabold text-gw-gray-400 group-hover:text-gw-red transition-colors">
+                      {brand.name.charAt(0)}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[11px] md:text-sm font-bold text-gw-black group-hover:text-gw-red transition-colors text-center leading-tight">
                   {brand.name}

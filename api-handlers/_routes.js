@@ -38,6 +38,9 @@ import adminProductDetail from "./admin/products/[id].js";
 import adminCategories from "./admin/categories.js";
 import adminCategoryDetail from "./admin/categories/[id].js";
 import adminCategoryImage from "./admin/categories/[id]/image.js";
+import adminBrands from "./admin/brands.js";
+import adminBrandDetail from "./admin/brands/[id].js";
+import adminBrandImage from "./admin/brands/[id]/image.js";
 import adminProductImages from "./admin/products/[id]/images.js";
 import adminImagesReorder from "./admin/products/[id]/images/reorder.js";
 import adminImageDetail from "./admin/products/[id]/images/[imageId].js";
@@ -115,6 +118,9 @@ export const routes = [
   { pattern: ["admin", "categories"], handler: adminCategories },
   { pattern: ["admin", "categories", ":id", "image"], handler: adminCategoryImage },
   { pattern: ["admin", "categories", ":id"], handler: adminCategoryDetail },
+  { pattern: ["admin", "brands"], handler: adminBrands },
+  { pattern: ["admin", "brands", ":id", "image"], handler: adminBrandImage },
+  { pattern: ["admin", "brands", ":id"], handler: adminBrandDetail },
   { pattern: ["admin", "products"], handler: adminProducts },
   { pattern: ["admin", "products", ":id"], handler: adminProductDetail },
   { pattern: ["admin", "products", ":id", "images"], handler: adminProductImages },
