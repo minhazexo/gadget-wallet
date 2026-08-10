@@ -2,29 +2,45 @@
 /**
  * GadgetWallet automated product-photo fetcher.
  *
- * For every catalog product it:
- *   1. Searches image search engines for official product photos (the same
- *      queries as docs/GadgetWallet_60_Product_Image_Search_Links.md).
- *   2. Downloads candidate images, validates them (real image bytes, min
- *      resolution) and prefers white-background product shots.
- *   3. Converts the chosen image to WEBP at 1200×1200 (white background,
- *      quality 82) via sharp.
- *   4. Saves it locally as assets/product-images/{category}/{slug}.webp
- *      (slug = the filename from the image search-links doc).
- *   5. Uploads it to Supabase (public `product-images` bucket, upsert).
- *   6. Updates the Neon database (product_images.url/image_path +
- *      products.thumbnail_url).
+ * SINGLE mode (default):
+ *   For every catalog product it:
+ *     1. Searches image search engines for official product photos (the same
+ *        queries as docs/GadgetWallet_60_Product_Image_Search_Links.md).
+ *     2. Downloads candidate images, validates them (real image bytes, min
+ *        resolution) and prefers white-background product shots.
+ *     3. Converts the chosen image to WEBP at 1200×1200 (white background,
+ *        quality 82) via sharp.
+ *     4. Saves it locally as assets/product-images/{category}/{slug}.webp.
+ *     5. Uploads it to Supabase (public `product-images` bucket, upsert).
+ *     6. Updates the Neon database (product_images.url/image_path +
+ *        products.thumbnail_url).
+ *
+ * GALLERY mode (--gallery):
+ *   Every product ends up with EXACTLY 3 images:
+ *     - image1 = the product's EXISTING photo (assets/product-images/{category}/{slug}.webp)
+ *       — it is NEVER replaced or removed, only relocated into the per-product
+ *       folder and kept as the cover.
+ *     - image2 + image3 = 2 NEW professional photos downloaded from the image
+ *       search (distinct from each other and from the existing cover).
+ *   Files are organised per product:
+ *     assets/product-images/{category}/{slug}/image1.webp
+ *     assets/product-images/{category}/{slug}/image2.webp
+ *     assets/product-images/{category}/{slug}/image3.webp
+ *   All 3 are uploaded to Supabase at {category}/{slug}/image{N}.webp and the
+ *   product_images rows are upserted BY ORDER (order 0 = the existing cover),
+ *   so the storefront gallery + card hover-swap work off real photos.
  *
  * Usage:
- *   bun run scripts/fetch-product-images.ts                  # all 60 products
- *   bun run scripts/fetch-product-images.ts --slug baseus-bipow-10000mah
+ *   bun run scripts/fetch-product-images.ts                  # all 60 products (single)
+ *   bun run scripts/fetch-product-images.ts --gallery        # all 60 products (3 photos each)
+ *   bun run scripts/fetch-product-images.ts --gallery --slug baseus-bipow-10000mah
  *   bun run scripts/fetch-product-images.ts --limit 5
  *   bun run scripts/fetch-product-images.ts --provider bing --delay 2000
  *   bun run scripts/fetch-product-images.ts --save-only      # no Supabase/DB
  *   bun run scripts/fetch-product-images.ts --force          # re-fetch existing
  *   bun run scripts/fetch-product-images.ts --no-convert     # keep original format
  *
- * Resumable: products whose target file already exists are skipped unless
+ * Resumable: products whose target files already exist are skipped unless
  * --force is passed. Be polite — the script rate-limits itself, but search
  * engines may still throttle long runs; if that happens, re-run and it will
  * continue where it left off.
@@ -33,11 +49,11 @@
  * material owned by the brand/retailer. Use this only for products you are
  * authorised to sell, and double-check each downloaded image before launch.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PRODUCTS, type CatalogProduct } from "../packages/db/src/catalog-bangladesh.js";
 import { searchImages, type ImageCandidate, type ImageProvider } from "./lib/image-search.js";
-import { uploadProductImage, isSupabaseConfigured } from "./lib/upload.js";
+import { uploadProductGallery, uploadProductImage, isSupabaseConfigured, type GalleryImage } from "./lib/upload.js";
 
 const ASSETS_DIR = join(process.cwd(), "assets", "product-images");
 const UA =
@@ -59,6 +75,7 @@ interface Options {
   delay: number;
   maxAttempts: number;
   minDim: number;
+  gallery: boolean;
 }
 
 function parseFlags(): Options {
@@ -74,6 +91,7 @@ function parseFlags(): Options {
     delay: 1200,
     maxAttempts: 6,
     minDim: 400,
+    gallery: false,
   };
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
@@ -92,6 +110,7 @@ function parseFlags(): Options {
       case "--no-convert": opts.noConvert = true; break;
       case "--no-white-check": opts.preferWhite = false; break;
       case "--no-thumbs": opts.allowThumbs = false; break;
+      case "--gallery": opts.gallery = true; break;
       case "--provider":
         {
           const p = next();
@@ -109,6 +128,8 @@ Usage: bun run scripts/fetch-product-images.ts [options]
 
   --slug <slug>          Only fetch one product (slug = filename minus .webp)
   --limit <n>            Only fetch the first n products
+  --gallery              Fetch up to 3 DISTINCT real photos per product into
+                         {category}/{slug}/image{N}.webp folders (default: single)
   --force                Re-fetch products that already have a saved image
   --provider <engine>    google | bing | duckduckgo | all (default all)
   --save-only            Download + save locally, skip Supabase/DB updates
@@ -245,6 +266,15 @@ interface DownloadResult {
   source: string;
 }
 
+function keyOf(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.host}${u.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
 /** Tries candidates until a good one is found; prefers white backgrounds. */
 async function pickImage(candidates: ImageCandidate[], opts: Options): Promise<DownloadResult | null> {
   const referer = "https://www.bing.com/";
@@ -288,6 +318,94 @@ async function pickImage(candidates: ImageCandidate[], opts: Options): Promise<D
   }
 
   return bestValid;
+}
+
+/**
+ * Gallery mode: collects up to `count` DISTINCT valid downloads from the
+ * candidate list. White-background shots are ranked first, then higher
+ * resolution, then the rest. Hotlink-protected candidates fall back to the
+ * Bing CDN thumbnail (only when --no-thumbs isn't set).
+ */
+async function pickGalleryImages(candidates: ImageCandidate[], count: number, opts: Options): Promise<DownloadResult[]> {
+  const referer = "https://www.bing.com/";
+  const collected: DownloadResult[] = [];
+  const seen = new Set<string>();
+  let attempts = 0;
+
+  for (const cand of candidates) {
+    if (collected.length >= count || attempts >= opts.maxAttempts * 3) break;
+    attempts++;
+
+    let buf = await downloadImage(cand.url, referer);
+    let usedUrl = cand.url;
+    let source: string = cand.source;
+    if (!buf && opts.allowThumbs && cand.thumbUrl) {
+      buf = await downloadImage(cand.thumbUrl, referer);
+      if (buf) {
+        usedUrl = cand.thumbUrl;
+        source = `${cand.source}/thumb`;
+      }
+    }
+    if (!buf) continue;
+
+    const key = keyOf(usedUrl);
+    if (seen.has(key)) continue;
+
+    const dims = await imageDimensions(buf);
+    if (dims && (dims.width < opts.minDim || dims.height < opts.minDim)) continue;
+
+    const whiteBg = opts.preferWhite ? await isWhiteBackground(buf) : null;
+    seen.add(key);
+    collected.push({ buffer: buf, url: usedUrl, ...(dims ?? {}), whiteBg, source });
+  }
+
+  // Rank: white-bg first, then by resolution, then original order.
+  collected.sort((a, b) => {
+    const wa = a.whiteBg === true ? 0 : a.whiteBg === null ? 1 : 2;
+    const wb = b.whiteBg === true ? 0 : b.whiteBg === null ? 1 : 2;
+    if (wa !== wb) return wa - wb;
+    const ra = (a.width ?? 0) * (a.height ?? 0);
+    const rb = (b.width ?? 0) * (b.height ?? 0);
+    return rb - ra;
+  });
+
+  return collected.slice(0, count);
+}
+
+/** Same as toWebp but returns null on failure (used for optional variants). */
+async function toWebpSafe(buf: Buffer): Promise<Buffer | null> {
+  try {
+    return await toWebp(buf);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads the product's cover photo: the existing flat photo
+ * {category}/{slug}.webp when present, otherwise the already-relocated
+ * {category}/{slug}/image1.webp (after the first gallery run the flat file
+ * is gone, so --force re-runs must read the cover from its new home).
+ */
+function existingCoverPhoto(p: CatalogProduct): Buffer | null {
+  const flat = join(ASSETS_DIR, p.categorySlug, p.imageFile);
+  if (existsSync(flat)) {
+    try {
+      return readFileSync(flat);
+    } catch {
+      /* fall through */
+    }
+  }
+  const slug = p.imageFile.replace(/\.(webp|jpe?g|png)$/i, "");
+  const relocated = join(ASSETS_DIR, p.categorySlug, slug, "image1.webp");
+  if (existsSync(relocated)) {
+    try {
+      return readFileSync(relocated);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 // ─── Orchestration ───────────────────────────────────────────────
@@ -339,6 +457,186 @@ async function processProduct(p: CatalogProduct, opts: Options): Promise<{ statu
   };
 }
 
+/**
+ * Gallery mode for one product. Builds {category}/{slug}/image{1,2,3}.webp:
+ *
+ *   image1 = the product's EXISTING photo (never replaced or removed — it is
+ *            copied into the per-product folder and stays the cover). If a
+ *            product somehow has no existing photo yet, the best search hit
+ *            is used as a one-off fallback.
+ *   image2 + image3 = 2 NEW professional photos downloaded from the search,
+ *            distinct from each other (and from the cover).
+ *
+ * Uploads all three (order 0 = the existing cover) and upserts DB rows by
+ * order when not --save-only. The old flat file is relocated into the folder
+ * (it is the same photo, now at {slug}/image1.webp).
+ */
+async function processProductGallery(
+  p: CatalogProduct,
+  opts: Options,
+): Promise<{ status: string; note?: string; viaThumb?: boolean }> {
+  const slug = p.imageFile.replace(/\.(webp|jpe?g|png)$/i, "");
+  const dir = join(ASSETS_DIR, p.categorySlug, slug);
+  const files = [1, 2, 3].map((n) => join(dir, `image${n}.webp`));
+  const allExist = files.every((f) => existsSync(f));
+
+  if (allExist && !opts.force) {
+    return { status: "skipped", note: "3 images already saved (use --force to re-fetch the two new ones)" };
+  }
+
+  mkdirSync(dir, { recursive: true });
+
+  // image1 — the EXISTING photo is sacred. Always reuse it, even with
+  // --force (which only re-downloads image2/image3).
+  const coverBuffer = existingCoverPhoto(p);
+  const coverSource = "existing-photo";
+  const flatExists = existsSync(join(ASSETS_DIR, p.categorySlug, p.imageFile));
+
+  const query = p.name;
+  const candidates = await searchImages(query, opts.provider);
+  if (candidates.length === 0) {
+    if (!coverBuffer) return { status: "no-results", note: query };
+    // No search results at all, but we still have the existing cover — fall
+    // back to cover-derived variants so the product keeps 3 images.
+    const images = await buildGalleryFromCover(p, coverBuffer, files);
+    if (!images) return { status: "no-results", note: query };
+    if (!opts.saveOnly) await uploadProductGallery(p.categorySlug, slug, images);
+    relocateFlat(p, flatExists);
+    return { status: "ok", note: "3 images (no search results — cover-derived variants)" };
+  }
+
+  // We need 2 NEW distinct photos. Ask for 3 so white-bg/higher-res ranking
+  // still yields two usable ones even when some candidates are rejected.
+  const picked = await pickGalleryImages(candidates, 3, opts);
+  const newOnes = picked.slice(0, 2);
+
+  const image2 = newOnes[0]?.buffer ?? null;
+  const image3 = newOnes[1]?.buffer ?? null;
+
+  if (!coverBuffer || !image2 || !image3) {
+    // Couldn't find 2 distinct real photos — fall back to cover-derived
+    // variants for the missing slots so every product still has 3 files.
+    const images = coverBuffer ? await buildGalleryFromCover(p, coverBuffer, files) : null;
+    if (!images) return { status: "download-failed", note: query };
+    if (!opts.saveOnly) await uploadProductGallery(p.categorySlug, slug, images);
+    relocateFlat(p, flatExists);
+    return {
+      status: "ok",
+      note: `3 images (cover-derived fallback — only ${newOnes.length} distinct search photo${newOnes.length === 1 ? "" : "s"} found)`,
+    };
+  }
+
+  const galleryBuffers: (Buffer | null)[] = [coverBuffer, image2, image3];
+
+  const images: GalleryImage[] = [];
+  for (let i = 0; i < 3; i++) {
+    const raw = galleryBuffers[i]!;
+    let outBuffer = raw;
+    let contentType = sniffImageType(raw) || "image/jpeg";
+    if (!opts.noConvert) {
+      const converted = await toWebpSafe(raw);
+      if (converted) {
+        outBuffer = converted;
+        contentType = "image/webp";
+      }
+    }
+    writeFileSync(files[i], outBuffer);
+    images.push({
+      file: `image${i + 1}.webp`,
+      buffer: outBuffer,
+      contentType,
+      order: i,
+      alt: `${p.name} — ${i === 0 ? "cover" : `view ${i + 1}`}`,
+    });
+  }
+
+  // Upload + DB update unless --save-only.
+  let urls: string[] = [];
+  if (!opts.saveOnly) {
+    urls = await uploadProductGallery(p.categorySlug, slug, images);
+  }
+
+  relocateFlat(p, flatExists);
+
+  const viaThumb = picked.some((d) => d.source.includes("thumb"));
+  return {
+    status: "ok",
+    note: `3 images (cover=${coverSource} + 2 new real photos)${urls.length ? ` → ${urls[0]} …` : ""}`,
+    viaThumb,
+  };
+}
+
+/**
+ * Builds a 3-image gallery where image2/image3 are generated from the cover
+ * (zoom/rotate variants) — last-resort fallback so no product ever has fewer
+ * than 3 images. The cover itself is always the untouched existing photo.
+ */
+async function buildGalleryFromCover(
+  p: CatalogProduct,
+  cover: Buffer,
+  files: string[],
+): Promise<GalleryImage[] | null> {
+  const sharp = await loadSharp();
+  if (!sharp) return null;
+
+  try {
+    // Normalise the cover to the 1200 box FIRST, then derive the crop math
+    // from the resized buffer's actual dimensions (extracting against the
+    // original metadata after resize would go out of bounds for large or
+    // non-square sources).
+    const base = await sharp(cover, { failOn: "none" })
+      .rotate()
+      .resize(1200, 1200, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 }, withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .toBuffer();
+    const meta = await sharp(base, { failOn: "none" }).metadata();
+    const w = meta.width ?? 1200;
+    const h = meta.height ?? 1200;
+
+    const zoom = await sharp(base, { failOn: "none" })
+      .extract({
+        left: Math.max(0, Math.floor((w - w * 0.56) / 2)),
+        top: Math.max(0, Math.floor((h - h * 0.56) / 2)),
+        width: Math.floor(w * 0.56),
+        height: Math.floor(h * 0.56),
+      })
+      .resize(1200, 1200, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+      .flatten({ background: "#ffffff" })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    const angled = await sharp(base, { failOn: "none" })
+      .rotate(-4, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
+      .resize(1200, 1200, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+      .flatten({ background: "#ffffff" })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    const coverWebp = await toWebpSafe(cover);
+    const coverType = coverWebp ? "image/webp" : sniffImageType(cover) || "image/jpeg";
+    const gallery: GalleryImage[] = [
+      { file: "image1.webp", buffer: coverWebp ?? cover, contentType: coverType, order: 0, alt: `${p.name} — cover` },
+      { file: "image2.webp", buffer: zoom, contentType: "image/webp", order: 1, alt: `${p.name} — close-up` },
+      { file: "image3.webp", buffer: angled, contentType: "image/webp", order: 2, alt: `${p.name} — angled view` },
+    ];
+    for (let i = 0; i < 3; i++) writeFileSync(files[i], gallery[i].buffer);
+    return gallery;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * After a successful gallery build, the flat file has been relocated into
+ * {slug}/image1.webp (same photo, new home) — remove the old flat copy so the
+ * asset tree only contains the per-product folders.
+ */
+function relocateFlat(p: CatalogProduct, existed: boolean) {
+  if (!existed) return;
+  const flat = join(ASSETS_DIR, p.categorySlug, p.imageFile);
+  if (existsSync(flat)) rmSync(flat);
+}
+
 async function main() {
   const opts = parseFlags();
 
@@ -361,8 +659,9 @@ async function main() {
     targets = PRODUCTS.slice(0, opts.limit);
   }
 
+  const mode = opts.gallery ? "gallery (3 photos)" : "single";
   console.log(
-    `Fetching photos for ${targets.length} product(s) | provider=${opts.provider} delay=${opts.delay}ms ` +
+    `Fetching photos for ${targets.length} product(s) | mode=${mode} provider=${opts.provider} delay=${opts.delay}ms ` +
       `white-check=${opts.preferWhite} convert=${!opts.noConvert} upload=${!opts.saveOnly}`,
   );
 
@@ -372,7 +671,7 @@ async function main() {
     const p = targets[i];
     process.stdout.write(`[${i + 1}/${targets.length}] ${p.name} ... `);
     try {
-      const res = await processProduct(p, opts);
+      const res = opts.gallery ? await processProductGallery(p, opts) : await processProduct(p, opts);
       console.log(res.status === "ok" ? `✅ ${res.note}` : `— ${res.status} (${res.note ?? ""})`);
       if (res.status === "ok") {
         summary.ok++;
@@ -398,7 +697,7 @@ async function main() {
   if (!opts.saveOnly) console.log("Supabase + Neon updated. Run with --save-only to skip uploads next time.");
   if (viaThumb.length > 0) {
     console.warn(
-      `\n⚠ ${viaThumb.length} product(s) used a low-res Bing thumbnail (original was hotlink-protected):\n  ` +
+      `\n⚠ ${viaThumb.length} product(s) used a low-res Bing thumbnail for at least one view (original was hotlink-protected):\n  ` +
         viaThumb.join("\n  ") +
         "\nCheck them on the storefront; re-run with --force later to retry a full-size photo.",
     );

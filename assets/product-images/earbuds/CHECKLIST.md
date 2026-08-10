@@ -1,9 +1,9 @@
 # earbuds — photo checklist
 
-Drop the 10 photos for this category in THIS folder with the exact filenames below, then run:
+Each product now has its own folder ({category}/{slug}/) with image1.webp (existing photo, kept) + image2.webp + image3.webp (new photos). Fetch them automatically with:
 
 ```bash
-bun run scripts/upload-catalog-images.ts
+bun run scripts/fetch-product-images.ts --gallery --slug <product-slug>
 ```
 
 | # | Product | Download from Google Images | Save as | Done |
