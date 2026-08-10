@@ -21,7 +21,7 @@ export default function AdminDashboard() {
     { label: "Total Products", value: stats.totalProducts, icon: Package, change: "+12%" },
     { label: "Total Orders", value: stats.totalOrders, icon: ShoppingCart, change: "+8%" },
     { label: "Total Users", value: stats.totalUsers, icon: Users, change: "+23%" },
-    { label: "Revenue", value: `$${stats.revenue.toLocaleString()}`, icon: DollarSign, change: "+15%" },
+    { label: "Revenue", value: `৳${stats.revenue.toLocaleString()}`, icon: DollarSign, change: "+15%" },
   ];
 
   return (
@@ -64,13 +64,13 @@ export default function AdminDashboard() {
                 <tr className="border-b border-gw-border/50">
                   <td className="py-3 px-2 font-medium text-gw-black">ORD-001</td>
                   <td className="py-3 px-2"><span className="gw-status-badge--compact bg-green-100 text-green-700">Delivered</span></td>
-                  <td className="py-3 px-2 text-right text-gw-black">$1,099.99</td>
+                  <td className="py-3 px-2 text-right text-gw-black">৳1,099.99</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">2024-01-20</td>
                 </tr>
                 <tr className="border-b border-gw-border/50">
                   <td className="py-3 px-2 font-medium text-gw-black">ORD-002</td>
                   <td className="py-3 px-2"><span className="gw-status-badge--compact bg-gray-100 text-gray-600">Shipped</span></td>
-                  <td className="py-3 px-2 text-right text-gw-black">$349.99</td>
+                  <td className="py-3 px-2 text-right text-gw-black">৳349.99</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">2024-01-19</td>
                 </tr>
               </tbody>

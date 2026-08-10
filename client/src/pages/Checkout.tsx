@@ -274,17 +274,17 @@ export default function Checkout() {
                         <p className="text-sm font-medium gw-text-body truncate">{it.name}</p>
                         <p className="gw-muted-xs">Qty: {it.quantity}</p>
                       </div>
-                      <p className="gw-heading-sm">${(it.price * it.quantity).toFixed(2)}</p>
+                      <p className="gw-heading-sm">৳{(it.price * it.quantity).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
                 <div className="space-y-2 mt-4 text-sm gw-muted-sm">
-                  <div className="flex justify-between"><span>Subtotal</span><span className="gw-text-body font-medium">${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Subtotal</span><span className="gw-text-body font-medium">৳{subtotal.toFixed(2)}</span></div>
                   <div className="flex justify-between"><span>Shipping</span><span className="text-gw-green font-medium">Free</span></div>
-                  <div className="flex justify-between"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Tax (8%)</span><span>৳{tax.toFixed(2)}</span></div>
                   <div className="border-t border-gw-border dark:border-gray-700 pt-3 flex justify-between font-bold text-lg">
                     <span className="gw-text-body">Total</span>
-                    <span className="text-gw-red">${total.toFixed(2)}</span>
+                    <span className="text-gw-red">৳{total.toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="mt-5">
@@ -294,7 +294,7 @@ export default function Checkout() {
                     </Button>
                   ) : (
                     <Button variant="primary" className="w-full h-12" isLoading={loading} onClick={handlePlaceOrder}>
-                      Place Order — ${total.toFixed(2)}
+                      Place Order — ৳{total.toFixed(2)}
                     </Button>
                   )}
                 </div>

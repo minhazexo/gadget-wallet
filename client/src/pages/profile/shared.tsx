@@ -132,7 +132,7 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function money(value: number | string | null | undefined) {
-  return `$${Number(value || 0).toFixed(2)}`;
+  return `৳${Number(value || 0).toFixed(2)}`;
 }
 
 export function formatDate(date?: string | Date) {

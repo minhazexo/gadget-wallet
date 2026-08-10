@@ -27,24 +27,24 @@ interface Product {
   isBestSeller: boolean;
 }
 
-const categories = [
-  { name: "Smartphones", slug: "smartphones", img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=128&q=80" },
-  { name: "Laptops", slug: "laptops", img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=128&q=80" },
-  { name: "Smartwatches", slug: "smartwatches", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&q=80" },
-  { name: "Headphones", slug: "headphones", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=128&q=80" },
-  { name: "Gaming", slug: "gaming", img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=128&q=80" },
-  { name: "Cameras", slug: "cameras", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=128&q=80" },
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string | null;
+  count: number;
+}
+
 
 const brands = [
-  { name: "Apple", slug: "apple", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&q=80" },
-  { name: "Samsung", slug: "samsung", img: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=128&q=80" },
-  { name: "Sony", slug: "sony", img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=128&q=80" },
-  { name: "ASUS", slug: "asus", img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=128&q=80" },
-  { name: "Logitech", slug: "logitech", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=128&q=80" },
-  { name: "Dell", slug: "dell", img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=128&q=80" },
-  { name: "Bose", slug: "bose", img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=128&q=80" },
-  { name: "Canon", slug: "canon", img: "https://picsum.photos/seed/canon/128" },
+  { name: "Xiaomi", slug: "xiaomi", img: "https://picsum.photos/seed/xiaomi/128" },
+  { name: "Realme", slug: "realme", img: "https://picsum.photos/seed/realme/128" },
+  { name: "Baseus", slug: "baseus", img: "https://picsum.photos/seed/baseus/128" },
+  { name: "Anker", slug: "anker", img: "https://picsum.photos/seed/anker/128" },
+  { name: "Samsung", slug: "samsung", img: "https://picsum.photos/seed/samsung/128" },
+  { name: "UGREEN", slug: "ugreen", img: "https://picsum.photos/seed/ugreen/128" },
+  { name: "QCY", slug: "qcy", img: "https://picsum.photos/seed/qcy/128" },
+  { name: "Haylou", slug: "haylou", img: "https://picsum.photos/seed/haylou/128" },
 ];
 
 const reviews = [
@@ -58,6 +58,7 @@ export default function Home() {
   const [featured, setFeatured] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [onSale, setOnSale] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     // Each section fetches independently so one failing endpoint can never
@@ -68,6 +69,9 @@ export default function Home() {
     // the featured grid, which mixed in non-discounted items with fake
     // "Sale" badges.
     api.get("/products?sale=1&limit=5").then((s) => setOnSale(s.data.data || [])).catch(() => {});
+    // Popular Categories comes from the DB so admin-managed category photos
+    // (and any future category) show up here automatically.
+    api.get("/categories").then((c) => setCategories(c.data.data || [])).catch(() => {});
   }, []);
 
   return (
@@ -176,7 +180,7 @@ export default function Home() {
             viewport={{ once: true, amount: 0.15 }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4"
           >
-            {categories.map((cat) => (
+            {categories.slice(0, 6).map((cat) => (
               <motion.a
                 key={cat.slug}
                 variants={staggerItem}
@@ -184,7 +188,11 @@ export default function Home() {
                 whileHover={{ y: -5, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
                 className="bg-white border border-gw-border rounded-category p-4 md:p-6 text-center transition-shadow duration-300 group"
               >
-                <img src={cat.img} alt={cat.name} className="w-12 h-12 md:w-16 md:h-16 object-contain mx-auto mb-2 md:mb-3" />
+                <img
+                  src={cat.image || `https://picsum.photos/seed/${cat.slug}/128`}
+                  alt={cat.name}
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain mx-auto mb-2 md:mb-3"
+                />
                 <p className="text-xs md:text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
               </motion.a>
             ))}

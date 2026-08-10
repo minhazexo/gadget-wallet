@@ -102,7 +102,7 @@ export default function AdminProducts() {
                         <span className="font-medium text-gw-black">{p.name}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right text-gw-black">${Number(p.price).toFixed(2)}</td>
+                    <td className="py-3 px-2 text-right text-gw-black">৳{Number(p.price).toFixed(2)}</td>
                     <td className="py-3 px-2 text-right text-gw-black">{p.stock}</td>
                     <td className="py-3 px-2 text-center space-x-1">
                       {p.isFeatured && <Badge variant="default">Featured</Badge>}

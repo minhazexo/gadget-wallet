@@ -41,6 +41,7 @@ const { default: adminLogin } = await import("../api-handlers/admin/login.js");
 const { default: adminProducts } = await import("../api-handlers/admin/products.js");
 const { default: adminOrders } = await import("../api-handlers/admin/orders.js");
 const { default: adminDashboard } = await import("../api-handlers/admin/dashboard.js");
+const { default: adminCategories } = await import("../api-handlers/admin/categories.js");
 const { default: productsList } = await import("../api-handlers/products/index.js");
 const { default: productsFeatured } = await import("../api-handlers/products/featured.js");
 const { default: productsNewArrivals } = await import("../api-handlers/products/new-arrivals.js");
@@ -106,6 +107,7 @@ for (const [name, handler] of [
   ["admin/products", adminProducts],
   ["admin/orders", adminOrders],
   ["admin/dashboard", adminDashboard],
+  ["admin/categories", adminCategories],
 ]) {
   res = makeRes();
   await handler(req("GET", {}), res);
@@ -116,6 +118,11 @@ for (const [name, handler] of [
 res = makeRes();
 await adminProducts({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, res);
 check("admin/products with token -> 200", res.statusCode === 200, `status=${res.statusCode}, rows=${res.body?.data?.length}`);
+
+// --- admin/categories WITH token (uses DB) ---
+res = makeRes();
+await adminCategories({ ...req("GET", {}), headers: { authorization: `Bearer ${adminToken}` } }, res);
+check("admin/categories with token -> 200 + counts", res.statusCode === 200 && Array.isArray(res.body?.data) && res.body?.data?.every((c) => typeof c.count === "number"), `status=${res.statusCode}, rows=${res.body?.data?.length}`);
 
 // --- public product endpoints (real DB, read-only) ---
 res = makeRes();

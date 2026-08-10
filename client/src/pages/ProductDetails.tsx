@@ -222,17 +222,17 @@ export default function ProductDetails() {
               transition={{ delay: 0.5 }}
               className="flex items-baseline gap-2 md:gap-3 mb-5 md:mb-6 flex-wrap"
             >
-              <span className="text-3xl md:text-4xl font-extrabold text-gw-red">${product.discountPrice || product.price}</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-gw-red">৳{product.discountPrice || product.price}</span>
               {product.discountPrice && (
                 <>
-                  <span className="text-lg md:text-xl text-gw-gray-400 line-through">${product.price}</span>
+                  <span className="text-lg md:text-xl text-gw-gray-400 line-through">৳{product.price}</span>
                   <motion.span
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.6, type: "spring" }}
                     className="text-xs md:text-sm font-bold text-gw-green bg-gw-green/10 px-2 md:px-2.5 py-0.5 rounded-full"
                   >
-                    Save ${(product.price - product.discountPrice).toFixed(2)}
+                    Save ৳{(product.price - product.discountPrice).toFixed(2)}
                   </motion.span>
                 </>
               )}
@@ -324,7 +324,7 @@ export default function ProductDetails() {
               className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 md:mb-8"
             >
               {[
-                { icon: Truck, label: "Free Shipping", sub: "On orders $100+" },
+                { icon: Truck, label: "Free Shipping", sub: "On orders ৳2,000+" },
                 { icon: Shield, label: "2 Year Warranty", sub: "Official" },
                 { icon: RotateCcw, label: "30-Day Returns", sub: "Hassle free" },
               ].map((item) => (
@@ -383,7 +383,9 @@ export default function ProductDetails() {
                 className="gw-panel-light overflow-hidden"
               >
                 <div className="divide-y divide-gw-border">
-                  {product.specs?.map((spec, i) => (
+                  {product.specs
+                    ?.filter((s) => s.key !== "keywords" && !s.key.startsWith("meta_"))
+                    .map((spec, i) => (
                     <motion.div
                       key={spec.key}
                       initial={{ opacity: 0, x: -10 }}

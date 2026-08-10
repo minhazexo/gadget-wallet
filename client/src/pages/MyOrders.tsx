@@ -75,7 +75,7 @@ export default function MyOrders() {
                   <span className="gw-muted">
                     {(order.items || []).reduce((s, it) => s + it.quantity, 0)} item(s)
                   </span>
-                  <span className="font-bold text-gw-red">${Number(order.total).toFixed(2)}</span>
+                  <span className="font-bold text-gw-red">৳{Number(order.total).toFixed(2)}</span>
                 </div>
               </Card>
             ))}

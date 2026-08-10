@@ -40,7 +40,7 @@ export default function AdminOrders() {
                       {o.status}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-right text-gw-black">${Number(o.total).toFixed(2)}</td>
+                  <td className="py-3 px-2 text-right text-gw-black">৳{Number(o.total).toFixed(2)}</td>
                   <td className="py-3 px-2 text-right text-gw-gray-500">{new Date(o.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}

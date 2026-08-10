@@ -259,11 +259,11 @@ export default function AdminProductDetail() {
                 className="flex items-baseline gap-3 mb-5"
               >
                 <span className="text-3xl font-extrabold text-gw-red">
-                  ${product.discountPrice || product.price}
+                  ৳{product.discountPrice || product.price}
                 </span>
                 {product.discountPrice && (
                   <>
-                    <span className="text-lg text-gw-gray-300 line-through">${product.price}</span>
+                    <span className="text-lg text-gw-gray-300 line-through">৳{product.price}</span>
                     <motion.span
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -363,7 +363,9 @@ export default function AdminProductDetail() {
                 <p className="text-sm text-gw-gray-500">No specifications added yet.</p>
               ) : (
                 <div className="divide-y divide-gw-border">
-                  {product.specs.map((spec, i) => (
+                  {product.specs
+                    .filter((s) => s.key !== "keywords" && !s.key.startsWith("meta_"))
+                    .map((spec, i) => (
                     <motion.div
                       key={spec.id}
                       initial={{ opacity: 0, x: -10 }}

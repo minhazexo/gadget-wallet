@@ -99,7 +99,7 @@ export default function Cart() {
                     <div className="flex-1 min-w-0">
                       <h3 className="gw-heading-md truncate">{item.name}</h3>
                       <p className="text-lg md:text-xl font-extrabold text-gw-red mt-0.5 md:mt-1">
-                        ${Number(item.discountPrice || item.price).toFixed(2)}
+                        ৳{Number(item.discountPrice || item.price).toFixed(2)}
                       </p>
                     </div>
                     <motion.button
@@ -143,7 +143,7 @@ export default function Cart() {
                       animate={{ opacity: 1 }}
                       className="font-bold text-gw-black dark:text-white text-sm md:text-base"
                     >
-                      ${(Number(item.discountPrice || item.price) * item.quantity).toFixed(2)}
+                      ৳{(Number(item.discountPrice || item.price) * item.quantity).toFixed(2)}
                     </motion.span>
                   </div>
                 </motion.div>
@@ -160,7 +160,7 @@ export default function Cart() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between gw-muted">
                     <span>Subtotal ({count} items)</span>
-                    <span className="gw-text-body font-medium">${subtotal.toFixed(2)}</span>
+                    <span className="gw-text-body font-medium">৳{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between gw-muted">
                     <span>Shipping</span>
@@ -168,7 +168,7 @@ export default function Cart() {
                   </div>
                   <div className="border-t border-gw-border dark:border-gray-700 pt-3 flex justify-between font-bold text-lg">
                     <span className="gw-text-body">Total</span>
-                    <span className="text-gw-red">${subtotal.toFixed(2)}</span>
+                    <span className="text-gw-red">৳{subtotal.toFixed(2)}</span>
                   </div>
                 </div>
                 <motion.div

@@ -509,7 +509,7 @@ export default function AdminProductForm() {
                   onChange={(e) => set("stock", Math.max(0, parseInt(e.target.value || "0", 10)))}
                 />
                 <Input
-                  label="Price (USD) *"
+                  label="Price (BDT) *"
                   type="number"
                   min={0}
                   step="0.01"

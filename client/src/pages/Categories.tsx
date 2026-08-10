@@ -23,6 +23,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  image?: string | null;
   count: number;
 }
 
@@ -78,7 +79,15 @@ export default function Categories() {
                 className="gw-panel-category p-4 md:p-6 text-center hover:-translate-y-1 hover:shadow-gw-md transition-all duration-300 group"
               >
                 <div className="w-10 h-10 md:w-14 md:h-14 mx-auto mb-2 md:mb-3 flex items-center justify-center">
-                  <Icon className="w-full h-full text-gw-red" />
+                  {cat.image ? (
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <Icon className="w-full h-full text-gw-red" />
+                  )}
                 </div>
                 <h3 className="gw-heading group-hover:text-gw-red transition-colors">{cat.name}</h3>
                 <p className="gw-muted-sm mt-1">{cat.count} products</p>

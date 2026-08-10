@@ -140,8 +140,8 @@ export default function Shop() {
                         <span className="text-xs text-gw-gray-500">{product.rating}</span>
                       </div>
                       <div className="mt-2 flex items-baseline gap-1 md:gap-2 flex-wrap">
-                        <span className="text-xl md:text-2xl font-extrabold text-gw-red">${product.discountPrice || product.price}</span>
-                        {product.discountPrice && <span className="text-sm text-gw-gray-400 line-through">${product.price}</span>}
+                        <span className="text-xl md:text-2xl font-extrabold text-gw-red">৳{product.discountPrice || product.price}</span>
+                        {product.discountPrice && <span className="text-sm text-gw-gray-400 line-through">৳{product.price}</span>}
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -197,8 +197,8 @@ export default function Shop() {
                         <span className="text-xs text-gw-gray-500">{product.rating}</span>
                       </div>
                       <div className="mt-2 flex items-baseline gap-1 md:gap-2 flex-wrap">
-                        <span className="text-xl md:text-2xl font-extrabold text-gw-red">${product.discountPrice || product.price}</span>
-                        {product.discountPrice && <span className="text-sm text-gw-gray-400 line-through">${product.price}</span>}
+                        <span className="text-xl md:text-2xl font-extrabold text-gw-red">৳{product.discountPrice || product.price}</span>
+                        {product.discountPrice && <span className="text-sm text-gw-gray-400 line-through">৳{product.price}</span>}
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}

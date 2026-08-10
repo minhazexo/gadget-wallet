@@ -79,10 +79,10 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
         </div>
         <div className="mt-1.5 md:mt-2 flex items-baseline gap-1 md:gap-2 flex-wrap">
           <span className="text-xl md:text-2xl font-extrabold text-gw-red">
-            ${product.discountPrice || product.price}
+            ৳{product.discountPrice || product.price}
           </span>
           {product.discountPrice && (
-            <span className="text-sm text-gw-gray-400 line-through">${product.price}</span>
+            <span className="text-sm text-gw-gray-400 line-through">৳{product.price}</span>
           )}
         </div>
         <motion.button

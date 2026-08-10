@@ -92,6 +92,50 @@ export function buildStoragePath(productId: string, fileName: string): string {
   return `${BUCKET}/${productId}/${fileName}`;
 }
 
+/** Category cover photos live at products/categories/{categoryId}/{fileName}. */
+export function buildCategoryStoragePath(categoryId: string, fileName: string): string {
+  return `${BUCKET}/categories/${categoryId}/${fileName}`;
+}
+
+/**
+ * Uploads a category cover photo to Supabase Storage (or local disk in dev)
+ * under the categories namespace. Mirrors uploadImage().
+ */
+export async function uploadCategoryImage(file: File, categoryId: string): Promise<UploadedImage> {
+  if (!supabase) {
+    if (isProduction) {
+      throw new Error(
+        "Supabase Storage is not configured. Set a real SUPABASE_SERVICE_ROLE_KEY (server-side env var) before uploading images.",
+      );
+    }
+    const fileName = sanitizeFileName(file.name);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const dir = join(UPLOADS_DIR, "products", "categories", categoryId);
+    mkdirSync(dir, { recursive: true });
+    await writeFile(join(dir, fileName), buffer);
+    return {
+      url: `/uploads/products/categories/${categoryId}/${fileName}`,
+      path: buildCategoryStoragePath(categoryId, fileName),
+    };
+  }
+
+  const fileName = sanitizeFileName(file.name);
+  const storagePath = buildCategoryStoragePath(categoryId, fileName);
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabase.storage.from(BUCKET).upload(storagePath, buffer, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) {
+    console.error(`[storage] Supabase upload failed for ${storagePath}:`, error.message);
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  return { url: data.publicUrl, path: storagePath };
+}
+
 export interface UploadedImage {
   /** Fully qualified public URL (what the browser loads). */
   url: string;
@@ -160,9 +204,11 @@ export function extractStoragePath(pathOrUrl: string): string | null {
   if (!rel) return null;
 
   // Only allow paths under products/<uuid>/<file> (product images),
+  // products/categories/<uuid>/<file> (category covers),
   // products/avatars/<userId>/<file> (profile photos), or legacy flat
   // products/<file>.
   if (/^products\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
+  if (/^products\/categories\/[0-9a-fA-F-]{36}\/[^/]+$/.test(rel)) return rel;
   if (/^products\/avatars\/[^/]+\/[^/]+$/.test(rel)) return rel;
   if (/^products\/[^/]+\.[a-zA-Z0-9]+$/.test(rel)) return rel;
   return null;

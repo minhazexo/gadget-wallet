@@ -6,6 +6,7 @@ import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { success, error } from "../utils/response.js";
 import {
   uploadImage,
+  uploadCategoryImage,
   deleteImage,
   isAllowedImage,
   type UploadedImage,
@@ -576,6 +577,112 @@ adminRoutes.delete("/products/:id/images/:imageId", async (c) => {
   }
 
   return success(c, null, "Image deleted");
+});
+
+// ─── Categories ──────────────────────────────────────────────────
+
+adminRoutes.get("/categories", async (c) => {
+  const rows = await db
+    .select({
+      id: schema.categories.id,
+      name: schema.categories.name,
+      slug: schema.categories.slug,
+      description: schema.categories.description,
+      image: schema.categories.image,
+      createdAt: schema.categories.createdAt,
+      updatedAt: schema.categories.updatedAt,
+      count: sql`count(${schema.products.id})::int`,
+    })
+    .from(schema.categories)
+    .leftJoin(
+      schema.products,
+      and(eq(schema.products.categoryId, schema.categories.id), isNull(schema.products.deletedAt)),
+    )
+    .groupBy(schema.categories.id)
+    .orderBy(schema.categories.name);
+  return success(c, rows);
+});
+
+/**
+ * PATCH /categories/:id — name/description only. Slug is read-only so
+ * storefront category URLs never break.
+ */
+adminRoutes.patch("/categories/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+
+  const updates: Record<string, unknown> = {};
+  if (typeof body.name === "string" && body.name.trim()) updates.name = body.name.trim();
+  if (typeof body.description === "string") updates.description = body.description.trim() || null;
+  if (Object.keys(updates).length === 0) return error(c, 400, "Nothing to update");
+
+  const [category] = await db
+    .update(schema.categories)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(schema.categories.id, id))
+    .returning();
+  if (!category) return error(c, 404, "Category not found");
+  return success(c, category, "Category updated");
+});
+
+/** POST /categories/:id/image — multipart "image" file; replaces the old cover. */
+adminRoutes.post("/categories/:id/image", async (c) => {
+  const id = c.req.param("id");
+  const [category] = await db
+    .select({ id: schema.categories.id, image: schema.categories.image })
+    .from(schema.categories)
+    .where(eq(schema.categories.id, id))
+    .limit(1);
+  if (!category) return error(c, 404, "Category not found");
+
+  const body = await c.req.parseBody({ all: true });
+  const raw = body["image"];
+  if (Array.isArray(raw) && raw.filter((f) => f instanceof File).length > 1) {
+    return error(c, 400, "A category can have exactly one photo — send a single image file");
+  }
+  const file = Array.isArray(raw) ? raw.find((f) => f instanceof File) : raw;
+  if (!(file instanceof File) || file.size === 0) return error(c, 400, "No image file provided");
+  if (!isAllowedImage(file)) {
+    return error(c, 400, "Invalid image. Allowed types: JPG, JPEG, PNG, WEBP (max 5MB).");
+  }
+
+  const uploaded = await uploadCategoryImage(file, id);
+  try {
+    // Persist the new URL first — the previous cover is only removed after
+    // the DB write succeeds, so a failure never leaves the DB pointing at a
+    // deleted file.
+    await db
+      .update(schema.categories)
+      .set({ image: uploaded.url, updatedAt: new Date() })
+      .where(eq(schema.categories.id, id));
+  } catch (err) {
+    await deleteImage(uploaded.path).catch(() => {});
+    throw err;
+  }
+
+  const previous = category.image;
+  if (previous) await deleteImage(previous).catch(() => {});
+
+  return success(c, { ...category, image: uploaded.url, imagePath: uploaded.path }, "Category photo updated");
+});
+
+/** DELETE /categories/:id/image — removes the cover from storage + DB. */
+adminRoutes.delete("/categories/:id/image", async (c) => {
+  const id = c.req.param("id");
+  const [category] = await db
+    .select({ id: schema.categories.id, image: schema.categories.image })
+    .from(schema.categories)
+    .where(eq(schema.categories.id, id))
+    .limit(1);
+  if (!category) return error(c, 404, "Category not found");
+
+  if (category.image) await deleteImage(category.image);
+  const [updated] = await db
+    .update(schema.categories)
+    .set({ image: null, updatedAt: new Date() })
+    .where(eq(schema.categories.id, id))
+    .returning();
+  return success(c, updated, "Category photo removed");
 });
 
 // ─── Users ────────────────────────────────────────────────────────

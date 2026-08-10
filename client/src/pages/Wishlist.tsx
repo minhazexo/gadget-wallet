@@ -122,7 +122,7 @@ export default function Wishlist() {
                 <div className="px-5 pb-5">
                   <h3 className="text-sm font-semibold text-gw-black truncate">{item.name}</h3>
                   <p className="text-2xl font-extrabold text-gw-red mt-2">
-                    ${Number(item.discountPrice || item.price).toFixed(2)}
+                    ৳{Number(item.discountPrice || item.price).toFixed(2)}
                   </p>
                   <motion.button
                     whileHover={{ scale: 1.02 }}

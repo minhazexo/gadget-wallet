@@ -48,15 +48,43 @@ export async function uploadImage(buffer, productId, filename, contentType) {
 }
 
 /**
- * Deletes a storage object. Accepts either a full public URL or the
- * products/... relative path (product_images.image_path).
+ * Uploads a buffer into the public "products" bucket at
+ * products/categories/{categoryId}/{file} — category cover photos.
+ * Returns { url, path }.
+ */
+export async function uploadCategoryImage(buffer, categoryId, filename, contentType) {
+  if (!supabase) throw new Error("Supabase Storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  const storagePath = `${BUCKET}/categories/${categoryId}/${sanitizeFileName(filename)}`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, { contentType, upsert: false });
+  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  return { url: data.publicUrl, path: storagePath };
+}
+
+/**
+ * Buckets that store product media. `product-images` holds the migrated
+ * Bangladesh catalog (one file per product, keyed by category folder);
+ * `products` holds admin/uploads images as before.
+ */
+const PRODUCT_BUCKETS = ["products", "product-images"];
+
+/**
+ * Deletes a storage object. Accepts either a full public URL or a
+ * bucket-relative path (product_images.image_path). Detects which bucket the
+ * path belongs to, so migrated (product-images) and admin-uploaded (products)
+ * images both clean up correctly.
  */
 export async function deleteImage(pathOrUrl) {
   if (!supabase || !pathOrUrl) return;
-  const marker = `/storage/v1/object/public/${BUCKET}/`;
-  let rel = null;
-  if (pathOrUrl.includes(marker)) rel = pathOrUrl.split(marker)[1];
-  else if (pathOrUrl.startsWith(`${BUCKET}/`)) rel = pathOrUrl;
-  if (!rel) return;
-  await supabase.storage.from(BUCKET).remove([rel]);
+  for (const bucket of PRODUCT_BUCKETS) {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    let rel = null;
+    if (pathOrUrl.includes(marker)) rel = pathOrUrl.split(marker)[1];
+    else if (pathOrUrl.startsWith(`${bucket}/`)) rel = pathOrUrl;
+    if (!rel) continue;
+    await supabase.storage.from(bucket).remove([rel]);
+    return;
+  }
 }
