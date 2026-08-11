@@ -456,3 +456,73 @@ Implement my provided 3D hover card effect into a production-ready React + Vite 
 # 20. Expected Result
 
 You will get a reusable **premium 3D product card component** that works with your GadgetWallet ecommerce system and looks similar to modern high-end electronics stores, fully integrated with React, Vite, dark mode, and your product database.
+
+---
+
+# 21. GadgetWallet Implementation Notes (already applied)
+
+This guide was written for a plain React + Vite layout, but GadgetWallet is a
+TypeScript monorepo. The 3D effect has been implemented natively. Do not
+re-create the files below as `.jsx` — the real equivalents already exist:
+
+| Guide file | Real location in GadgetWallet |
+| --- | --- |
+| `src/components/ProductCard3D.jsx` | `client/src/components/ProductCard.tsx` (markup + commerce logic) |
+| `src/components/ProductCard3D.css` | `client/src/styles/product-card-3d.css` (dedicated 3D CSS file, imported by `ProductCard.tsx`) |
+| VanillaTilt `script.js` | `client/src/components/useProductCard3D.ts` (dedicated JS/TS module — framer-motion springs, same feel, no dependency) |
+| `src/components/ProductsGrid.jsx` | Grids in `client/src/pages/Shop.tsx`, `Home.tsx`, `SearchResults.tsx` (they all render `<ProductCard/>`) |
+| `src/components/ThemeToggle.jsx` + `src/styles/theme.css` | Not needed — dark mode already exists via the `.dark` class (Tailwind `darkMode: "class"`) |
+| `src/pages/ProductsPage.jsx` | `client/src/pages/Shop.tsx` (real products from the Neon DB via `api-handlers`) |
+
+## Branding (teal/bronze → red)
+
+The guide proposes teal `#0ea5a4` + bronze `#b08d57`. GadgetWallet's actual
+brand is red (`gw-red` `#e11d2e`, hover `#c1121f`, primary `#E60023`). The
+implementation uses the red palette:
+
+- Glow shadow: `0 24px 48px rgba(225, 29, 46, 0.16)`
+- Animated circle: radial gradient of `rgba(225, 29, 46, …)`
+- Buy Now button: `bg-gw-red` → `hover:bg-gw-red-hover`
+
+## What was implemented (final architecture)
+
+The original effect's mechanics are preserved exactly — a perspective wrapper,
+`preserve-3d` chain, and `translateZ` depth layers:
+
+- DOM: `.gw-product-card-3d-wrap` (CSS `perspective: 900px` property) →
+  card anchor (`.gw-product-card`, `preserve-3d`, framer tilt) →
+  `.gw-product-card-3d-stage` (square, `preserve-3d`) → layers.
+- Depth pops on hover: circle `translateZ 0 → 35px`, image
+  `0 → 100px` (+`rotate(-6deg)`, centered with `translate3d(-50%,-50%,Z)`);
+  title / rating+price / buttons float at `115px` and slide into place.
+- Tilt: `useProductCard3D.ts` — `useSpring`-based `rotateX/rotateY` toward the
+  cursor (max 12°) + `scale 1.05`, exactly the VanillaTilt config
+  (`max:15, scale:1.05`), without the library.
+- Critical: the `perspective` PROPERTY is on the wrapper, NOT a
+  `perspective()` transform on the card — framer-motion 11.x ignores
+  `transformPerspective` in style transforms, which silently killed the depth
+  in earlier attempts.
+- Nothing between wrapper and layers clips or flattens 3D: `.gw-product-card`
+  has no `overflow-hidden` (it is `block` + rounded + bordered only).
+- Animation is transform/opacity only, `will-change: transform` on moving
+  layers, `cubic-bezier(0.22, 1, 0.36, 1)` easing.
+- Accessibility: `aria-label` on both buttons, visible `focus-visible` ring on
+  the card link, `useReducedMotion()` disables the tilt, and a
+  `prefers-reduced-motion: reduce` CSS block keeps everything static and
+  readable.
+- Hover-capable devices: title/price/actions hidden at rest and revealed by
+  sliding in. Touch devices (`@media (hover: hover) and (pointer: fine)` gate
+  inverted) and reduced-motion users get a static, always-visible layout.
+- The card now has **Add to Cart** + **Buy Now** (Buy Now = `addItem()` then
+  navigate to `/checkout`). Both require login and stop click bubbling so the
+  card link is not followed.
+- `Shop.tsx` grid view was refactored to render the shared `<ProductCard/>`
+  (removing its duplicate inline card); the list (row) view keeps
+  `gw-product-card-row` untouched.
+- Loading skeletons already exist (`packages/ui/src/skeleton.tsx`, used by
+  Shop/Home) and products come straight from the database, so guide steps
+  §12–§14 are already satisfied.
+- Cards stay white in both light and dark themes (product photos need a light
+  tile); the page background adapts via the existing `.dark` variables.
+- Verify against the §17 checklist in the running app:
+  `npm run dev` (repo root) or `npm run dev` inside `client/`.

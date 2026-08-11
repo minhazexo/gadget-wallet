@@ -1,0 +1,164 @@
+/*
+ * ─────────────────────────────────────────────────────────────
+ *  Gadget Wallet — product card 3D hover system (two-section card)
+ *
+ *  Faithful port of the original 3D card effect (see
+ *  docs/GadgetWallet-3D-Product-Card-AI-Guide.md and the original
+ *  HTML/CSS/JS source the guide was built from), adapted to a
+ *  two-section card:
+ *
+ *    card anchor (static, from index.css — `.gw-product-card`)
+ *      ┌ image zone ────────────────────────────────┐
+ *      │ wrap (perspective property)                │
+ *      │   tilt target (framer-motion) ← the ONLY   │
+ *      │     moving element — tilts toward cursor   │
+ *      │     stage (preserve-3d, square)            │
+ *      │       badge  → translateZ(120px)           │
+ *      │       circle → translateZ 0 → 35px hover   │
+ *      │       image  → translateZ 0 → 100px hover  │
+ *      └────────────────────────────────────────────┘
+ *      info section (static — NEVER animated)
+ *        name / rating / price / key features / CTAs
+ *
+ *  Rules:
+ *    · The 3D tilt applies ONLY to the upper image zone: the perspective
+ *      wrapper and the framer-motion tilt target live inside the image
+ *      zone. The info section below is a flat, always-visible block with
+ *      no hover effect.
+ *    · The `perspective` PROPERTY lives on the wrapper so the depth pops
+ *      work even when framer-motion is not animating (no-JS, reduced
+ *      motion) — a `perspective()` transform function on the card itself
+ *      is not enough (framer-motion 11.x ignores transformPerspective).
+ *    · Nothing between the wrapper and the layers may clip or flatten the
+ *      3D context: no overflow-hidden, no filter, no opacity < 1 on the
+ *      wrap/tilt/stage. The tile class `.gw-product-card` in index.css
+ *      must stay overflow-visible.
+ *    · Pops only animate transform — no layout — and `will-change` is set
+ *      on the moving layers.
+ *
+ *  Every class here is UNIQUE and owns exactly one pattern (gw- prefix
+ *  convention).
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/* ── Wrapper: provides the shared perspective for the IMAGE ZONE only ── */
+.gw-product-card-3d-wrap {
+  position: relative;
+  perspective: 900px;
+}
+
+/* Popped layers leave the card box; make the hovered card paint on top. */
+.gw-product-card-3d-wrap:hover {
+  z-index: 40;
+}
+
+/* ── Tilt target: the image zone — the ONLY moving element of the card.
+      Slightly recessed tile so the section split is visible; the 3D glow
+      hugs this zone (the info section below gets no hover effect). ── */
+.gw-product-card-3d-tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  border-radius: 24px 24px 0 0;
+  background: #f8f9fb;
+  will-change: transform;
+  transition: box-shadow 0.45s ease;
+}
+
+.gw-product-card-3d-wrap:hover .gw-product-card-3d-tilt {
+  box-shadow: 0 24px 48px rgba(225, 29, 46, 0.16),
+    0 8px 24px rgba(17, 24, 39, 0.1);
+}
+
+/* ── Stage: the square 3D room holding the circle + image ── */
+.gw-product-card-3d-stage {
+  position: relative;
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+}
+
+/* ── Discount badge: nearest layer, always readable above the pop ── */
+.gw-product-card-3d-badge {
+  transform: translateZ(120px);
+}
+
+/* ── Circle: centered disc that moves toward the viewer on hover ── */
+.gw-product-card-3d-circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(225, 29, 46, 0.16),
+    rgba(225, 29, 46, 0.05) 60%,
+    transparent 75%
+  );
+  transform: translate3d(-50%, -50%, 0);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.gw-product-card-3d-wrap:hover .gw-product-card-3d-circle {
+  transform: translate3d(-50%, -50%, 35px);
+}
+
+/* ── Image: the hero — pops 100px toward the viewer on hover ── */
+.gw-product-card-3d-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90%;
+  height: auto;
+  object-fit: contain;
+  transform: translate3d(-50%, -50%, 0) rotate(-6deg);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.gw-product-card-3d-wrap:hover .gw-product-card-3d-image {
+  transform: translate3d(-50%, -50%, 100px) rotate(-6deg);
+}
+
+/* ── Info section: flat, always-visible block BELOW the image zone.
+      Deliberately static — no transforms, no reveal, no hover state.
+      A hairline divider separates it from the 3D zone above. ── */
+.gw-product-card-3d-info {
+  position: relative;
+  padding: 12px 14px 14px;
+  border-top: 1px solid #eef2f7;
+}
+
+/* ── Action buttons ── */
+.gw-product-card-3d-cta {
+  flex: 1;
+  height: 36px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+/* ── Reduced motion: keep everything readable, kill the movement ── */
+@media (prefers-reduced-motion: reduce) {
+  .gw-product-card-3d-tilt,
+  .gw-product-card-3d-circle,
+  .gw-product-card-3d-image,
+  .gw-product-card-3d-badge {
+    transition: none;
+  }
+
+  .gw-product-card-3d-badge {
+    transform: none;
+  }
+
+  .gw-product-card-3d-wrap:hover .gw-product-card-3d-circle {
+    transform: translate3d(-50%, -50%, 0);
+  }
+
+  .gw-product-card-3d-wrap:hover .gw-product-card-3d-image {
+    transform: translate3d(-50%, -50%, 0) rotate(-6deg);
+  }
+}

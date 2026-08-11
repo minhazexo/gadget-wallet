@@ -13,6 +13,7 @@ import api from "../lib/api";
 import { useCartStore } from "../store/useCartStore";
 import { showToast } from "../store/useToastStore";
 import { useRequireAuth } from "../lib/useRequireAuth";
+import { ProductCard } from "../components/ProductCard";
 import {
   staggerContainerFast,
   staggerContainer,
@@ -427,7 +428,17 @@ export default function Shop() {
   const Skeleton = (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="gw-panel-category animate-pulse rounded-card" />
+        <div
+          key={i}
+          className="animate-pulse rounded-product border border-[#eef2f7] overflow-hidden bg-white"
+        >
+          <div className="aspect-square bg-gw-gray-200" />
+          <div className="p-3 space-y-2">
+            <div className="h-3 w-full bg-gw-gray-200 rounded" />
+            <div className="h-3 w-2/3 bg-gw-gray-200 rounded" />
+            <div className="h-8 w-1/2 bg-gw-gray-200 rounded" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -489,64 +500,11 @@ export default function Shop() {
                 animate="visible"
                 className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"
               >
-                {products.map((product) => {
-                  const discount = product.discountPrice
-                    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-                    : 0;
-
-                  return (
-                    <motion.div key={product.id} variants={staggerItem}>
-                      <a
-                        href={`/product/${product.slug}`}
-                        className="gw-product-card group"
-                      >
-                        <div className="relative p-3 md:p-5 bg-white">
-                          {discount > 0 && (
-                            <span className="gw-status-badge absolute top-3 left-3 z-10 bg-gw-red text-white font-bold">
-                              -{discount}%
-                            </span>
-                          )}
-                          <div className="relative w-full aspect-square">
-                            <img
-                              src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
-                              alt={product.name}
-                              className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105 group-hover:opacity-0"
-                              loading="lazy"
-                            />
-                            {product.images && product.images.length > 1 && (
-                              <img
-                                src={product.images[1].url}
-                                alt=""
-                                aria-hidden
-                                className="absolute inset-0 w-full h-full object-contain opacity-0 scale-105 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100"
-                                loading="lazy"
-                              />
-                            )}
-                          </div>
-                        </div>
-                        <div className="px-3 md:px-5 pb-3 md:pb-5">
-                          <h3 className="text-[15px] font-semibold text-gw-black leading-snug line-clamp-2 min-h-[2.75rem] md:min-h-[3rem]">{product.name}</h3>
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <Star className="w-3.5 h-3.5 fill-gw-yellow text-gw-yellow" />
-                            <span className="text-xs text-gw-gray-500">{product.rating}</span>
-                          </div>
-                          <div className="mt-2 flex items-baseline gap-1 md:gap-2 flex-wrap">
-                            <span className="text-xl md:text-2xl font-extrabold text-gw-red">৳{product.discountPrice || product.price}</span>
-                            {product.discountPrice && <span className="text-sm text-gw-gray-400 line-through">৳{product.price}</span>}
-                          </div>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => handleAddToCart(product.id, product.name)}
-                            className="mt-4 w-full h-11 rounded-xl bg-gw-black text-white text-sm font-bold hover:bg-gw-red transition-all"
-                          >
-                            Add to Cart
-                          </motion.button>
-                        </div>
-                      </a>
-                    </motion.div>
-                  );
-                })}
+                {products.map((product) => (
+                  <motion.div key={product.id} variants={staggerItem}>
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
               </motion.div>
             ) : (
               <motion.div
@@ -577,18 +535,9 @@ export default function Shop() {
                             <img
                               src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
                               alt={product.name}
-                              className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105 group-hover:opacity-0"
+                              className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
-                            {product.images && product.images.length > 1 && (
-                              <img
-                                src={product.images[1].url}
-                                alt=""
-                                aria-hidden
-                                className="absolute inset-0 w-full h-full object-contain opacity-0 scale-105 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100"
-                                loading="lazy"
-                              />
-                            )}
                           </div>
                         </div>
                         <div className="p-5 flex-1 flex flex-col justify-center">

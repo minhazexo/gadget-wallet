@@ -136,10 +136,14 @@
     @apply bg-white border border-gw-border rounded-product;
   }
 
-  /* ── Product card: grid tile ── */
-  /* Border #eef2f7 per the visual guide (softer than the default border). */
+    /* ── Product card: grid tile ── */
+  /* Border #eef2f7 per the visual guide. The 3D hover layers live in
+     styles/product-card-3d.css (imported by ProductCard). `block` is
+     required: the tile is an <a>, which is inline by default. Deliberately
+     NO overflow-hidden: the translateZ pop-out layers must be allowed to
+     leave the card's box, and overflow clips flatten preserve-3d depth. */
   .gw-product-card {
-    @apply bg-white rounded-product border border-[#eef2f7] overflow-hidden hover:-translate-y-1.5 hover:shadow-gw-lg transition-all duration-300;
+    @apply block bg-white rounded-product border border-[#eef2f7];
   }
 
   /* ── Product card: horizontal row ── */
