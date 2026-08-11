@@ -63,7 +63,7 @@ export function Footer() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <img src="/logo.png" alt="Gadget Wallet" className="h-16 w-auto" />
+              <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="h-24 w-auto" />
             </motion.a>
             <p className="text-sm leading-relaxed text-slate-400 mb-6">
               Your trusted destination for premium electronics. We bring you the latest gadgets at the best prices with official warranty.

@@ -1,3 +1,4 @@
+import "./navbar.css";
 import { cn } from "./utils";
 import { Avatar } from "./avatar";
 import { useEffect, useState, type FormEvent } from "react";
@@ -12,20 +13,17 @@ import {
   LogOut,
   Package,
   LayoutDashboard,
-  Phone,
-  Clock,
-  Truck,
 } from "lucide-react";
 
 /**
- * Storefront header — 3-layer clone of goribergadget.com:
+ * Storefront header — 2-layer design:
  *
- *   1. TOP BAR      dark (#111827), 36px — hotline / hours | track / wishlist / login
- *   2. MAIN HEADER  white, ~76px — logo | [category ▼ + search + red button] | labeled icons
- *   3. NAV BAR      white, 48px — centered nav links
+ *   1. MAIN HEADER  white — logo | [search pill] | labeled icons
+ *   2. NAV BAR      white — centered nav links
  *
- * Design tokens follow the header spec: Poppins font, #E60023 primary red,
- * 1200px container. The top bar scrolls away; the main header + nav bar stick.
+ * ALL styling lives in ./navbar.css under uniquely-prefixed `gw-nav-` classes
+ * so they can never collide with classNames from other files. Framer Motion
+ * still handles the hover/drawer/badge animations.
  */
 
 export interface HeaderCategory {
@@ -41,17 +39,6 @@ const navLinks = [
   { label: "Categories", href: "/categories" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
-];
-
-// Shown while live categories load (or if the fetch fails) so the category
-// dropdown in the search bar is never empty. Mirror the seeded categories.
-const FALLBACK_CATEGORIES: HeaderCategory[] = [
-  { id: "1", name: "Smartphones", slug: "smartphones" },
-  { id: "2", name: "Laptops", slug: "laptops" },
-  { id: "3", name: "Audio", slug: "audio" },
-  { id: "4", name: "Wearables", slug: "wearables" },
-  { id: "5", name: "Gaming", slug: "gaming" },
-  { id: "6", name: "Accessories", slug: "accessories" },
 ];
 
 interface NavbarProps {
@@ -71,7 +58,6 @@ export function Navbar({
   wishlistCount = 0,
   userName = "",
   userAvatar = null,
-  categories,
   onLogout,
 }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,23 +65,19 @@ export function Navbar({
   const [badgeBounce, setBadgeBounce] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
 
-  const allCategories = categories && categories.length > 0 ? categories : FALLBACK_CATEGORIES;
-
-  // Navigate to the search results page with the chosen category filter.
+  // Navigate to the search results page with the typed query.
   const submitSearch = (e?: FormEvent) => {
     e?.preventDefault();
     const params = new URLSearchParams();
     const q = query.trim();
     if (q) params.set("q", q);
-    if (category) params.set("category", category);
-    if (!q && !category) return; // don't navigate on an empty search
+    if (!q) return; // don't navigate on an empty search
     window.location.href = `/search${params.toString() ? `?${params.toString()}` : ""}`;
     setQuery("");
   };
 
-  // The top bar scrolls away; only the main header + nav row stick.
+  // The main header + nav row stick on scroll.
   useEffect(() => {
     const handler = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener("scroll", handler, { passive: true });
@@ -120,116 +102,52 @@ export function Navbar({
   };
 
   return (
-    <header className="font-poppins">
-      {/* ── Layer 1: Top Bar (dark, scrolls away) ─────────────────────────── */}
-      <div className="bg-gray-900 text-white text-[13px]">
-        <div className="max-w-[1200px] mx-auto px-4 flex items-center justify-between h-9">
-          <div className="flex items-center gap-4 min-w-0">
-            <a
-              href="tel:+8801712345678"
-              className="flex items-center gap-1.5 hover:underline underline-offset-2 whitespace-nowrap shrink-0"
-            >
-              <Phone size={13} />
-              <span>Hotline: 01712345678</span>
-            </a>
-            <span className="hidden sm:flex items-center gap-1.5 text-white/70">
-              <Clock size={13} />
-              <span>10AM - 10PM</span>
-            </span>
-          </div>
-
-          <div className="flex items-center">
-            {/* Compact on narrow phones so the top bar never overflows (body clips overflow-x). */}
-            <a
-              href="/my-orders"
-              className="hidden sm:flex items-center gap-1.5 px-3 hover:underline underline-offset-2 whitespace-nowrap"
-            >
-              <Truck size={13} />
-              <span>Track Order</span>
-            </a>
-            <span className="hidden sm:block h-3.5 w-px bg-white/20" aria-hidden="true" />
-            <a href="/wishlist" className="px-3 hover:underline underline-offset-2 whitespace-nowrap">
-              Wishlist
-            </a>
-            <span className="h-3.5 w-px bg-white/20" aria-hidden="true" />
-            {isLoggedIn ? (
-              <a href="/profile" className="px-3 hover:underline underline-offset-2 whitespace-nowrap truncate max-w-[160px]">
-                Hi, {userName || "Account"}
-              </a>
-            ) : (
-              <a href="/login" className="px-3 hover:underline underline-offset-2 whitespace-nowrap">
-                Login / Register
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <header className="gw-nav">
       {/* ── Sticky block: main header + nav bar + mobile menu ─────────────── */}
       <div
         className={cn(
-          "sticky top-0 z-50 bg-white transition-shadow duration-200",
-          isScrolled && "shadow-gw-sm",
+          "gw-nav-sticky",
+          isScrolled && "gw-nav-scrolled",
         )}
       >
-        {/* ── Layer 2: Main Header ────────────────────────────────────────── */}
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="hidden lg:grid grid-cols-[220px_1fr_260px] gap-6 items-center py-4">
+        {/* ── Main Header ────────────────────────────────────────────────── */}
+        <div className="gw-nav-container">
+          <div className="gw-nav-row">
             {/* Logo */}
-            <a href="/" className="flex items-center gap-2 shrink-0" aria-label="Gadget Wallet home">
-              <img src="/logo.png" alt="Gadget Wallet" className="h-12 w-auto" />
+            <a href="/" className="gw-nav-logo" aria-label="Gadget Wallet home">
+              <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="gw-nav-logo-img" />
             </a>
 
-            {/* Search: [Category ▼][ input ][Search button] */}
+            {/* Search pill */}
             <form
               onSubmit={submitSearch}
               role="search"
               aria-label="Search products"
-              className="flex h-12 rounded-md border border-gray-300 overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200"
+              className="gw-nav-search"
             >
-              <label className="sr-only" htmlFor="search-category">
-                Category
-              </label>
-              <select
-                id="search-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-40 border-r border-gray-200 px-3 text-sm outline-none bg-white text-gray-600 cursor-pointer"
-              >
-                <option value="">All Categories</option>
-                {allCategories.map((c) => (
-                  <option key={c.id} value={c.slug}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search products..."
                 aria-label="Search products"
-                className="flex-1 px-4 text-sm outline-none text-gray-900 placeholder:text-gray-400 bg-white"
+                className="gw-nav-search-input"
               />
-              <button
-                type="submit"
-                aria-label="Search"
-                className="w-14 bg-primary text-white hover:bg-primary-dark transition-colors duration-200 flex items-center justify-center"
-              >
+              <button type="submit" aria-label="Search" className="gw-nav-search-btn">
                 <Search size={20} />
               </button>
             </form>
 
             {/* Right utility icons with labels */}
-            <div className="flex items-center justify-end gap-5">
+            <div className="gw-nav-actions">
               {isLoggedIn ? (
                 <div
-                  className="relative"
+                  className="gw-nav-account"
                   onMouseEnter={() => setUserMenuOpen(true)}
                   onMouseLeave={() => setUserMenuOpen(false)}
                 >
                   <button
-                    className="flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors py-1"
+                    className="gw-nav-icon-btn"
                     aria-label="Account"
                   >
                     {userAvatar ? (
@@ -237,10 +155,10 @@ export function Navbar({
                         src={userAvatar}
                         name={userName}
                         alt="Account avatar"
-                        className="w-[22px] h-[22px] text-[11px] ring-1 ring-gray-200"
+                        className="gw-nav-avatar-xs"
                       />
                     ) : (
-                      <User size={22} />
+                      <User size={28} />
                     )}
                     <span>Account</span>
                   </button>
@@ -251,37 +169,31 @@ export function Navbar({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full w-52 bg-white border border-gray-200 rounded-xl shadow-gw-lg overflow-hidden z-50"
+                        className="gw-nav-menu"
                       >
-                        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
+                        <div className="gw-nav-menu-head">
                           <Avatar
                             src={userAvatar}
                             name={userName}
                             alt="Account avatar"
-                            className="w-9 h-9 text-sm"
+                            className="gw-nav-avatar-md"
                           />
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                          <div className="gw-nav-menu-id">
+                            <p className="gw-nav-menu-name">
                               {userName || "My Account"}
                             </p>
-                            <p className="text-xs text-gray-500">Welcome back</p>
+                            <p className="gw-nav-menu-sub">Welcome back</p>
                           </div>
                         </div>
-                        <a
-                          href="/profile"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
-                        >
+                        <a href="/profile" className="gw-nav-menu-item">
                           <LayoutDashboard size={16} /> My Profile
                         </a>
-                        <a
-                          href="/my-orders"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
-                        >
+                        <a href="/my-orders" className="gw-nav-menu-item">
                           <Package size={16} /> My Orders
                         </a>
                         <button
                           onClick={onLogout}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors text-left border-t border-gray-200"
+                          className="gw-nav-menu-item gw-nav-menu-item--logout"
                         >
                           <LogOut size={16} /> Logout
                         </button>
@@ -290,25 +202,21 @@ export function Navbar({
                   </AnimatePresence>
                 </div>
               ) : (
-                <a
-                  href="/login"
-                  className="flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors py-1"
-                  aria-label="Account"
-                >
-                  <User size={22} />
+                <a href="/login" className="gw-nav-icon-btn" aria-label="Account">
+                  <User size={28} />
                   <span>Account</span>
                 </a>
               )}
 
               <a
                 href="/wishlist"
-                className="relative flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors py-1"
+                className="gw-nav-icon-btn"
                 aria-label="Wishlist"
               >
-                <Heart size={22} />
+                <Heart size={28} />
                 <span>Wishlist</span>
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="gw-nav-badge">
                     {wishlistCount}
                   </span>
                 )}
@@ -316,15 +224,15 @@ export function Navbar({
 
               <a
                 href="/cart"
-                className="relative flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-primary transition-colors py-1"
+                className="gw-nav-icon-btn"
                 aria-label="Cart"
               >
-                <ShoppingCart size={22} />
+                <ShoppingCart size={28} />
                 <span>Cart</span>
                 <motion.span
                   animate={badgeBounce ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shadow-sm"
+                  className="gw-nav-badge"
                 >
                   {cartCount}
                 </motion.span>
@@ -333,12 +241,11 @@ export function Navbar({
           </div>
 
           {/* Mobile: hamburger | logo | cart, then a search row */}
-          <div className="lg:hidden flex items-center justify-between h-16 gap-3">
-            <motion.button
+          <div className="gw-nav-mrow">              <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 -ml-2 text-gray-600 hover:text-primary transition-colors"
+              className="gw-nav-burger"
               aria-label="Toggle menu"
               aria-expanded={isOpen}
             >
@@ -351,7 +258,7 @@ export function Navbar({
                     exit={{ rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <X size={26} />
+                    <X size={32} />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -361,58 +268,58 @@ export function Navbar({
                     exit={{ rotate: -90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Menu size={26} />
+                    <Menu size={32} />
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.button>
 
-            <a href="/" className="flex items-center justify-center" aria-label="Gadget Wallet home">
-              <img src="/logo.png" alt="Gadget Wallet" className="h-9 w-auto" />
+            <a href="/" className="gw-nav-mlogo" aria-label="Gadget Wallet home">
+              <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="gw-nav-mlogo-img" />
             </a>
 
-            <a href="/cart" className="relative p-1 text-gray-600 hover:text-primary transition-colors" aria-label="Cart">
-              <ShoppingCart size={24} />
-              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+            <a href="/cart" className="gw-nav-mcart" aria-label="Cart">
+              <ShoppingCart size={30} />
+              <span className="gw-nav-badge">
                 {cartCount}
               </span>
             </a>
           </div>
 
           {/* Mobile search row */}
-          <div className="lg:hidden pb-3">
-            <form onSubmit={submitSearch} role="search" className="flex h-11 rounded-md border border-gray-300 overflow-hidden focus-within:border-primary transition-colors">
+          <div className="gw-nav-msearch">
+            <form onSubmit={submitSearch} role="search" className="gw-nav-msearch-form">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search products..."
                 aria-label="Search products"
-                className="flex-1 px-4 text-sm outline-none text-gray-900 placeholder:text-gray-400 bg-white"
+                className="gw-nav-search-input"
               />
               <button
                 type="submit"
                 aria-label="Search"
-                className="w-12 bg-primary text-white hover:bg-primary-dark transition-colors flex items-center justify-center"
+                className="gw-nav-search-btn"
               >
-                <Search size={18} />
+                <Search size={20} />
               </button>
             </form>
           </div>
         </div>
 
-        {/* ── Layer 3: Navigation Bar ────────────────────────────────────── */}
-        <nav className="hidden lg:block border-t border-gray-200 bg-white" aria-label="Main navigation">
-          <div className="max-w-[1200px] mx-auto px-4 flex items-stretch">
+        {/* ── Navigation Bar ─────────────────────────────────────────────── */}
+        <nav className="gw-nav-bar" aria-label="Main navigation">
+          <div className="gw-nav-container gw-nav-bar-inner">
             {/* Nav links — centered across the full nav bar */}
-            <div className="flex-1 flex items-center justify-center gap-7">
+            <div className="gw-nav-links">
               {navLinks.map((link) => (
                 <motion.a
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "text-sm font-medium transition-colors duration-200 relative h-12 flex items-center",
-                    isActive(link.href) ? "text-primary" : "text-gray-600 hover:text-primary",
+                    "gw-nav-link",
+                    isActive(link.href) && "gw-nav-link--active",
                   )}
                   whileHover={{ y: -1 }}
                   whileTap={{ y: 0 }}
@@ -421,7 +328,7 @@ export function Navbar({
                   {isActive(link.href) && (
                     <motion.div
                       layoutId="nav-underline"
-                      className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-primary rounded-full"
+                      className="gw-nav-underline"
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
@@ -439,9 +346,9 @@ export function Navbar({
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="lg:hidden bg-white border-t border-gray-200 shadow-gw-md overflow-hidden"
+              className="gw-nav-drawer"
             >
-              <div className="max-w-[1200px] mx-auto px-4">
+              <div className="gw-nav-container">
                 <motion.div
                   variants={{
                     hidden: { opacity: 0 },
@@ -449,7 +356,7 @@ export function Navbar({
                   }}
                   initial="hidden"
                   animate="visible"
-                  className="py-4 space-y-1"
+                  className="gw-nav-drawer-body"
                 >
                   {navLinks.map((link) => (
                     <motion.div
@@ -459,8 +366,8 @@ export function Navbar({
                       <a
                         href={link.href}
                         className={cn(
-                          "block py-2.5 text-sm font-medium transition-colors duration-200",
-                          isActive(link.href) ? "text-primary" : "text-gray-600 hover:text-primary",
+                          "gw-nav-drawer-link",
+                          isActive(link.href) && "gw-nav-drawer-link--active",
                         )}
                         onClick={() => setIsOpen(false)}
                       >
@@ -474,7 +381,7 @@ export function Navbar({
                     <a
                       href="/categories"
                       onClick={() => setIsOpen(false)}
-                      className="block py-2.5 text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                      className="gw-nav-drawer-link"
                     >
                       All Categories
                     </a>
@@ -483,30 +390,30 @@ export function Navbar({
                   {/* Account actions (mobile only) */}
                   <motion.div
                     variants={{ hidden: { opacity: 0, y: -10 }, visible: { opacity: 1, y: 0 } }}
-                    className="pt-3 mt-1 border-t border-gray-200"
+                    className="gw-nav-drawer-section"
                   >
                     {isLoggedIn ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2.5 px-1 py-1.5">
+                      <div className="gw-nav-stack">
+                        <div className="gw-nav-drawer-user">
                           <Avatar
                             src={userAvatar}
                             name={userName}
                             alt="Account avatar"
-                            className="w-8 h-8 text-sm"
+                            className="gw-nav-avatar-sm"
                           />
-                          <p className="text-sm font-semibold text-gray-900 truncate">{userName || "My Account"}</p>
+                          <p className="gw-nav-menu-name">{userName || "My Account"}</p>
                         </div>
                         <a
                           href="/profile"
                           onClick={() => setIsOpen(false)}
-                          className="block py-2.5 text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                          className="gw-nav-drawer-link"
                         >
                           My Profile
                         </a>
                         <a
                           href="/my-orders"
                           onClick={() => setIsOpen(false)}
-                          className="block py-2.5 text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                          className="gw-nav-drawer-link"
                         >
                           My Orders
                         </a>
@@ -515,24 +422,24 @@ export function Navbar({
                             setIsOpen(false);
                             onLogout?.();
                           }}
-                          className="w-full text-left py-2.5 text-sm font-medium text-primary hover:text-primary-dark transition-colors"
+                          className="gw-nav-drawer-link gw-nav-drawer-link--danger"
                         >
                           Logout
                         </button>
                       </div>
                     ) : (
-                      <div className="flex gap-2 pt-1">
+                      <div className="gw-nav-drawer-actions">
                         <a
                           href="/login"
                           onClick={() => setIsOpen(false)}
-                          className="flex-1 text-center py-2.5 rounded-md bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors"
+                          className="gw-nav-auth-btn"
                         >
                           Sign In
                         </a>
                         <a
                           href="/register"
                           onClick={() => setIsOpen(false)}
-                          className="flex-1 text-center py-2.5 rounded-md border border-gray-300 text-gray-700 text-sm font-bold hover:border-primary hover:text-primary transition-colors"
+                          className="gw-nav-auth-btn gw-nav-auth-btn--ghost"
                         >
                           Create Account
                         </a>
