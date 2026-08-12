@@ -49,6 +49,28 @@ interface Brand {
   logo?: string | null;
 }
 
+/** Loading placeholder for product/category grids — matches the real tile
+    proportions so no layout shift happens when data arrives. */
+function GridSkeleton({ count = 10, cols = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" }: { count?: number; cols?: string }) {
+  return (
+    <div className={`grid ${cols} gap-3 md:gap-5`} aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse rounded-product border border-[#eef2f7] overflow-hidden bg-white dark:bg-gray-900"
+        >
+          <div className="aspect-square bg-gw-gray-200 dark:bg-gray-800" />
+          <div className="p-3 space-y-2">
+            <div className="h-3 w-full bg-gw-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-3 w-2/3 bg-gw-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-8 w-1/2 bg-gw-gray-200 dark:bg-gray-800 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const reviews = [
   { name: "Alex M.", text: "Absolutely love my new MacBook! The delivery was incredibly fast and the packaging was premium.", rating: 5 },
   { name: "Sarah K.", text: "Best electronics store I've ever shopped at. The customer service is outstanding.", rating: 5 },
@@ -62,13 +84,29 @@ export default function Home() {
   const [onSale, setOnSale] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  // True until the first batch of catalog data is in — drives the skeletons.
+  const [loading, setLoading] = useState(true);
 
+  // Mark the skeleton phase over once the first two sections have SETTLED
+  // (success OR failure) — a dead API must show an empty section, not a
+  // forever-skeleton.
   useEffect(() => {
+    let settled = 0;
+    const settle = () => {
+      settled += 1;
+      if (settled >= 2) setLoading(false);
+    };
     // Each section fetches independently so one failing endpoint can never
     // blank the others. cachedGet dedupes + caches (5 min for catalog
     // references, 60 s for product grids) so remounts don't re-hit the API.
-    cachedGet<{ data: Product[] }>("/products/featured", 60_000).then((f) => setFeatured(f.data || [])).catch(() => {});
-    cachedGet<{ data: Product[] }>("/products/new-arrivals", 60_000).then((n) => setNewArrivals(n.data || [])).catch(() => {});
+    cachedGet<{ data: Product[] }>("/products/featured", 60_000)
+      .then((f) => setFeatured(f.data || []))
+      .catch(() => {})
+      .finally(settle);
+    cachedGet<{ data: Product[] }>("/products/new-arrivals", 60_000)
+      .then((n) => setNewArrivals(n.data || []))
+      .catch(() => {})
+      .finally(settle);
     // Flash Sale shows products that are actually discounted — never reuse
     // the featured grid, which mixed in non-discounted items with fake
     // "Sale" badges.
@@ -141,7 +179,9 @@ export default function Home() {
       </section>
 
       {/* ── Service Strip ── */}
-      <SectionReveal>
+      {/* gw-below-fold: content-visibility lets the browser skip render/layout
+          work for these off-screen sections on mobile until scrolled to. */}
+      <SectionReveal className="gw-below-fold">
         <Container>
           <motion.div
             variants={staggerContainer}
@@ -176,7 +216,7 @@ export default function Home() {
       </SectionReveal>
 
       {/* ── Popular Categories ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Popular Categories</h2>
@@ -197,6 +237,7 @@ export default function Home() {
                 <MotionLink
                   to={`/category/${cat.slug}`}
                   whileHover={{ y: -5, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
+                  whileTap={{ scale: 0.96 }}
                   className="block bg-white border border-gw-border rounded-category p-4 md:p-6 text-center transition-shadow duration-300 group"
                 >
                   <img
@@ -215,7 +256,7 @@ export default function Home() {
       </SectionReveal>
 
       {/* ── Featured Products ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Featured Products</h2>
@@ -228,18 +269,22 @@ export default function Home() {
             viewport={{ once: true, amount: 0.05 }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
           >
-            {featured.slice(0, 10).map((product) => (
-              <motion.div key={product.id} variants={staggerItem}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {loading ? (
+              <GridSkeleton count={10} />
+            ) : (
+              featured.slice(0, 10).map((product) => (
+                <motion.div key={product.id} variants={staggerItem}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </Container>
       </SectionReveal>
 
       {/* ── Flash Sale ── */}
       {onSale.length > 0 && (
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Flash Sale</h2>
@@ -277,18 +322,22 @@ export default function Home() {
             viewport={{ once: true, amount: 0.05 }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
           >
-            {onSale.slice(0, 5).map((product) => (
-              <motion.div key={product.id} variants={staggerItem}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {loading ? (
+              <GridSkeleton count={5} />
+            ) : (
+              onSale.slice(0, 5).map((product) => (
+                <motion.div key={product.id} variants={staggerItem}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </Container>
       </SectionReveal>
       )}
 
       {/* ── New Arrivals ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">New Arrivals</h2>
@@ -301,17 +350,21 @@ export default function Home() {
             viewport={{ once: true, amount: 0.05 }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5"
           >
-            {newArrivals.slice(0, 10).map((product) => (
-              <motion.div key={product.id} variants={staggerItem}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {loading ? (
+              <GridSkeleton count={10} />
+            ) : (
+              newArrivals.slice(0, 10).map((product) => (
+                <motion.div key={product.id} variants={staggerItem}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </Container>
       </SectionReveal>
 
       {/* ── Top Brands ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Top Brands</h2>
@@ -359,7 +412,7 @@ export default function Home() {
       </SectionReveal>
 
       {/* ── Reviews ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">What Our Customers Say</h2>
@@ -410,7 +463,7 @@ export default function Home() {
       </SectionReveal>
 
       {/* ── Newsletter ── */}
-      <SectionReveal>
+      <SectionReveal className="gw-below-fold">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 40, scale: 0.98 }}

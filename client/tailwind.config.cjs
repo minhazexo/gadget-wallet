@@ -49,5 +49,18 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Safe-area inset utilities — for fixed bottom bars, toasts and the tab bar
+    // on notched phones (viewport-fit=cover). Classes: pb-safe, pt-safe,
+    // pl-safe, pr-safe, bottom-safe.
+    function safeArea({ addUtilities }) {
+      addUtilities({
+        ".pb-safe": { paddingBottom: "env(safe-area-inset-bottom)" },
+        ".pt-safe": { paddingTop: "env(safe-area-inset-top)" },
+        ".pl-safe": { paddingLeft: "env(safe-area-inset-left)" },
+        ".pr-safe": { paddingRight: "env(safe-area-inset-right)" },
+        ".bottom-safe": { bottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" },
+      });
+    },
+  ],
 };

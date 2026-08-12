@@ -13,7 +13,9 @@ export function ToastProvider() {
   };
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none">
+    // top-20 clears the sticky header (mobile header can be tall); the
+    // width/max-width caps keep long messages from spanning edge-to-edge.
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

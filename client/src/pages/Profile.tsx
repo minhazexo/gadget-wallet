@@ -48,7 +48,15 @@ export default function Profile() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<TabKey>("overview");
-  const [dark, setDark] = useState(() => localStorage.getItem("gw-dark") === "1");
+  // Default to the system theme until the user explicitly chooses; the
+  // index.html init script already applied it before first paint, so this
+  // just keeps React state in sync with what's on <html>.
+  const [dark, setDark] = useState(() => {
+    const stored = localStorage.getItem("gw-dark");
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const [stats, setStats] = useState({ orders: 0, wishlist: 0, reviews: 0 });
   const [defaultAddress, setDefaultAddress] = useState<any>(null);
 

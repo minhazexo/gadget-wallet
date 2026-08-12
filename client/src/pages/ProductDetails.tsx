@@ -1,8 +1,9 @@
 import { Container, Button, Badge } from "@gadget-wallet/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Heart, Share2, Minus, Plus, Truck, Shield, RotateCcw } from "lucide-react";
+import { useCanHover } from "../lib/useCanHover";
 import { cachedGet } from "../lib/cachedGet";
 import api from "../lib/api";
 
@@ -47,6 +48,8 @@ export default function ProductDetails() {
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const wishlistItems = useWishlistStore((s) => s.items);
   const requireAuth = useRequireAuth();
+  const canHover = useCanHover();
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -66,16 +69,31 @@ export default function ProductDetails() {
   }, [slug]);
 
   if (!product) {
+    // Professional loading skeleton (matches the page's real layout).
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="animate-pulse text-gw-gray-500"
-        >
-          Loading...
-        </motion.div>
-      </div>
+      <section className="py-8 md:py-12">
+        <Container>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+            <div className="animate-pulse">
+              <div className="aspect-square rounded-product bg-gw-gray-200 dark:bg-gray-800" />
+              <div className="flex gap-2 mt-3 md:mt-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="w-14 h-14 md:w-20 md:h-20 rounded-xl bg-gw-gray-200 dark:bg-gray-800" />
+                ))}
+              </div>
+            </div>
+            <div className="animate-pulse space-y-4">
+              <div className="h-5 w-24 bg-gw-gray-200 dark:bg-gray-800 rounded-full" />
+              <div className="h-8 w-3/4 bg-gw-gray-200 dark:bg-gray-800 rounded-lg" />
+              <div className="h-5 w-40 bg-gw-gray-200 dark:bg-gray-800 rounded-full" />
+              <div className="h-4 w-full bg-gw-gray-200 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-2/3 bg-gw-gray-200 dark:bg-gray-800 rounded" />
+              <div className="h-12 w-full bg-gw-gray-200 dark:bg-gray-800 rounded-xl mt-6" />
+              <div className="h-12 w-full bg-gw-gray-200 dark:bg-gray-800 rounded-xl" />
+            </div>
+          </div>
+        </Container>
+      </section>
     );
   }
 
@@ -115,7 +133,7 @@ export default function ProductDetails() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Container>
+      <Container className="pb-24 lg:pb-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
           {/* Left: Images */}
           <motion.div
@@ -123,33 +141,73 @@ export default function ProductDetails() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <motion.div
-              key={selectedImage}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="aspect-square rounded-product overflow-hidden bg-white border border-gw-border mb-3 md:mb-4 p-6 md:p-8"
+            {/* Main image — swipeable on touch (scroll-snap), static on
+                desktop. Thumbnails below select + also drive the snap index. */}
+            <div
+              ref={galleryRef}
+              onScroll={() => {
+                if (canHover || !galleryRef.current) return;
+                const el = galleryRef.current;
+                const idx = Math.round(el.scrollLeft / Math.max(el.clientWidth, 1));
+                if (Number.isFinite(idx)) setSelectedImage(Math.min(idx, (product.images?.length || 1) - 1));
+              }}
+              className={`${
+                canHover ? "" : "overflow-x-auto snap-x snap-mandatory scroll-smooth flex"
+              } rounded-product overflow-hidden bg-white border border-gw-border mb-3 md:mb-4`}
+              style={canHover ? { aspectRatio: "1 / 1" } : { scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              <img
-                src={product.images?.[selectedImage]?.url || `https://picsum.photos/seed/${slug}/800/800`}
-                alt={product.name}
-                className="w-full h-full object-contain"
-                fetchPriority="high"
-                decoding="async"
-              />
-            </motion.div>
+              {canHover ? (
+                <motion.div
+                  key={selectedImage}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="aspect-square w-full p-6 md:p-8"
+                >
+                  <img
+                    src={product.images?.[selectedImage]?.url || `https://picsum.photos/seed/${slug}/800/800`}
+                    alt={product.name}
+                    className="w-full h-full object-contain"
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </motion.div>
+              ) : (
+                (product.images && product.images.length > 0
+                  ? product.images
+                  : [{ url: `https://picsum.photos/seed/${slug}/800/800`, alt: product.name }]
+                ).map((img, i) => (
+                  <div key={i} className="snap-center shrink-0 w-full aspect-square p-6 md:p-8">
+                    <img
+                      src={img.url}
+                      alt={img.alt || product.name}
+                      className="w-full h-full object-contain"
+                      loading={i === 0 ? "eager" : "lazy"}
+                      decoding="async"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
             {product.images && product.images.length > 1 && (
-              <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+              <div className="flex gap-2 md:gap-3 overflow-x-auto snap-x snap-mandatory pb-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                 {product.images.map((img, i) => (
                   <motion.button
                     key={i}
-                    onClick={() => setSelectedImage(i)}
+                    onClick={() => {
+                      setSelectedImage(i);
+                      // Scroll the main gallery to the matching slide on touch.
+                      const el = galleryRef.current;
+                      if (el && !canHover) {
+                        el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+                      }
+                    }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05, duration: 0.3 }}
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`w-14 h-14 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-colors bg-white p-1.5 md:p-2 shrink-0 ${
+                    className={`w-14 h-14 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-colors bg-white p-1.5 md:p-2 shrink-0 snap-start ${
                       selectedImage === i ? "border-gw-red" : "border-gw-border"
                     }`}
                   >
@@ -410,6 +468,27 @@ export default function ProductDetails() {
           </div>
         </SectionReveal>
       </Container>
+
+      {/* Sticky action bar — mobile only. Desktop keeps the inline buttons in
+          the right column; on phones the CTA is always one thumb-tap away. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden border-t border-gw-border bg-white/95 backdrop-blur px-4 pt-3 pb-safe shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        <div className="flex gap-3">
+          <Button
+            variant="dark"
+            className="flex-1 h-12 text-sm"
+            onClick={handleAddToCart}
+          >
+            Add to Cart
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1 h-12 text-sm"
+            onClick={handleBuyNow}
+          >
+            Buy Now
+          </Button>
+        </div>
+      </div>
     </motion.section>
   );
 }

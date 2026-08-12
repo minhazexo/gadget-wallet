@@ -29,7 +29,8 @@ export function ScrollToTop() {
           whileHover={{ scale: 1.1, boxShadow: "0 8px 20px rgba(225, 29, 46, 0.3)" }}
           whileTap={{ scale: 0.9 }}
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gw-red text-white flex items-center justify-center shadow-lg cursor-pointer"
+          // bottom-safe clears the iOS home indicator (viewport-fit=cover).
+          className="fixed bottom-safe right-4 z-[60] w-11 h-11 rounded-full bg-gw-red text-white flex items-center justify-center shadow-lg cursor-pointer"
           aria-label="Scroll to top"
         >
           <motion.div

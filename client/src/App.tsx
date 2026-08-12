@@ -6,6 +6,7 @@ import { useCartStore } from "./store/useCartStore";
 import { useWishlistStore } from "./store/useWishlistStore";
 import { PageTransition } from "./components/PageTransition";
 import { ToastProvider } from "./components/ToastProvider";
+import { MobileTabBar } from "./components/MobileTabBar";
 import { cachedGet } from "./lib/cachedGet";
 
 // ── Route-level code splitting ─────────────────────────────────────────────
@@ -70,9 +71,10 @@ export default function App() {
     useWishlistStore.getState().load();
   }, [user]);
 
-  // Scroll to top on route change
+  // Scroll to top on route change — instant, so page changes feel snappy on
+  // mobile (smooth scrolling a long page on every navigation feels sluggish).
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [location.pathname]);
 
   // Live categories for the header's mega menu / category dropdown.
@@ -102,7 +104,8 @@ export default function App() {
       />
       <ToastProvider />
       <ScrollToTop />
-      <main className="flex-1 pt-0">
+      {/* pb-16 reserves room for the mobile tab bar; hidden on checkout flow. */}
+      <main className="flex-1 pt-0 pb-16 lg:pb-0">
         {/* No AnimatePresence mode="wait": the old exit animation blocked the
             route swap for ~300ms. Pages now mount immediately with a light
             fade-in; lazy chunks show RouteFallback while they load. */}
@@ -143,6 +146,13 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
+      {/* Tab bar hidden on checkout/order-success (focus flow) and on product
+          pages — the sticky Add to Cart / Buy Now bar replaces it there. */}
+      {!location.pathname.startsWith("/checkout") &&
+        !location.pathname.startsWith("/order-success") &&
+        !location.pathname.startsWith("/product/") && (
+          <MobileTabBar cartCount={cartCount} wishlistCount={wishlistItems.length} />
+        )}
     </div>
   );
 }

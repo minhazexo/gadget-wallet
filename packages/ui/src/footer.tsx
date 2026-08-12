@@ -47,7 +47,8 @@ const fadeSlideUp = {
 
 export function Footer() {
   return (
-    <footer className="bg-gw-footer text-slate-300">
+    // pb-24 on mobile: the bottom tab bar would otherwise cover the last row.
+    <footer className="bg-gw-footer text-slate-300 pb-24 lg:pb-0">
       <Container>
         <motion.div
           variants={{

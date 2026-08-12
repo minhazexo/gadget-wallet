@@ -106,7 +106,8 @@ export default function Cart() {
                       whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => handleRemove(item.productId, item.name)}
-                      className="p-1.5 md:p-2 text-gw-gray-300 hover:text-gw-red transition-colors shrink-0 -mt-1 md:mt-0"
+                      // p-2.5 keeps the hit area ≥ 40px on touch.
+                      className="p-2.5 md:p-2 text-gw-gray-300 hover:text-gw-red transition-colors shrink-0 -mt-1 md:mt-0"
                       aria-label={`Remove ${item.name}`}
                     >
                       <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
@@ -122,7 +123,7 @@ export default function Cart() {
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleQty(item.productId, item.quantity - 1)}
-                        className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                        className="p-2.5 md:p-2 hover:text-gw-red transition-colors"
                         aria-label="Decrease quantity"
                       >
                         <Minus className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -132,7 +133,7 @@ export default function Cart() {
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleQty(item.productId, item.quantity + 1)}
-                        className="p-1.5 md:p-2 hover:text-gw-red transition-colors"
+                        className="p-2.5 md:p-2 hover:text-gw-red transition-colors"
                         aria-label="Increase quantity"
                       >
                         <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />

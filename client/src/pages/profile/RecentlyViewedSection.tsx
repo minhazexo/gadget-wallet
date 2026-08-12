@@ -94,10 +94,10 @@ export function RecentlyViewedSection() {
                 </Link>
                 <button
                   onClick={() => handleToggleWishlist(item)}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-gray-300 hover:text-gw-red transition-colors"
+                  className="absolute top-2 right-2 w-9 h-9 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-gray-300 hover:text-gw-red transition-colors"
                   aria-label="Add to wishlist"
                 >
-                  <Heart className="w-3.5 h-3.5" />
+                  <Heart className="w-4 h-4" />
                 </button>
               </div>
               <div className="px-4 pb-4">
@@ -108,13 +108,14 @@ export function RecentlyViewedSection() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => handleAddToCart(item)}
-                    className="flex-1 h-9 rounded-xl bg-gw-black text-white text-xs font-bold hover:bg-gw-red transition-colors dark:bg-gray-800 dark:hover:bg-gw-red"
+                    // h-11 = 44px touch target.
+                    className="flex-1 h-11 rounded-xl bg-gw-black text-white text-xs font-bold hover:bg-gw-red transition-colors dark:bg-gray-800 dark:hover:bg-gw-red"
                   >
                     <ShoppingCart className="w-3.5 h-3.5 inline mr-1" /> Cart
                   </button>
                   <button
                     onClick={() => handleBuyNow(item)}
-                    className={cn("flex-1 h-9 rounded-xl bg-gw-red text-white text-xs font-bold hover:bg-gw-red-hover transition-colors")}
+                    className={cn("flex-1 h-11 rounded-xl bg-gw-red text-white text-xs font-bold hover:bg-gw-red-hover transition-colors")}
                   >
                     <Zap className="w-3.5 h-3.5 inline mr-1" /> Buy
                   </button>

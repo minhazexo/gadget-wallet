@@ -113,7 +113,8 @@ export default function Wishlist() {
                     whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => remove(item.productId)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-red"
+                    // 40px min touch target.
+                    className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-red"
                     aria-label={`Remove ${item.name} from wishlist`}
                   >
                     <Heart className="w-4 h-4 fill-gw-red" />

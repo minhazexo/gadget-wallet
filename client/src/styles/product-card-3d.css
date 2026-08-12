@@ -131,14 +131,46 @@
 }
 
 /* ── Action buttons ── */
+/* 44px min touch target per Apple HIG / Material; 11px stays legible in the
+   two-column grid. The 3D hover shadow also applies on fine-pointer only. */
 .gw-product-card-3d-cta {
   flex: 1;
-  height: 36px;
+  height: 44px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
   color: #fff;
   transition: background-color 0.2s ease;
+}
+
+/* ── Touch devices: the 3D system is mouse-only. Kill the perspective, the
+      permanent translateZ pops (badge renders larger/fuzzier on phones), the
+      will-change GPU layers and all hover transitions. The card becomes a
+      crisp flat tile — press feedback is handled by ProductCard's whileTap. ── */
+@media (hover: none), (pointer: coarse) {
+  .gw-product-card-3d-wrap {
+    perspective: none;
+  }
+
+  .gw-product-card-3d-badge,
+  .gw-product-card-3d-circle,
+  .gw-product-card-3d-image,
+  .gw-product-card-3d-tilt {
+    transition: none;
+    will-change: auto;
+  }
+
+  .gw-product-card-3d-badge {
+    transform: none !important; /* kill the permanent translateZ(120px) pop */
+  }
+
+  .gw-product-card-3d-wrap:hover .gw-product-card-3d-circle {
+    transform: translate3d(-50%, -50%, 0);
+  }
+
+  .gw-product-card-3d-wrap:hover .gw-product-card-3d-image {
+    transform: translate3d(-50%, -50%, 0) rotate(-6deg);
+  }
 }
 
 /* ── Reduced motion: keep everything readable, kill the movement ── */

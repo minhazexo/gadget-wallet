@@ -28,7 +28,24 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    overscroll-behavior-y: none; /* don't fight pull-to-refresh / sticky header */
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Touch ergonomics: kill the 300ms tap delay / double-tap zoom on fast
+     taps, and remove the grey tap flash on iOS + Android. */
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 
   ::selection {
@@ -51,6 +68,26 @@
   .dark ::-webkit-scrollbar-thumb {
     background: #475569;
   }
+
+  /* A sideways swipe on a horizontal strip must never navigate the browser
+     back (swipe-back gesture) — contain it to the strip itself. */
+  .overflow-x-auto {
+    overscroll-behavior-x: contain;
+  }
+}
+
+/* Global reduced-motion policy: today only the 3D card respected it. This
+   quiets every animation/transition on the whole app for motion-sensitive
+   users and low-end phones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /*
@@ -68,6 +105,13 @@
   .gw-section {
     padding-top: 64px;
     padding-bottom: 64px;
+  }
+
+  /* ── Performance: below-fold sections skip render work until scrolled to
+        (biggest payoff on mobile). Only when the content isn't critical. ── */
+  .gw-below-fold {
+    content-visibility: auto;
+    contain-intrinsic-size: 480px;
   }
 
   /* ── Layout: section header row ── */

@@ -167,14 +167,22 @@ export default function Checkout() {
     }
   };
 
-  const addressFields = [
-    { key: "label", label: "Address Label", placeholder: "Home / Office" },
-    { key: "street", label: "Street Address", placeholder: "123 Main Street" },
-    { key: "city", label: "City", placeholder: "San Francisco" },
-    { key: "state", label: "State", placeholder: "CA" },
-    { key: "zip", label: "ZIP Code", placeholder: "94102" },
-    { key: "country", label: "Country", placeholder: "United States" },
-  ] as const;
+  // autoComplete hints let the phone's system autofill these from the saved
+  // contact card; inputMode picks the right keyboard (numeric for ZIP).
+  const addressFields: {
+    key: "label" | "street" | "city" | "state" | "zip" | "country";
+    label: string;
+    placeholder: string;
+    autoComplete: string;
+    inputMode?: "numeric";
+  }[] = [
+    { key: "label", label: "Address Label", placeholder: "Home / Office", autoComplete: "address-line1" },
+    { key: "street", label: "Street Address", placeholder: "123 Main Street", autoComplete: "street-address" },
+    { key: "city", label: "City", placeholder: "San Francisco", autoComplete: "address-level2" },
+    { key: "state", label: "State", placeholder: "CA", autoComplete: "address-level1" },
+    { key: "zip", label: "ZIP Code", placeholder: "94102", autoComplete: "postal-code", inputMode: "numeric" },
+    { key: "country", label: "Country", placeholder: "United States", autoComplete: "country-name" },
+  ];
 
   return (
     <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -208,6 +216,8 @@ export default function Checkout() {
                       key={f.key}
                       label={f.label}
                       placeholder={f.placeholder}
+                      autoComplete={f.autoComplete}
+                      inputMode={f.inputMode}
                       value={address[f.key]}
                       onChange={(e) => setAddress((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     />

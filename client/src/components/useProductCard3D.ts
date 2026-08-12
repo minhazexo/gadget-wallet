@@ -4,6 +4,7 @@ import {
   useSpring,
   type MotionValue,
 } from "framer-motion";
+import { useCanHover } from "../lib/useCanHover";
 
 /**
  * Mouse-tracking 3D tilt for the product card's IMAGE ZONE — the
@@ -18,6 +19,11 @@ import {
  * comes from the `.gw-product-card-3d-wrap` `perspective` CSS property in
  * product-card-3d.css, so the translateZ pops work even when this hook is
  * inactive (no-JS / reduced motion).
+ *
+ * Touch devices (hover: none / coarse pointer) get a STATIC card — the tilt
+ * is mouse-only by design, and touch never fires mouseleave so the card
+ * could otherwise stay tilted after a tap. The matching CSS gate lives in
+ * product-card-3d.css.
  */
 
 export interface CardTiltProps {
@@ -35,6 +41,7 @@ const TILT_SCALE = 1.05;
 
 export function useProductCard3D(): CardTiltProps {
   const reduceMotion = useReducedMotion();
+  const canHover = useCanHover();
 
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
@@ -44,8 +51,8 @@ export function useProductCard3D(): CardTiltProps {
   const springRotateY = useSpring(rotateY, { stiffness: 260, damping: 20 });
   const springScale = useSpring(scale, { stiffness: 300, damping: 24 });
 
-  if (reduceMotion) {
-    return {}; // accessibility: no tilt, no springs, no pointer tracking
+  if (reduceMotion || !canHover) {
+    return {}; // static card: reduced motion, or a touch device (no tilt)
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {

@@ -77,6 +77,14 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
   };
 
   return (
+    // Press feedback for touch devices (desktop keeps the 3D hover): the
+    // whileTap scale lives on a wrapper so the inner CTA buttons' own taps
+    // don't fight it. `will-change` is a hint only; safe on links.
+    <motion.div
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.15 }}
+      className="h-full"
+    >
     <Link
       to={`/product/${product.slug}`}
       className="gw-product-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-red focus-visible:ring-offset-2"
@@ -158,5 +166,6 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
         </div>
       </div>
     </Link>
+    </motion.div>
   );
 }

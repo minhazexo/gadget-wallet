@@ -17,7 +17,9 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center font-bold rounded-btn transition-all duration-200 focus:outline-none";
+    // active:scale gives every button a press state on touch devices —
+    // hover-only feedback never resolves there.
+    "inline-flex items-center justify-center font-bold rounded-btn transition-all duration-200 focus:outline-none active:scale-[0.97]";
 
   const variants = {
     primary: "bg-gw-red text-white hover:bg-gw-red-hover hover:-translate-y-0.5",

@@ -231,7 +231,7 @@ export default function Shop() {
 
   // Scroll back to the top of the grid when switching pages.
   useEffect(() => {
-    if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" });
+    if (page > 1) window.scrollTo({ top: 0, behavior: "auto" });
   }, [page]);
 
   const toggleList = (key: "brands" | "colors", value: string) =>
@@ -257,22 +257,11 @@ export default function Shop() {
       ? slug.charAt(0).toUpperCase() + slug.slice(1)
       : "All Products";
 
+  // Note: the header (title + Clear all) is rendered by the desktop sidebar
+  // card and the mobile bottom-sheet grabber separately — this fragment holds
+  // only the filter groups so both shells reuse one markup source.
   const FilterSidebar = (
     <div className="w-full lg:w-60 xl:w-64 shrink-0 bg-white rounded-card border border-gray-100 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-extrabold text-gw-black uppercase tracking-wide">
-          Filters {activeCount > 0 && <span className="ml-1 text-gw-red">({activeCount})</span>}
-        </h3>
-        {activeCount > 0 && (
-          <button
-            onClick={clearAll}
-            className="text-xs font-semibold text-gw-red hover:text-gw-red-hover transition-colors"
-          >
-            Clear all
-          </button>
-        )}
-      </div>
-
       {/* 7. Sort By */}
       <FilterGroup title="Sort By">
         <div className="relative">
@@ -498,23 +487,84 @@ export default function Shop() {
         <div className="lg:flex lg:gap-6 lg:items-start">
           {/* Filters — sticky on desktop, collapsible on mobile */}
           <aside className="lg:sticky lg:top-24 h-fit shrink-0 hidden lg:block">
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-extrabold text-gw-black uppercase tracking-wide">
+                  Filters {activeCount > 0 && <span className="ml-1 text-gw-red">({activeCount})</span>}
+                </h3>
+                {activeCount > 0 && (
+                  <button
+                    onClick={clearAll}
+                    className="text-xs font-semibold text-gw-red hover:text-gw-red-hover transition-colors"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
             {FilterSidebar}
           </aside>
 
           <div className="flex-1 min-w-0">
             {Toolbar}
 
-            {/* Mobile filter panel */}
+            {/* Mobile filter panel — bottom sheet (backdrop + sliding panel).
+                Desktop keeps the inline sticky sidebar above. */}
             <AnimatePresence>
               {showFilters && (
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                  className="lg:hidden overflow-hidden mb-5"
+                  className="lg:hidden"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  {FilterSidebar}
+                  {/* Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={() => setShowFilters(false)}
+                    className="fixed inset-0 z-40 bg-black/50"
+                  />
+                  {/* Sheet */}
+                  <motion.div
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
+                    className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto overscroll-contain bg-white rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.16)]"
+                    role="dialog"
+                    aria-label="Filters"
+                  >
+                    {/* Grabber handle */}
+                    <div className="sticky top-0 bg-white pt-3 pb-2 px-4 flex flex-col items-center gap-2 border-b border-gray-100 z-10">
+                      <span className="w-10 h-1.5 rounded-full bg-gw-gray-300" aria-hidden="true" />
+                      <div className="flex items-center justify-between w-full">
+                        <h3 className="text-sm font-extrabold text-gw-black uppercase tracking-wide">
+                          Filters
+                          {activeCount > 0 && <span className="ml-1 text-gw-red">({activeCount})</span>}
+                        </h3>
+                        {activeCount > 0 && (
+                          <button
+                            onClick={clearAll}
+                            className="text-xs font-semibold text-gw-red hover:text-gw-red-hover transition-colors"
+                          >
+                            Clear all
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-4 pb-2">{FilterSidebar}</div>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 pb-safe">
+                      <button
+                        onClick={() => setShowFilters(false)}
+                        className="w-full h-12 rounded-btn bg-gw-red text-white text-sm font-bold hover:bg-gw-red-hover transition-colors"
+                      >
+                        Show {total} results
+                      </button>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>

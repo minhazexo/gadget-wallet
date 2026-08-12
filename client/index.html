@@ -10,8 +10,15 @@
     <link rel="manifest" href="/manifest.json" />
     
     <!-- Meta -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1a3a4a" />
+    <!-- viewport-fit=cover lets fixed elements use safe-area insets (notch /
+         home indicator) on phones; theme-color now matches the header (light)
+         and the dark palette, instead of the old clashing navy. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="Gadget Wallet - Premium electronics store. Experience the future of technology." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,6 +44,22 @@
       href="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1320&q=80"
     />
     <title>Gadget Wallet - Premium Electronics</title>
+    <script>
+      // Apply the saved (or system) theme BEFORE first paint so there is no
+      // light-mode flash on devices set to dark. Profile.tsx keeps the toggle
+      // in sync (localStorage key "gw-dark", "1" = dark).
+      (function () {
+        try {
+          var stored = localStorage.getItem("gw-dark");
+          var dark =
+            stored === "1" ||
+            (stored === null && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (e) {
+          /* storage unavailable — default to light */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
