@@ -1,24 +1,30 @@
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-// Guide step 2 — raw SQL client. Requires DATABASE_URL in the Vercel
-// environment (see docs/gadget-wallet-vercel-update-guide.md).
+// Raw SQL client backed by postgres.js — works with ANY Postgres-compatible
+// database. After the Neon → Supabase migration, DATABASE_URL points at the
+// Supabase transaction pooler (port 6543); the Neon HTTP driver was dropped
+// because it cannot route through Supabase's pooler (SNI-based routing).
 //
-// Fail loudly at import time with a helpful message instead of letting
-// `neon(undefined)` throw a confusing parse error deep inside the driver.
+// The exported interface is identical to the old driver:
+//   sql.unsafe(queryText, params)  → rows array (async)
+//   sql.begin(tx => ...)            → transaction
+// so none of the ~58 handlers that import this file needed changes.
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString || /ep-xxxx/.test(connectionString)) {
   throw new Error(
-    "DATABASE_URL is not configured. Add your Neon PostgreSQL connection string " +
+    "DATABASE_URL is not configured. Add your Supabase PostgreSQL connection string " +
       "to the Vercel project's Environment Variables, then redeploy.",
   );
 }
 
-const sql = neon(connectionString);
-
-// The neon HTTP driver exposes `query(sql, params)` for conventional $1/$2
-// placeholders, and `unsafe()` for embedding raw SQL inside tagged templates.
-// Alias `unsafe` to the parameterized `query` form so every endpoint can keep
-// using `sql.unsafe(query, params)` (the postgres.js-style shorthand).
-sql.unsafe = (query, params) => sql.query(query, params);
+// Serverless-safe pool: max 1 per function instance, short idle/connect
+// timeouts, and prepare:false so it works with pooled endpoints (PgBouncer /
+// Supabase transaction pooler), which can't pin named prepared statements.
+const sql = postgres(connectionString, {
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  prepare: false,
+});
 
 export default sql;

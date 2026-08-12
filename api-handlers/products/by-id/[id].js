@@ -1,5 +1,5 @@
 import sql from "../../_lib/db.js";
-import { ok, fail } from "../../_lib/respond.js";
+import { okPublic, fail } from "../../_lib/respond.js";
 import { PRODUCT_SELECT, PRODUCT_FROM, IMAGE_SELECT, SPEC_SELECT } from "../../_lib/products.js";
 
 /**

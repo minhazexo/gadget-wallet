@@ -56,3 +56,6 @@ backups/
 
 # Local AI skill files (graphify/neon-postgres) — dev-only.
 .kilo/
+
+.vercel
+.env*
