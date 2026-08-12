@@ -1,5 +1,5 @@
 import sql from "../_lib/db.js";
-import { okPublic, fail } from "../_lib/respond.js";
+import { fail } from "../_lib/respond.js";
 import { PRODUCT_LIST_SELECT, PRODUCT_FROM } from "../_lib/products.js";
 
 const UUID_RE = /^[0-9a-fA-F-]{36}$/;
@@ -154,8 +154,14 @@ export default async function handler(req, res) {
       ),
     ]);
 
-    // okPublic wraps in { success, data, message }, so pass the bare payload.
-    return okPublic(res, {
+    // This endpoint returns a PAGINATED shape — { success, data: [...], total,
+    // page, limit, totalPages, facets } — NOT the simple { success, data }
+    // wrapper that okPublic() produces (which would double-wrap `data` and
+    // break the storefront: res.data.data must be the array). Set the cache
+    // header directly and keep the exact flat response shape.
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=30");
+    return res.status(200).json({
+      success: true,
       data: rows,
       total,
       page,
@@ -169,7 +175,7 @@ export default async function handler(req, res) {
             ? { min: priceFacet[0].min, max: priceFacet[0].max }
             : { min: 0, max: 0 },
       },
-    }, 60);
+    });
   } catch (err) {
     console.error("[products] list failed:", err);
     return fail(res, 500, "Failed to fetch products");
