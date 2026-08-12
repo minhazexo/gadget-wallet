@@ -1,5 +1,5 @@
 import sql from "../_lib/db.js";
-import { ok, fail } from "../_lib/respond.js";
+import { okPublic, fail } from "../_lib/respond.js";
 import { PRODUCT_SELECT, PRODUCT_FROM, IMAGE_SELECT, SPEC_SELECT } from "../_lib/products.js";
 
 /**
@@ -29,7 +29,8 @@ export default async function handler(req, res) {
       sql.unsafe(`SELECT ${SPEC_SELECT} FROM product_specs WHERE product_id = $1`, [product.id]),
     ]);
 
-    return ok(res, { ...product, images, specs });
+    // Products only change when an admin edits them — cache per-product at the CDN.
+    return okPublic(res, { ...product, images, specs }, 300);
   } catch (err) {
     console.error("[products] detail failed:", err);
     return fail(res, 500, "Failed to fetch product");

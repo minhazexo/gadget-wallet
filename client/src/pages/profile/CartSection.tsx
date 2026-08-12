@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { ShoppingBag, Trash2, Minus, Plus, ArrowRight } from "lucide-react";
 import { Button } from "@gadget-wallet/ui";
 import { useCartStore, selectCartSummary } from "../../store/useCartStore";
@@ -42,7 +43,7 @@ export function CartSection() {
                 icon={<ShoppingBag className="w-16 h-16" />}
                 title="Your cart is empty"
                 subtitle="Add products from the shop and they will appear here"
-                action={<a href="/shop"><Button variant="primary">Browse Products</Button></a>}
+                action={<Link to="/shop"><Button variant="primary">Browse Products</Button></Link>}
               />
             </div>
           ) : (
@@ -54,21 +55,23 @@ export function CartSection() {
                   className="gw-panel-category p-4"
                 >
                   <div className="flex items-center gap-4">
-                    <a href={`/product/${item.slug}`} className="shrink-0">
+                    <Link to={`/product/${item.slug}`} className="shrink-0">
                       <div className="w-16 h-16 rounded-xl bg-white border border-gw-border p-1.5 overflow-hidden">
                         <img
                           src={item.image || `https://picsum.photos/seed/${item.slug}/200/200`}
                           alt={item.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-contain"
                         />
                       </div>
-                    </a>
+                    </Link>
                     <div className="flex-1 min-w-0">
-                      <a href={`/product/${item.slug}`}>
+                      <Link to={`/product/${item.slug}`}>
                         <p className="gw-heading-sm truncate hover:text-gw-red transition-colors">
                           {item.name}
                         </p>
-                      </a>
+                      </Link>
                       <p className="text-sm font-bold text-gw-red mt-0.5">{money(Number(item.discountPrice || item.price))}</p>
                     </div>
                     <div className="flex items-center border border-gw-border dark:border-gray-700 rounded-xl">
@@ -125,16 +128,16 @@ export function CartSection() {
               </div>
             </div>
             <div className="mt-5 space-y-2">
-              <a href="/checkout">
+              <Link to="/checkout">
                 <Button variant="primary" className="w-full h-11">
                   Checkout <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </a>
-              <a href="/cart">
+              </Link>
+              <Link to="/cart">
                 <Button variant="outline" className="w-full h-11">
                   Go to Cart
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -143,7 +146,7 @@ export function CartSection() {
               <h4 className="gw-heading-sm mb-3">Recently Added</h4>
               <div className="space-y-3">
                 {recent.map((item) => (
-                  <a key={item.id} href={`/product/${item.slug}`} className="flex items-center gap-3 group">
+                  <Link key={item.id} to={`/product/${item.slug}`} className="flex items-center gap-3 group">
                     <div className="w-10 h-10 rounded-btn bg-white border border-gw-border p-1 overflow-hidden shrink-0">
                       <img src={item.image || `https://picsum.photos/seed/${item.slug}/100/100`} alt={item.name} className="w-full h-full object-contain" />
                     </div>
@@ -151,7 +154,7 @@ export function CartSection() {
                       <p className="text-xs font-medium gw-text-body truncate group-hover:text-gw-red transition-colors">{item.name}</p>
                       <p className="gw-muted-xs">Qty {item.quantity}</p>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { History, ShoppingCart, Zap, Heart } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 import { useWishlistStore } from "../../store/useWishlistStore";
 import { showToast } from "../../store/useToastStore";
@@ -71,7 +71,7 @@ export function RecentlyViewedSection() {
             icon={<History className="w-16 h-16" />}
             title="No recently viewed products"
             subtitle="Products you browse will show up here"
-            action={<a href="/shop"><button className="px-5 py-2.5 bg-gw-red text-white text-sm font-bold rounded-btn hover:bg-gw-red-hover transition-colors">Browse Products</button></a>}
+            action={<Link to="/shop"><button className="px-5 py-2.5 bg-gw-red text-white text-sm font-bold rounded-btn hover:bg-gw-red-hover transition-colors">Browse Products</button></Link>}
           />
         </div>
       ) : (
@@ -83,14 +83,15 @@ export function RecentlyViewedSection() {
               className="shrink-0 w-52 gw-panel-category overflow-hidden group"
             >
               <div className="relative p-4 bg-white">
-                <a href={`/product/${item.slug}`}>
+                <Link to={`/product/${item.slug}`}>
                   <img
                     src={item.image || `https://picsum.photos/seed/${item.slug}/400/400`}
                     alt={item.name}
                     className="w-full aspect-square object-contain"
                     loading="lazy"
+                    decoding="async"
                   />
-                </a>
+                </Link>
                 <button
                   onClick={() => handleToggleWishlist(item)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white shadow-gw-sm flex items-center justify-center text-gw-gray-300 hover:text-gw-red transition-colors"
@@ -100,9 +101,9 @@ export function RecentlyViewedSection() {
                 </button>
               </div>
               <div className="px-4 pb-4">
-                <a href={`/product/${item.slug}`}>
+                <Link to={`/product/${item.slug}`}>
                   <h3 className="gw-heading-sm truncate hover:text-gw-red transition-colors">{item.name}</h3>
-                </a>
+                </Link>
                 <p className="text-lg font-extrabold text-gw-red mt-1">{money(item.discountPrice || item.price)}</p>
                 <div className="flex gap-2 mt-3">
                   <button

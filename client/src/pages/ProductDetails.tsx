@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Heart, Share2, Minus, Plus, Truck, Shield, RotateCcw } from "lucide-react";
+import { cachedGet } from "../lib/cachedGet";
 import api from "../lib/api";
+
+// Per-session dedup so rapid back/forward navigation (where the product is
+// served from the TTL cache) doesn't fire a /recently-viewed POST each time.
+const recentlyViewedLogged = new Set<string>();
 import { useCartStore } from "../store/useCartStore";
 import { useWishlistStore } from "../store/useWishlistStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -44,21 +49,20 @@ export default function ProductDetails() {
   const requireAuth = useRequireAuth();
 
   useEffect(() => {
-    if (slug) {
-      api.get(`/products/${slug}`).then((res) => {
-        const p = res.data.data;
-        setProduct(p);
-        // Open the gallery on the primary (cover) image when available.
-        const primaryIdx = p?.images?.findIndex((i: { isPrimary?: boolean }) => i.isPrimary) ?? -1;
-        if (primaryIdx >= 0) setSelectedImage(primaryIdx);
-      });
-      if (useAuthStore.getState().user) {
-        api.get(`/products/${slug}`).then((res) => {
-          const p = res.data.data;
-          if (p?.id) api.post("/recently-viewed", { productId: p.id }).catch(() => {});
-        });
+    if (!slug) return;
+    // One fetch shared for both rendering and the recently-viewed log — the
+    // product data is never fetched twice for the same slug.
+    cachedGet<{ data: Product }>(`/products/${slug}`, 60_000).then((body) => {
+      const p = body.data;
+      setProduct(p);
+      // Open the gallery on the primary (cover) image when available.
+      const primaryIdx = p?.images?.findIndex((i: { isPrimary?: boolean }) => i.isPrimary) ?? -1;
+      if (primaryIdx >= 0) setSelectedImage(primaryIdx);
+      if (useAuthStore.getState().user && p?.id && !recentlyViewedLogged.has(p.id)) {
+        recentlyViewedLogged.add(p.id);
+        api.post("/recently-viewed", { productId: p.id }).catch(() => {});
       }
-    }
+    });
   }, [slug]);
 
   if (!product) {
@@ -130,6 +134,8 @@ export default function ProductDetails() {
                 src={product.images?.[selectedImage]?.url || `https://picsum.photos/seed/${slug}/800/800`}
                 alt={product.name}
                 className="w-full h-full object-contain"
+                fetchPriority="high"
+                decoding="async"
               />
             </motion.div>
             {product.images && product.images.length > 1 && (
@@ -147,7 +153,7 @@ export default function ProductDetails() {
                       selectedImage === i ? "border-gw-red" : "border-gw-border"
                     }`}
                   >
-                    <img src={img.url} alt={img.alt} className="w-full h-full object-contain" />
+                    <img src={img.url} alt={img.alt} loading="lazy" decoding="async" className="w-full h-full object-contain" />
                   </motion.button>
                 ))}
               </div>

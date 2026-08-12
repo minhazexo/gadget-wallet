@@ -1,41 +1,54 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { Navbar, Footer, ScrollToTop, type HeaderCategory } from "@gadget-wallet/ui";
-import { useEffect, useState } from "react";
-import api from "./lib/api";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuthStore } from "./store/useAuthStore";
 import { useCartStore } from "./store/useCartStore";
 import { useWishlistStore } from "./store/useWishlistStore";
-import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "./components/PageTransition";
 import { ToastProvider } from "./components/ToastProvider";
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import ProductDetails from "./pages/ProductDetails";
-import Categories from "./pages/Categories";
-import SearchResults from "./pages/SearchResults";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import OrderSuccess from "./pages/OrderSuccess";
-import Wishlist from "./pages/Wishlist";
-import Profile from "./pages/Profile";
-import MyOrders from "./pages/MyOrders";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import NotFound from "./pages/NotFound";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminProductForm from "./pages/admin/AdminProductForm";
-import AdminProductDetail from "./pages/admin/AdminProductDetail";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminBrands from "./pages/admin/AdminBrands";
+import { cachedGet } from "./lib/cachedGet";
+
+// ── Route-level code splitting ─────────────────────────────────────────────
+// Every page is a lazy chunk: a storefront visitor never downloads admin,
+// checkout, profile or static-page code. The admin barrel (pages/admin/index)
+// loads the whole dashboard as ONE chunk on first admin visit.
+const Home = lazy(() => import("./pages/Home"));
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetails = lazy(() => import("./pages/ProductDetails"));
+const Categories = lazy(() => import("./pages/Categories"));
+const SearchResults = lazy(() => import("./pages/SearchResults"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Profile = lazy(() => import("./pages/Profile"));
+const MyOrders = lazy(() => import("./pages/MyOrders"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminLayout = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminLayout })));
+const AdminDashboard = lazy(() => import("./pages/admin").then((m) => ({ default: m.Dashboard })));
+const AdminProducts = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminProducts })));
+const AdminProductForm = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminProductForm })));
+const AdminProductDetail = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminProductDetail })));
+const AdminOrders = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminOrders })));
+const AdminCategories = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminCategories })));
+const AdminBrands = lazy(() => import("./pages/admin").then((m) => ({ default: m.AdminBrands })));
+
+/** Shown while a route chunk loads — mirrors the old route look without blanking. */
+function RouteFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="animate-pulse text-gw-gray-500">Loading…</div>
+    </div>
+  );
+}
 
 export default function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
@@ -63,10 +76,11 @@ export default function App() {
   }, [location.pathname]);
 
   // Live categories for the header's mega menu / category dropdown.
+  // Shared via cachedGet so the header + Home + Categories page reuse one
+  // request instead of each fetching /categories separately.
   useEffect(() => {
-    api
-      .get("/categories")
-      .then((res) => setCategories(res.data?.data || []))
+    cachedGet<{ data: HeaderCategory[] }>("/categories", 5 * 60_000)
+      .then((body) => setCategories(body?.data || []))
       .catch(() => {});
   }, []);
 
@@ -89,7 +103,10 @@ export default function App() {
       <ToastProvider />
       <ScrollToTop />
       <main className="flex-1 pt-0">
-        <AnimatePresence mode="wait">
+        {/* No AnimatePresence mode="wait": the old exit animation blocked the
+            route swap for ~300ms. Pages now mount immediately with a light
+            fade-in; lazy chunks show RouteFallback while they load. */}
+        <Suspense fallback={<RouteFallback />}>
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageTransition><Home /></PageTransition>} />
             <Route path="/shop" element={<PageTransition><Shop /></PageTransition>} />
@@ -123,7 +140,7 @@ export default function App() {
             </Route>
             <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
           </Routes>
-        </AnimatePresence>
+        </Suspense>
       </main>
       <Footer />
     </div>

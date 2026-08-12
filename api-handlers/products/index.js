@@ -1,6 +1,6 @@
 import sql from "../_lib/db.js";
-import { fail } from "../_lib/respond.js";
-import { PRODUCT_SELECT, PRODUCT_FROM } from "../_lib/products.js";
+import { okPublic, fail } from "../_lib/respond.js";
+import { PRODUCT_LIST_SELECT, PRODUCT_FROM } from "../_lib/products.js";
 
 const UUID_RE = /^[0-9a-fA-F-]{36}$/;
 
@@ -114,15 +114,17 @@ export default async function handler(req, res) {
   const scopeWhere = scope.join(" AND ");
 
   try {
-    const data = await sql.unsafe(
-      `SELECT ${PRODUCT_SELECT} ${PRODUCT_FROM} WHERE ${where} ORDER BY ${SORTS[sort]} LIMIT ${limit} OFFSET ${offset}`,
+    // Data + total in ONE query via a window function — the neon() driver is
+    // HTTP-based, so every separate statement is its own round-trip to Neon.
+    // count(*) OVER() is computed before LIMIT/OFFSET apply, so _total on the
+    // first row is the full filtered count.
+    const rows = await sql.unsafe(
+      `SELECT ${PRODUCT_LIST_SELECT},
+              count(*) OVER()::int AS _total
+         ${PRODUCT_FROM} WHERE ${where} ORDER BY ${SORTS[sort]} LIMIT ${limit} OFFSET ${offset}`,
       params,
     );
-    const countRows = await sql.unsafe(
-      `SELECT count(*)::int AS count ${PRODUCT_FROM} WHERE ${where}`,
-      params,
-    );
-    const total = Number(countRows[0]?.count || 0);
+    const total = rows.length > 0 ? Number(rows[0]._total || 0) : 0;
 
     const [brandFacet, colorFacet, priceFacet] = await Promise.all([
       sql.unsafe(
@@ -152,9 +154,9 @@ export default async function handler(req, res) {
       ),
     ]);
 
-    return res.status(200).json({
-      success: true,
-      data,
+    // okPublic wraps in { success, data, message }, so pass the bare payload.
+    return okPublic(res, {
+      data: rows,
       total,
       page,
       limit,
@@ -167,7 +169,7 @@ export default async function handler(req, res) {
             ? { min: priceFacet[0].min, max: priceFacet[0].max }
             : { min: 0, max: 0 },
       },
-    });
+    }, 60);
   } catch (err) {
     console.error("[products] list failed:", err);
     return fail(res, 500, "Failed to fetch products");

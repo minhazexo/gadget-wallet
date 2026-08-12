@@ -1,5 +1,5 @@
 import sql from "../_lib/db.js";
-import { ok, fail } from "../_lib/respond.js";
+import { okPublic, fail } from "../_lib/respond.js";
 
 /** GET /api/categories — with a per-category product count (counts live products). */
 export default async function handler(req, res) {
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
       GROUP BY c.id, c.name, c.slug, c.description, c.image, c.parent_id
       ORDER BY c.name
     `);
-    return ok(res, data);
+    return okPublic(res, data, 300);
   } catch (err) {
     console.error("[categories] list failed:", err);
     return fail(res, 500, "Failed to fetch categories");

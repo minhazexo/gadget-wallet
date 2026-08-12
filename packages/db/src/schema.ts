@@ -104,6 +104,10 @@ export const products = pgTable(
     index("featured_idx").on(table.isFeatured),
     index("category_idx").on(table.categoryId),
     index("brand_idx").on(table.brandId),
+    // List/sort/filter hot paths (see docs/PERFORMANCE_OPTIMIZATION.md #11)
+    index("products_created_idx").on(table.createdAt),
+    index("products_rating_idx").on(table.rating),
+    index("products_discount_idx").on(table.discountPrice),
   ],
 );
 

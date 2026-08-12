@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Package, Eye, Truck, FileDown, XCircle, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@gadget-wallet/ui";
 import api from "../../lib/api";
@@ -75,7 +76,7 @@ export function OrdersSection() {
           icon={<Package className="w-16 h-16" />}
           title="No orders yet"
           subtitle="When you place an order, it will show up here"
-          action={<a href="/shop"><Button variant="primary">Start Shopping</Button></a>}
+          action={<Link to="/shop"><Button variant="primary">Start Shopping</Button></Link>}
         />
       ) : (
         <div className="space-y-4">

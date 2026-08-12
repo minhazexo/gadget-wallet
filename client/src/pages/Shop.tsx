@@ -1,6 +1,6 @@
 import { Container } from "@gadget-wallet/ui";
-import { useEffect, useState, type ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
@@ -30,6 +30,8 @@ interface Product {
   rating: number;
   reviewCount: number;
   thumbnailUrl?: string;
+  /** Light list projection — first gallery image (fallback when no thumbnail). */
+  firstImageUrl?: string;
   images?: { url: string; alt: string }[];
   stock?: number;
   brandName?: string;
@@ -70,6 +72,9 @@ const DEFAULT_FILTERS: FilterState = {
 };
 
 const DEFAULT_FACETS: Facets = { brands: [], colors: [], priceRange: { min: 0, max: 0 } };
+
+/** Products per page — the API already paginates; render only one page at a time. */
+const PAGE_SIZE = 24;
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
@@ -151,6 +156,8 @@ export default function Shop() {
   const brand = searchParams.get("brand");
   const [products, setProducts] = useState<Product[]>([]);
   const [facets, setFacets] = useState<Facets>(DEFAULT_FACETS);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
@@ -168,13 +175,29 @@ export default function Shop() {
     }
   };
 
+  // Signature of everything that changes the result set. When it changes we
+  // reset to page 1 — without this guard the reset + fetch would fire twice
+  // (a wasted request for the old page) on every filter change at page > 1.
+  const lastQueryRef = useRef("");
+
   useEffect(() => {
+    const signature = `${slug ?? ""}|${brand ?? ""}|${JSON.stringify(filters)}`;
+    if (lastQueryRef.current !== signature) {
+      lastQueryRef.current = signature;
+      if (page !== 1) {
+        setPage(1); // re-render with page=1 re-runs this effect → real fetch
+        return;
+      }
+      // page is already 1 — fall through and fetch with the new signature
+    }
+
     let cancelled = false;
     setLoading(true);
     const params = new URLSearchParams();
     if (slug) params.set("category", slug);
     if (brand) params.set("brand", brand);
-    params.set("limit", "100");
+    params.set("limit", String(PAGE_SIZE));
+    if (page > 1) params.set("page", String(page));
     if (filters.brands.length) params.set("brands", filters.brands.join(","));
     if (filters.colors.length) params.set("colors", filters.colors.join(","));
     if (filters.minPrice) params.set("minPrice", filters.minPrice);
@@ -191,6 +214,7 @@ export default function Shop() {
         if (cancelled) return;
         setProducts(res.data.data || []);
         setFacets(res.data.facets || DEFAULT_FACETS);
+        setTotal(res.data.total ?? res.data.data?.length ?? 0);
       })
       .catch(() => {
         if (!cancelled) setProducts([]);
@@ -201,7 +225,14 @@ export default function Shop() {
     return () => {
       cancelled = true;
     };
-  }, [slug, brand, filters]);
+  }, [slug, brand, filters, page]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Scroll back to the top of the grid when switching pages.
+  useEffect(() => {
+    if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
 
   const toggleList = (key: "brands" | "colors", value: string) =>
     setFilters((f) => ({
@@ -395,7 +426,7 @@ export default function Shop() {
           )}
         </button>
         <p className="text-sm text-gw-gray-500">
-          <span className="font-semibold text-gw-black">{products.length}</span> products
+          <span className="font-semibold text-gw-black">{total}</span> products
         </p>
       </div>
 
@@ -459,7 +490,7 @@ export default function Shop() {
           <div>
             <h2 className="gw-section-title">{title}</h2>
             <p className="text-sm text-gw-gray-500 font-normal">
-              {products.length} products found
+              {total} products found
             </p>
           </div>
         </motion.div>
@@ -521,8 +552,8 @@ export default function Shop() {
 
                   return (
                     <motion.div key={product.id} variants={staggerItem}>
-                      <a
-                        href={`/product/${product.slug}`}
+                      <Link
+                        to={`/product/${product.slug}`}
                         className="gw-product-card-row group"
                       >
                         <div className="w-24 h-24 sm:w-48 sm:h-48 shrink-0 p-2 sm:p-4 bg-white relative">
@@ -533,10 +564,11 @@ export default function Shop() {
                           )}
                           <div className="relative w-full h-full">
                             <img
-                              src={product.thumbnailUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
+                              src={product.thumbnailUrl || product.firstImageUrl || product.images?.[0]?.url || `https://picsum.photos/seed/${product.slug}/400/400`}
                               alt={product.name}
                               className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
                               loading="lazy"
+                              decoding="async"
                             />
                           </div>
                         </div>
@@ -560,11 +592,48 @@ export default function Shop() {
                             Add to Cart
                           </motion.button>
                         </div>
-                      </a>
+                      </Link>
                     </motion.div>
                   );
                 })}
               </motion.div>
+            )}
+
+            {/* Pager — one page of results rendered at a time */}
+            {!loading && products.length > 0 && totalPages > 1 && (
+              <nav
+                aria-label="Pagination"
+                className="flex items-center justify-center gap-2 mt-10"
+              >
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="h-10 px-4 rounded-btn border border-gray-200 text-sm font-semibold text-gw-black hover:border-gw-red hover:text-gw-red transition-colors disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gw-black"
+                >
+                  &larr; Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setPage(n)}
+                    aria-current={n === page ? "page" : undefined}
+                    className={`w-10 h-10 rounded-btn text-sm font-bold transition-colors ${
+                      n === page
+                        ? "bg-gw-red text-white"
+                        : "border border-gray-200 text-gw-gray-500 hover:border-gw-red hover:text-gw-red"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="h-10 px-4 rounded-btn border border-gray-200 text-sm font-semibold text-gw-black hover:border-gw-red hover:text-gw-red transition-colors disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gw-black"
+                >
+                  Next &rarr;
+                </button>
+              </nav>
             )}
           </div>
         </div>

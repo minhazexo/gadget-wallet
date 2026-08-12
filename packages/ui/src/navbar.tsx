@@ -2,6 +2,7 @@ import "./navbar.css";
 import { cn } from "./utils";
 import { Avatar } from "./avatar";
 import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -24,6 +25,9 @@ import {
  * ALL styling lives in ./navbar.css under uniquely-prefixed `gw-nav-` classes
  * so they can never collide with classNames from other files. Framer Motion
  * still handles the hover/drawer/badge animations.
+ *
+ * Internal navigation uses react-router <Link>/useNavigate (client-side, no
+ * full page reload); only external links use plain <a>.
  */
 
 export interface HeaderCategory {
@@ -34,11 +38,11 @@ export interface HeaderCategory {
 }
 
 const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Shop", href: "/shop" },
-  { label: "Categories", href: "/categories" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  { label: "Home", to: "/" },
+  { label: "Shop", to: "/shop" },
+  { label: "Categories", to: "/categories" },
+  { label: "About", to: "/about" },
+  { label: "Contact", to: "/contact" },
 ];
 
 interface NavbarProps {
@@ -52,6 +56,9 @@ interface NavbarProps {
   onLogout?: () => void;
 }
 
+// Animated internal link (motion + react-router Link in one component).
+const MotionLink = motion.create(Link);
+
 export function Navbar({
   isLoggedIn = false,
   cartCount = 0,
@@ -60,6 +67,7 @@ export function Navbar({
   userAvatar = null,
   onLogout,
 }: NavbarProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [badgeBounce, setBadgeBounce] = useState(false);
@@ -73,7 +81,7 @@ export function Navbar({
     const q = query.trim();
     if (q) params.set("q", q);
     if (!q) return; // don't navigate on an empty search
-    window.location.href = `/search${params.toString() ? `?${params.toString()}` : ""}`;
+    navigate(`/search${params.toString() ? `?${params.toString()}` : ""}`);
     setQuery("");
   };
 
@@ -93,12 +101,12 @@ export function Navbar({
     }
   }, [cartCount]);
 
-  const isActive = (href: string) => {
+  const isActive = (to: string) => {
     if (typeof window === "undefined") return false;
     const path = window.location.pathname;
-    if (href === "/") return path === "/";
-    if (href === "/categories") return path === "/categories" || path.startsWith("/category/");
-    return path.startsWith(href);
+    if (to === "/") return path === "/";
+    if (to === "/categories") return path === "/categories" || path.startsWith("/category/");
+    return path.startsWith(to);
   };
 
   return (
@@ -114,9 +122,9 @@ export function Navbar({
         <div className="gw-nav-container">
           <div className="gw-nav-row">
             {/* Logo */}
-            <a href="/" className="gw-nav-logo" aria-label="Gadget Wallet home">
+            <Link to="/" className="gw-nav-logo" aria-label="Gadget Wallet home">
               <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="gw-nav-logo-img" />
-            </a>
+            </Link>
 
             {/* Search pill */}
             <form
@@ -185,12 +193,12 @@ export function Navbar({
                             <p className="gw-nav-menu-sub">Welcome back</p>
                           </div>
                         </div>
-                        <a href="/profile" className="gw-nav-menu-item">
+                        <Link to="/profile" className="gw-nav-menu-item">
                           <LayoutDashboard size={16} /> My Profile
-                        </a>
-                        <a href="/my-orders" className="gw-nav-menu-item">
+                        </Link>
+                        <Link to="/my-orders" className="gw-nav-menu-item">
                           <Package size={16} /> My Orders
-                        </a>
+                        </Link>
                         <button
                           onClick={onLogout}
                           className="gw-nav-menu-item gw-nav-menu-item--logout"
@@ -202,14 +210,14 @@ export function Navbar({
                   </AnimatePresence>
                 </div>
               ) : (
-                <a href="/login" className="gw-nav-icon-btn" aria-label="Account">
+                <Link to="/login" className="gw-nav-icon-btn" aria-label="Account">
                   <User size={28} />
                   <span>Account</span>
-                </a>
+                </Link>
               )}
 
-              <a
-                href="/wishlist"
+              <Link
+                to="/wishlist"
                 className="gw-nav-icon-btn"
                 aria-label="Wishlist"
               >
@@ -220,10 +228,10 @@ export function Navbar({
                     {wishlistCount}
                   </span>
                 )}
-              </a>
+              </Link>
 
-              <a
-                href="/cart"
+              <Link
+                to="/cart"
                 className="gw-nav-icon-btn"
                 aria-label="Cart"
               >
@@ -236,7 +244,7 @@ export function Navbar({
                 >
                   {cartCount}
                 </motion.span>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -274,16 +282,16 @@ export function Navbar({
               </AnimatePresence>
             </motion.button>
 
-            <a href="/" className="gw-nav-mlogo" aria-label="Gadget Wallet home">
+            <Link to="/" className="gw-nav-mlogo" aria-label="Gadget Wallet home">
               <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="gw-nav-mlogo-img" />
-            </a>
+            </Link>
 
-            <a href="/cart" className="gw-nav-mcart" aria-label="Cart">
+            <Link to="/cart" className="gw-nav-mcart" aria-label="Cart">
               <ShoppingCart size={30} />
               <span className="gw-nav-badge">
                 {cartCount}
               </span>
-            </a>
+            </Link>
           </div>
 
           {/* Mobile search row */}
@@ -314,25 +322,25 @@ export function Navbar({
             {/* Nav links — centered across the full nav bar */}
             <div className="gw-nav-links">
               {navLinks.map((link) => (
-                <motion.a
-                  key={link.href}
-                  href={link.href}
+                <MotionLink
+                  key={link.to}
+                  to={link.to}
                   className={cn(
                     "gw-nav-link",
-                    isActive(link.href) && "gw-nav-link--active",
+                    isActive(link.to) && "gw-nav-link--active",
                   )}
                   whileHover={{ y: -1 }}
                   whileTap={{ y: 0 }}
                 >
                   {link.label}
-                  {isActive(link.href) && (
+                  {isActive(link.to) && (
                     <motion.div
                       layoutId="nav-underline"
                       className="gw-nav-underline"
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
-                </motion.a>
+                </MotionLink>
               ))}
             </div>
           </div>
@@ -360,31 +368,31 @@ export function Navbar({
                 >
                   {navLinks.map((link) => (
                     <motion.div
-                      key={link.href}
+                      key={link.to}
                       variants={{ hidden: { opacity: 0, x: -15 }, visible: { opacity: 1, x: 0 } }}
                     >
-                      <a
-                        href={link.href}
+                      <Link
+                        to={link.to}
                         className={cn(
                           "gw-nav-drawer-link",
-                          isActive(link.href) && "gw-nav-drawer-link--active",
+                          isActive(link.to) && "gw-nav-drawer-link--active",
                         )}
                         onClick={() => setIsOpen(false)}
                       >
                         {link.label}
-                      </a>
+                      </Link>
                     </motion.div>
                   ))}
 
                   {/* Categories shortcut (mobile) */}
                   <motion.div variants={{ hidden: { opacity: 0, x: -15 }, visible: { opacity: 1, x: 0 } }}>
-                    <a
-                      href="/categories"
+                    <Link
+                      to="/categories"
                       onClick={() => setIsOpen(false)}
                       className="gw-nav-drawer-link"
                     >
                       All Categories
-                    </a>
+                    </Link>
                   </motion.div>
 
                   {/* Account actions (mobile only) */}
@@ -403,20 +411,20 @@ export function Navbar({
                           />
                           <p className="gw-nav-menu-name">{userName || "My Account"}</p>
                         </div>
-                        <a
-                          href="/profile"
+                        <Link
+                          to="/profile"
                           onClick={() => setIsOpen(false)}
                           className="gw-nav-drawer-link"
                         >
                           My Profile
-                        </a>
-                        <a
-                          href="/my-orders"
+                        </Link>
+                        <Link
+                          to="/my-orders"
                           onClick={() => setIsOpen(false)}
                           className="gw-nav-drawer-link"
                         >
                           My Orders
-                        </a>
+                        </Link>
                         <button
                           onClick={() => {
                             setIsOpen(false);
@@ -429,20 +437,20 @@ export function Navbar({
                       </div>
                     ) : (
                       <div className="gw-nav-drawer-actions">
-                        <a
-                          href="/login"
+                        <Link
+                          to="/login"
                           onClick={() => setIsOpen(false)}
                           className="gw-nav-auth-btn"
                         >
                           Sign In
-                        </a>
-                        <a
-                          href="/register"
+                        </Link>
+                        <Link
+                          to="/register"
                           onClick={() => setIsOpen(false)}
                           className="gw-nav-auth-btn gw-nav-auth-btn--ghost"
                         >
                           Create Account
-                        </a>
+                        </Link>
                       </div>
                     )}
                   </motion.div>

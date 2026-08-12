@@ -1,8 +1,12 @@
 import { Container, Button } from "@gadget-wallet/ui";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Truck, Shield, Wallet, Lock } from "lucide-react";
-import api from "../lib/api";
+import { cachedGet } from "../lib/cachedGet";
+
+// Animated internal link (motion + react-router Link in one component).
+const MotionLink = motion.create(Link);
 import {
   heroContainer,
   heroItem,
@@ -20,6 +24,8 @@ interface Product {
   price: number;
   discountPrice?: number;
   thumbnailUrl?: string;
+  /** Light list projection — first gallery image (fallback when no thumbnail). */
+  firstImageUrl?: string;
   images?: { url: string; alt: string }[];
   rating: number;
   reviewCount: number;
@@ -59,19 +65,20 @@ export default function Home() {
 
   useEffect(() => {
     // Each section fetches independently so one failing endpoint can never
-    // blank the others.
-    api.get("/products/featured").then((f) => setFeatured(f.data.data || [])).catch(() => {});
-    api.get("/products/new-arrivals").then((n) => setNewArrivals(n.data.data || [])).catch(() => {});
+    // blank the others. cachedGet dedupes + caches (5 min for catalog
+    // references, 60 s for product grids) so remounts don't re-hit the API.
+    cachedGet<{ data: Product[] }>("/products/featured", 60_000).then((f) => setFeatured(f.data || [])).catch(() => {});
+    cachedGet<{ data: Product[] }>("/products/new-arrivals", 60_000).then((n) => setNewArrivals(n.data || [])).catch(() => {});
     // Flash Sale shows products that are actually discounted — never reuse
     // the featured grid, which mixed in non-discounted items with fake
     // "Sale" badges.
-    api.get("/products?sale=1&limit=5").then((s) => setOnSale(s.data.data || [])).catch(() => {});
+    cachedGet<{ data: Product[] }>("/products?sale=1&limit=5", 60_000).then((s) => setOnSale(s.data || [])).catch(() => {});
     // Popular Categories comes from the DB so admin-managed category photos
     // (and any future category) show up here automatically.
-    api.get("/categories").then((c) => setCategories(c.data.data || [])).catch(() => {});
+    cachedGet<{ data: Category[] }>("/categories", 5 * 60_000).then((c) => setCategories(c.data || [])).catch(() => {});
     // Top Brands comes from the DB so admin-managed brand logos (and any
     // future brand) show up here automatically.
-    api.get("/brands").then((b) => setBrands(b.data.data || [])).catch(() => {});
+    cachedGet<{ data: Brand[] }>("/brands", 5 * 60_000).then((b) => setBrands(b.data || [])).catch(() => {});
   }, []);
 
   return (
@@ -95,6 +102,8 @@ export default function Home() {
                 src="https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=1320&q=80"
                 alt="Hero"
                 className="absolute inset-0 w-full h-full object-cover"
+                fetchPriority="high"
+                decoding="async"
               />
             </motion.div>
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 to-black/25 z-10" />
@@ -110,20 +119,20 @@ export default function Home() {
                   Premium gadgets delivered to your doorstep with official warranty.
                 </p>
                 <motion.div variants={heroItem} className="flex flex-wrap gap-3 justify-center md:justify-start">
-                  <a href="/shop">
+                  <Link to="/shop">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button variant="primary" size="lg" className="rounded-full px-6 md:px-8 h-11 md:h-12 text-xs md:text-sm">
                         Shop Now
                       </Button>
                     </motion.div>
-                  </a>
-                  <a href="/categories">
+                  </Link>
+                  <Link to="/categories">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button variant="outline" size="lg" className="rounded-full px-6 md:px-8 h-11 md:h-12 text-xs md:text-sm border-white/30 text-white hover:bg-white/10">
                         Explore Collection
                       </Button>
                     </motion.div>
-                  </a>
+                  </Link>
                 </motion.div>
               </motion.div>
             </div>
@@ -171,7 +180,7 @@ export default function Home() {
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Popular Categories</h2>
-            <a href="/categories" className="gw-section-link">View All &rarr;</a>
+            <Link to="/categories" className="gw-section-link">View All &rarr;</Link>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -181,20 +190,25 @@ export default function Home() {
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4"
           >
             {categories.slice(0, 6).map((cat) => (
-              <motion.a
+              <motion.div
                 key={cat.slug}
                 variants={staggerItem}
-                href={`/category/${cat.slug}`}
-                whileHover={{ y: -5, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
-                className="bg-white border border-gw-border rounded-category p-4 md:p-6 text-center transition-shadow duration-300 group"
               >
-                <img
-                  src={cat.image || `https://picsum.photos/seed/${cat.slug}/128`}
-                  alt={cat.name}
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain mx-auto mb-2 md:mb-3"
-                />
-                <p className="text-xs md:text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
-              </motion.a>
+                <MotionLink
+                  to={`/category/${cat.slug}`}
+                  whileHover={{ y: -5, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
+                  className="block bg-white border border-gw-border rounded-category p-4 md:p-6 text-center transition-shadow duration-300 group"
+                >
+                  <img
+                    src={cat.image || `https://picsum.photos/seed/${cat.slug}/128`}
+                    alt={cat.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-12 h-12 md:w-16 md:h-16 object-contain mx-auto mb-2 md:mb-3"
+                  />
+                  <p className="text-xs md:text-sm font-semibold text-gw-black group-hover:text-gw-red transition-colors">{cat.name}</p>
+                </MotionLink>
+              </motion.div>
             ))}
           </motion.div>
         </Container>
@@ -205,7 +219,7 @@ export default function Home() {
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">Featured Products</h2>
-            <a href="/shop" className="gw-section-link">View All &rarr;</a>
+            <Link to="/shop" className="gw-section-link">View All &rarr;</Link>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -278,7 +292,7 @@ export default function Home() {
         <Container>
           <div className="gw-section-header">
             <h2 className="gw-section-title">New Arrivals</h2>
-            <a href="/shop" className="gw-section-link">View All &rarr;</a>
+            <Link to="/shop" className="gw-section-link">View All &rarr;</Link>
           </div>
           <motion.div
             variants={staggerContainerFast}
@@ -310,14 +324,16 @@ export default function Home() {
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-5"
           >
             {brands.slice(0, 12).map((brand) => (
-              <motion.a
+              <motion.div
                 key={brand.id}
                 variants={staggerItem}
-                href={`/shop?brand=${brand.slug}`}
-                whileHover={{ y: -5, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
-                whileTap={{ scale: 0.97 }}
-                className="bg-white border border-gw-border rounded-card p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
               >
+                <MotionLink
+                  to={`/shop?brand=${brand.slug}`}
+                  whileHover={{ y: -5, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
+                  whileTap={{ scale: 0.97 }}
+                  className="block bg-white border border-gw-border rounded-card p-5 md:p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 group"
+                >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-gw-border p-2.5 flex items-center justify-center overflow-hidden group-hover:border-gw-red/30 transition-colors">
                   {brand.logo ? (
                     <img
@@ -335,7 +351,8 @@ export default function Home() {
                 <span className="text-[11px] md:text-sm font-bold text-gw-black group-hover:text-gw-red transition-colors text-center leading-tight">
                   {brand.name}
                 </span>
-              </motion.a>
+                </MotionLink>
+              </motion.div>
             ))}
           </motion.div>
         </Container>

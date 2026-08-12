@@ -1,4 +1,5 @@
 import { Container } from "./container";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
 
@@ -6,23 +7,26 @@ const footerLinks = {
   quick: {
     title: "Quick Links",
     links: [
-      { label: "Home", href: "/" },
-      { label: "Shop", href: "/shop" },
-      { label: "Categories", href: "/categories" },
-      { label: "About Us", href: "/about" },
-      { label: "Contact", href: "/contact" },
+      { label: "Home", to: "/" },
+      { label: "Shop", to: "/shop" },
+      { label: "Categories", to: "/categories" },
+      { label: "About Us", to: "/about" },
+      { label: "Contact", to: "/contact" },
     ],
   },
   service: {
     title: "Customer Service",
     links: [
-      { label: "FAQ", href: "/faq" },
-      { label: "Shipping & Returns", href: "/faq" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms & Conditions", href: "/terms" },
+      { label: "FAQ", to: "/faq" },
+      { label: "Shipping & Returns", to: "/faq" },
+      { label: "Privacy Policy", to: "/privacy" },
+      { label: "Terms & Conditions", to: "/terms" },
     ],
   },
 };
+
+// Animated internal link (motion + react-router Link in one component).
+const MotionLink = motion.create(Link);
 
 const staggerColumn = {
   hidden: { opacity: 0 },
@@ -57,14 +61,14 @@ export function Footer() {
         >
           {/* Brand Column */}
           <motion.div variants={fadeSlideUp}>
-            <motion.a
-              href="/"
+            <MotionLink
+              to="/"
               className="flex items-center gap-2 mb-4"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               <img src="/icons/Nav-footer.png" alt="Gadget Wallet" className="h-24 w-auto" />
-            </motion.a>
+            </MotionLink>
             <p className="text-sm leading-relaxed text-slate-400 mb-6">
               Your trusted destination for premium electronics. We bring you the latest gadgets at the best prices with official warranty.
             </p>
@@ -106,13 +110,13 @@ export function Footer() {
               >
                 {section.links.map((link) => (
                   <motion.li key={link.label} variants={fadeSlideUp}>
-                    <motion.a
-                      href={link.href}
+                    <MotionLink
+                      to={link.to}
                       whileHover={{ x: 4 }}
                       className="text-sm text-slate-400 hover:text-white transition-colors inline-block"
                     >
                       {link.label}
-                    </motion.a>
+                    </MotionLink>
                   </motion.li>
                 ))}
               </motion.ul>

@@ -1,5 +1,5 @@
 import { Container, Button } from "@gadget-wallet/ui";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle, Package } from "lucide-react";
 
@@ -69,10 +69,10 @@ export default function OrderSuccess() {
               className="space-y-3"
             >
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                <a href="/profile?tab=orders"><Button variant="primary" className="w-full h-12">Track Order</Button></a>
+                <Link to="/profile?tab=orders"><Button variant="primary" className="w-full h-12">Track Order</Button></Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                <a href="/shop"><Button variant="outline" className="w-full h-12">Continue Shopping</Button></a>
+                <Link to="/shop"><Button variant="outline" className="w-full h-12">Continue Shopping</Button></Link>
               </motion.div>
             </motion.div>
           </motion.div>

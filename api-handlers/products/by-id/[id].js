@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       sql.unsafe(`SELECT ${SPEC_SELECT} FROM product_specs WHERE product_id = $1`, [product.id]),
     ]);
 
-    return ok(res, { ...product, images, specs });
+    return okPublic(res, { ...product, images, specs }, 300);
   } catch (err) {
     console.error("[products] by-id failed:", err);
     return fail(res, 500, "Failed to fetch product");

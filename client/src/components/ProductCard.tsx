@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "../store/useCartStore";
 import { showToast } from "../store/useToastStore";
 import { useRequireAuth } from "../lib/useRequireAuth";
@@ -34,6 +34,8 @@ export interface ProductCardProduct {
   price: number;
   discountPrice?: number;
   thumbnailUrl?: string;
+  /** Light list projection — first gallery image (fallback when no thumbnail). */
+  firstImageUrl?: string;
   images?: { url: string; alt: string }[];
   rating: number;
   shortDescription?: string;
@@ -75,8 +77,8 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
   };
 
   return (
-    <a
-      href={`/product/${product.slug}`}
+    <Link
+      to={`/product/${product.slug}`}
       className="gw-product-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gw-red focus-visible:ring-offset-2"
     >
       {/* ── Image zone: the only section with the 3D hover effect ── */}
@@ -94,12 +96,14 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
             <img
               src={
                 product.thumbnailUrl ||
+                product.firstImageUrl ||
                 product.images?.[0]?.url ||
                 `https://picsum.photos/seed/${product.slug}/400/400`
               }
               alt={product.name}
               className="gw-product-card-3d-image"
               loading="lazy"
+              decoding="async"
             />
           </div>
         </motion.div>
@@ -153,6 +157,6 @@ export function ProductCard({ product }: { product: ProductCardProduct }) {
           </button>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

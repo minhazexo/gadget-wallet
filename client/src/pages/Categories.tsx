@@ -1,12 +1,16 @@
 import { Container } from "@gadget-wallet/ui";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+
+// Animated internal link (motion + react-router Link in one component).
+const MotionLink = motion.create(Link);
 import { Smartphone, Laptop, Watch, Headphones, Gamepad2, Camera, Tablet, Cable, Package } from "lucide-react";
 import {
   staggerContainerFast,
   staggerItem,
 } from "../lib/animations";
-import api from "../lib/api";
+import { cachedGet } from "../lib/cachedGet";
 
 const iconMap: Record<string, any> = {
   smartphones: Smartphone,
@@ -31,9 +35,8 @@ export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    api
-      .get("/categories")
-      .then((res) => setCategories(res.data.data || []))
+    cachedGet<{ data: Category[] }>("/categories", 5 * 60_000)
+      .then((body) => setCategories(body.data || []))
       .catch(() => setCategories([]));
   }, []);
 
@@ -70,10 +73,10 @@ export default function Categories() {
           {categories.map((cat) => {
             const Icon = iconMap[cat.slug] || Package;
             return (
-              <motion.a
+              <MotionLink
                 key={cat.slug}
                 variants={staggerItem}
-                href={`/category/${cat.slug}`}
+                to={`/category/${cat.slug}`}
                 whileHover={{ y: -6, boxShadow: "0 16px 32px rgba(0,0,0,0.1)" }}
                 whileTap={{ scale: 0.97 }}
                 className="gw-panel-category p-4 md:p-6 text-center hover:-translate-y-1 hover:shadow-gw-md transition-all duration-300 group"
@@ -83,6 +86,8 @@ export default function Categories() {
                     <img
                       src={cat.image}
                       alt={cat.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-contain"
                     />
                   ) : (
@@ -91,7 +96,7 @@ export default function Categories() {
                 </div>
                 <h3 className="gw-heading group-hover:text-gw-red transition-colors">{cat.name}</h3>
                 <p className="gw-muted-sm mt-1">{cat.count} products</p>
-              </motion.a>
+              </MotionLink>
             );
           })}
         </motion.div>
