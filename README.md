@@ -2,13 +2,13 @@
 
 A full-stack premium electronics eCommerce store. React storefront + Hono API
 deployed to Vercel as a **single monolith project** — frontend and API share one
-domain, with a Neon PostgreSQL database and Supabase Storage for product images.
+domain, with a Supabase PostgreSQL database and Supabase Storage for product images.
 
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Plain Node.js serverless functions on Vercel; the Hono API under `apps/server` is kept for local development
-- **Database**: Neon PostgreSQL + Drizzle ORM
+- **Database**: Supabase PostgreSQL + Drizzle ORM
 - **Image Storage**: Supabase Storage (public `products` bucket; local disk fallback in dev)
 - **Styling**: Tailwind CSS + Framer Motion
 - **Icons**: Lucide React
@@ -61,8 +61,7 @@ gadget-wallet/
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1.1+
-- [Neon PostgreSQL](https://neon.tech) — app data
-- [Supabase](https://supabase.com) — product images (optional in dev; required in production)
+- [Supabase](https://supabase.com) — PostgreSQL database (all app data) + product image storage
 
 ### Setup
 
@@ -72,7 +71,7 @@ bun install
 
 # 2. Copy and configure environment variables
 cp .env.example .env
-#    - DATABASE_URL                → your Neon connection string
+#    - DATABASE_URL                → your Supabase connection string (session pooler, port 5432)
 #    - SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY → for image uploads
 #    - JWT_SECRET                  → any long random string
 
@@ -159,5 +158,5 @@ smoke suite locally:
 bun run --env-file=.env scripts/smoke-api.mjs   # → 36/36 checks passed
 ```
 
-> 📖 Full step-by-step guide, env var table, troubleshooting, and Neon pooling
-> tips: **`docs/DEPLOY_TO_VERCEL.md`**.
+> 📖 Full step-by-step guide, env var table, and troubleshooting:
+> **`docs/DEPLOY_TO_VERCEL.md`**.

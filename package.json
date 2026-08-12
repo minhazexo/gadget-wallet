@@ -22,7 +22,6 @@
     "typecheck": "bun run --cwd client typecheck && bun run --cwd apps/server typecheck"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.0",
     "@supabase/supabase-js": "^2.111.0",
     "bcryptjs": "^2.4.3",
     "busboy": "^1.6.0",

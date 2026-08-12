@@ -13,14 +13,14 @@ loadEnvWithOverride();
  * that is the single reusable connection. Nothing here is created at import
  * time on purpose: a module-scope `postgres(...)` call would open a second
  * pool in every serverless function that transitively imported this file,
- * doubling connection usage against Neon's limit for no reason.
+ * doubling connection usage against Supabase's limit for no reason.
  */
 const connectionString = process.env.DATABASE_URL;
 
 // Serverless-safe pool options — see packages/db/src/index.ts for the full
-// rationale. `max: 1` (per function instance) avoids exhausting Neon's
-// connection limit; `prepare: false` is required for the Neon pooled
-// (`-pooler`, PgBouncer transaction-mode) endpoint.
+// rationale. `max: 1` (per function instance) avoids exhausting Supabase's
+// connection limit; `prepare: false` is required for the Supabase pooled
+// (transaction-mode, port 6543) endpoint.
 const poolOptions = {
   max: 1,
   idle_timeout: 20,
@@ -31,7 +31,7 @@ const poolOptions = {
 export function createPgClient() {
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL is not set. Add your Neon PostgreSQL connection string to Environment Variables.",
+      "DATABASE_URL is not set. Add your Supabase PostgreSQL connection string to Environment Variables.",
     );
   }
 

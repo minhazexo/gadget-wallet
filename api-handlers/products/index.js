@@ -114,10 +114,9 @@ export default async function handler(req, res) {
   const scopeWhere = scope.join(" AND ");
 
   try {
-    // Data + total in ONE query via a window function — the neon() driver is
-    // HTTP-based, so every separate statement is its own round-trip to Neon.
-    // count(*) OVER() is computed before LIMIT/OFFSET apply, so _total on the
-    // first row is the full filtered count.
+    // Data + total in ONE query via a window function — count(*) OVER() is
+    // computed before LIMIT/OFFSET apply, so _total on the first row is the
+    // full filtered count.
     const rows = await sql.unsafe(
       `SELECT ${PRODUCT_LIST_SELECT},
               count(*) OVER()::int AS _total

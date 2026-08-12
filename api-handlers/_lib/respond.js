@@ -8,7 +8,7 @@ export function ok(res, data, message) {
 /**
  * Public, read-only GET responses — cacheable at Vercel's edge CDN.
  * `s-maxage` caches at the CDN (repeat visitors never hit the function or
- * Neon), `stale-while-revalidate` keeps serving stale while revalidating
+ * the database), `stale-while-revalidate` keeps serving stale while revalidating
  * in the background so the first request after a TTL expiry is still fast.
  * Never use this for auth/cart/wishlist/orders/admin endpoints.
  */

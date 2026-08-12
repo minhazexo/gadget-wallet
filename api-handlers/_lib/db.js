@@ -1,9 +1,9 @@
 import postgres from "postgres";
 
 // Raw SQL client backed by postgres.js — works with ANY Postgres-compatible
-// database. After the Neon → Supabase migration, DATABASE_URL points at the
-// Supabase transaction pooler (port 6543); the Neon HTTP driver was dropped
-// because it cannot route through Supabase's pooler (SNI-based routing).
+// database. DATABASE_URL points at the Supabase session pooler (port 5432);
+// the previous HTTP driver was dropped because it cannot route through
+// Supabase's pooler (SNI-based routing).
 //
 // The exported interface is identical to the old driver:
 //   sql.unsafe(queryText, params)  → rows array (async)
